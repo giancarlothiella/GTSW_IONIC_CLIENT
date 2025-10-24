@@ -1,0 +1,7 @@
+{
+  "name": "GTSW",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
