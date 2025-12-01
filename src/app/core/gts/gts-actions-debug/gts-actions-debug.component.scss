@@ -1,0 +1,20 @@
+.debugForm {
+    background-color: rgb(235, 244, 253);
+    border-radius: 5px;
+    border: 1px solid rgb(23, 36, 155);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    float: left;
+    padding: 10px;
+}
+
+.status-executed {
+  background-color: #d0f0c0 !important;
+}
+
+.status-pending {
+  background-color: #ffeb9c !important;
+}
+
+.status-failed {
+  background-color: #ffcccb !important;
+}

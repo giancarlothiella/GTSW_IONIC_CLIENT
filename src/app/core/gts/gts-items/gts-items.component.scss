@@ -1,0 +1,35 @@
+.gts-items-list {
+  border-top: solid 1px;
+}
+
+.gts-items-title {
+  font-size: 1.5em;
+  font-weight: bold;
+  padding: 3px 0 3px 12px;
+  background-color: darkblue;
+  color: white;
+}
+
+::ng-deep .data-content {
+  background-color: rgba(249, 240, 203, 0.8);
+}
+
+::ng-deep .item {
+  height: 100%;
+}
+
+::ng-deep .left-side {
+  background-color: rgba(203, 236, 249, 0.8);  
+}
+
+::ng-deep .dx-tab {
+  background-color: white;
+  border-bottom-color: rgb(175, 174, 174);
+  font-size: 14px;
+  border-color: gray;
+  border: 1px solid #adadad !important;
+}
+
+::ng-deep .dx-tab-selected {
+  font-weight: bold;
+}

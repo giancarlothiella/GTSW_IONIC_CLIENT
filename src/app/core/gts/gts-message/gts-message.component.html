@@ -1,0 +1,27 @@
+<dx-popup    
+    [hideOnOutsideClick]="false"
+    [showCloseButton]="false"
+    [visible]="visible"  
+    [height]="formHeight"
+    [width]="formWidth" 
+    titleTemplate="title">
+    <div *dxTemplate="let data of 'title'" style="height: 65px;">
+        <img
+            id="messageImg"
+            [src]="messageImage"
+            style="float: right;"
+        /> 
+        <div style="font-size:large">{{message.msgTitle}}</div>
+    </div>   
+    <div *dxTemplate="let data of 'content'" style="height: 290px;">
+        <div
+            class="gts-message"
+            [innerHTML]="text"
+        ></div>       
+        <dx-toolbar 
+            [items]="itemsList"
+            class="message-toolbar"
+        ></dx-toolbar>
+    </div>
+</dx-popup>
+

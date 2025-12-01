@@ -1,0 +1,75 @@
+// src/app/features/auth/reset-2fa/reset-2fa.page.scss
+.reset-2fa-container {
+  max-width: 400px;
+  margin: 0 auto;
+  padding-top: 60px;
+
+  .reset-2fa-header {
+    text-align: center;
+    margin-bottom: 40px;
+
+    .header-icon {
+      font-size: 64px;
+      color: var(--ion-color-primary);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--ion-color-dark);
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--ion-color-medium);
+      line-height: 1.5;
+      margin: 0;
+    }
+  }
+
+  .reset-2fa-form {
+    ::ng-deep .submit-button {
+      margin-top: 20px;
+    }
+
+    .back-link {
+      font-size: 14px;
+      text-align: center;
+      margin-top: 20px;
+
+      a {
+        color: var(--ion-color-primary);
+        text-decoration: none;
+        cursor: pointer;
+        font-weight: 500;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 576px) {
+  .reset-2fa-container {
+    padding-top: 40px;
+
+    .reset-2fa-header {
+      .header-icon {
+        font-size: 48px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      .subtitle {
+        font-size: 13px;
+      }
+    }
+  }
+}

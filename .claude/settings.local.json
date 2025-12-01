@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(for dir in gts-*/)",
+      "Bash(do echo \"=== $dir ===\")",
+      "Bash(done)",
+      "Bash(for comp in gts-items gts-lookup gts-html gts-pdf gts-debug gts-actions-debug gts-file-uploader gts-ai)",
+      "Bash(do echo \"=== $comp ===\")",
+      "Bash(while read dir)",
+      "Bash(do name=$dir%/)",
+      "Bash(if [ -f \"$name/$name.component.html\" ])",
+      "Bash(then echo \"=== $name ===\")",
+      "Bash(fi)",
+      "Bash(npm run build:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm install:*)",
+      "Bash(nul)",
+      "Bash(touch:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(npm start)",
+      "Bash(timeout /t 10 /nobreak)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(ping:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd //c \"taskkill //PID 2624 //F\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

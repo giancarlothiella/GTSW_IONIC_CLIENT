@@ -1,0 +1,158 @@
+<div>
+  <dx-popup
+    id="actionDebugPopoUp"
+    [dragEnabled]="true"
+    [showCloseButton]="true"
+    [hideOnOutsideClick]="false"
+
+    [height]="600"
+    [width]="1200"
+    [title]="debugTitle"
+    isMovable="true"
+    [resizeEnabled]="true"
+    [(visible)]="showPopup"
+    [shading]="false"
+    (onHiding)="onPopupHiding($event)"
+    >
+    <div class="debugForm" style=" width: 904px; height: 60px; float:none;">
+      <div style="float: left; margin-top: 4px;">
+        <dx-button
+          stylingMode="contained"
+          text="Execute Line"
+          type="default"
+          [disabled]="status === 'Completed'"
+          [width]="160"
+          icon= "chevronright"
+          (onClick)="onExecLineButtonClick($event)"
+          >
+        </dx-button>
+      </div>
+      <div style="float: left; margin-left: 10px; margin-top: 4px;">
+        <dx-button
+          stylingMode="contained"
+          text="Execute All"
+          type="success"
+          [disabled]="status === 'Completed'"
+          [width]="160"
+          icon= "chevrondoubleright"
+          (onClick)="onExecAllButtonClick($event)"
+          >
+        </dx-button>
+      </div>
+      @if (status !== 'Completed') {
+        <div
+          style="margin-top: 12px; font-size: 14px; font-weight: bold; float: left;"
+          >
+          <span style="margin-left: 30px;">Action Debug Line: {{lineNumber+1}}</span>
+          <span style="margin-left: 30px;">{{actionType}}</span>
+        </div>
+      }
+      <div style="margin-top: 12px; font-size: 14px; font-weight: bold;">
+        <span style="margin-left: 30px;">{{status}}</span>
+      </div>
+    </div>
+
+
+
+    <div class="debugForm">
+      <dx-data-grid
+        id="actionDebugGrid"
+        [dataSource]="gridData.dataStore"
+        [showRowLines]="true"
+        [showColumnLines]="true"
+        [showBorders]="true"
+        [rowAlternationEnabled]="false"
+        [focusedRowEnabled]="false"
+        [columnAutoWidth]="true"
+        [(focusedRowKey)]="focusedRowKey"
+        (onInitialized)="onGridInitialized($event)"
+        (onRowPrepared)="onRowPrepared($event)"
+        (onDataChanged)="onDataChanged($event)"
+        width="920"
+        >
+        <dxi-column
+          dataField="actionOrder"
+          caption="Order"
+          width="60"
+        ></dxi-column>
+        <dxi-column
+          dataField="actionType"
+          caption="Type"
+          width="150"
+        ></dxi-column>
+        <dxi-column
+          dataField="condId"
+          caption="Rule#"
+          width="70"
+        ></dxi-column>
+        <dxi-column
+          dataField="condValue"
+          caption="Rule"
+          width="60"
+        ></dxi-column>
+        <dxi-column
+          dataField="customCode"
+          caption="Code"
+          width="120"
+        ></dxi-column>
+        <dxi-column
+          dataField="clFldGrpId"
+          caption="Group"
+          width="80"
+        ></dxi-column>
+        <dxi-column
+          dataField="dataAdapter"
+          caption="Adapter"
+          width="100"
+        ></dxi-column>
+        <dxi-column
+          dataField="dataSetName"
+          caption="DataSet"
+          width="100"
+        ></dxi-column>
+        <dxi-column
+          dataField="sqlId"
+          caption="SQL"
+          width="80"
+        ></dxi-column>
+        <dxi-column
+          dataField="viewName"
+          caption="View Name"
+          width="140"
+        ></dxi-column>
+        <dxi-column
+          dataField="msgId"
+          caption="Msg"
+          width="80"
+        ></dxi-column>
+      </dx-data-grid>
+    </div>
+
+    <div class="debugForm">
+      <dx-data-grid
+        id="pageRules"
+        [dataSource]="pageRules"
+        [showRowLines]="true"
+        [showColumnLines]="true"
+        [rowAlternationEnabled]="true"
+        [showBorders]="true"
+        [focusedRowEnabled]="true"
+        keyExpr="condId"
+        width="140"
+        >
+        <dxi-column
+          dataField="condId"
+          caption="Rule#"
+          width="60"
+        ></dxi-column>
+        <dxi-column
+          dataField="condValue"
+          caption="Value"
+          width="60"
+        ></dxi-column>
+      </dx-data-grid>
+    </div>
+
+
+  </dx-popup>
+</div>

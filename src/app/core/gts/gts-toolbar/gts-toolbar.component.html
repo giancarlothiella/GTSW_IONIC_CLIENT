@@ -1,0 +1,22 @@
+@if (toolbarReady && objectName === metaData.objectName && toolbarType === 'default') {
+  <dx-toolbar
+    [id]="objectName"
+    [ngClass]="cssClass"
+    [items]="itemsList"
+    [visible]="toolbarVisible"
+    (onInitialized)="onInitialized($event)"
+  ></dx-toolbar>
+}
+
+<dx-action-sheet
+  [id]="objectName"
+  [items]="actionToolbar.actionList"
+  [showTitle]="false"
+  [width]="300"
+  [usePopover]="actionToolbar.flagPopover"
+  [(visible)]="actionToolbar.visible"
+  [target]="actionSheetTarget"
+  (onItemClick)="actionClick($event)"
+></dx-action-sheet>
+
+

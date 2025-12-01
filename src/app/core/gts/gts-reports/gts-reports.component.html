@@ -1,0 +1,98 @@
+<app-gts-loader></app-gts-loader>
+
+@if (!showReport) {
+  <div [class]="reportCSSTitle">
+    {{reportTitle}}
+  </div>
+  <dx-radio-group
+    [class]="reportsGroups.cssClass"
+    [items]="reportsGroups.radioValues"
+    [(value)]="selectedValue"
+    [(tabIndex)]="reportsGroups.radioIndex"
+  ></dx-radio-group>
+  <dx-toolbar
+    id="reportsToolbar"
+    [items]="reportsGroups.itemsList"
+    [class]="reportsGroups.cssToolbar"
+  ></dx-toolbar>
+}
+
+@if (showReport) {
+  <div class="gts-tabs">
+    <dx-tabs
+      #gtsTabs
+      id="reportTabsId"
+      [width]="300"
+      [dataSource]    ="reportTabs"
+      [(selectedIndex)] ="tabsIndex"
+      iconPosition = "start"
+      stylingMode = "secondary"
+    ></dx-tabs>
+  </div>
+  @if (tabsIndex === 0) {
+    <ngx-extended-pdf-viewer
+      [base64Src]="base64PdfStream"
+      [textLayer]="true"
+      height="auto"
+      [showHandToolButton]="true"
+      [showPresentationModeButton]="true"
+    ></ngx-extended-pdf-viewer>
+  }
+  @if (tabsIndex === 1) {
+    <dx-tabs
+      #gtsTabs
+      id="gridTabs"
+      [width]="gridsTabsWidth"
+      [dataSource]    ="gridsTabsList"
+      [selectedIndex] ="gridsTabsIndex"
+      stylingMode     = "secondary"
+      (onItemClick)   ="onGridsTabsClick($event)"
+    ></dx-tabs>
+    @for (element of grids; track element) {
+      @if (element.visible) {
+        <dx-data-grid
+          [id]="element.id"
+          [dataSource]="element.dataSource"
+          [columns]="element.columns"
+          [showBorders]="true"
+          [allowColumnResizing]="true"
+          [columnAutoWidth]="true"
+          [showRowLines]="true"
+          [showColumnLines]="true"
+          [allowColumnReordering]="true"
+          [rowAlternationEnabled]="true"
+          [focusedRowEnabled]="true"
+          (onExporting)="onGridExporting($event)"
+          ><dxo-header-filter
+          [visible]="true"
+        ></dxo-header-filter>
+        <dxo-filter-row
+          [visible]="true"
+        ></dxo-filter-row>
+        <dxo-search-panel
+          [visible]="true"
+          [highlightCaseSensitive]="true"
+        ></dxo-search-panel>
+        <dxo-paging
+          [pageSize]="20">
+        </dxo-paging>
+        <dxo-pager
+          [showPageSizeSelector]="true"
+          [showNavigationButtons]="true"
+          [showInfo]="true"
+          [allowedPageSizes]="[5, 10, 20]"
+        ></dxo-pager>
+        <dxo-export
+          [enabled]="true"
+          [allowExportSelectedData]="true"
+          [fileName]="element.fileName"
+        ></dxo-export>
+        <dxo-selection
+          showCheckBoxesMode="none"
+          mode="multiple"
+        ></dxo-selection>
+      </dx-data-grid>
+    }
+  }
+}
+}

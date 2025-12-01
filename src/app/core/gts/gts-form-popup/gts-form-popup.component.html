@@ -1,0 +1,17 @@
+<dx-popup
+    [hideOnOutsideClick]="false"
+    [showCloseButton]="false"
+    [visible]="true"
+    [title]="formTitle"
+    [height]="formHeight"
+    [width]="formWidth"
+    [shading]="!actionsDebugActive"
+    (onContentReady)="onFormContentReady($event)"
+    (onInitialized)="onFormInitialized($event)"
+>
+    <app-gts-form
+        [prjId]="prjId"
+        [formId]="formId"
+        [objectName]="objectName"
+    ></app-gts-form>
+</dx-popup>

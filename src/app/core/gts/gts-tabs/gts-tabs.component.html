@@ -1,0 +1,12 @@
+<div class="gts-tabs">
+    <dx-tabs
+        #gtsTabs
+        [id]="objectName"
+        [width]="tabsWidth"
+        [dataSource]    ="tabsList"
+        [selectedIndex] ="tabsIndex"
+        iconPosition = "start"
+        stylingMode = "secondary"
+        (onItemClick)   ="onTabClick($event)"
+    ></dx-tabs>
+</div>

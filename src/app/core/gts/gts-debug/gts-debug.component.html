@@ -1,0 +1,1018 @@
+<dx-tabs
+  [width]="600"
+  [(selectedIndex)] ="tabsIndex"
+  >
+  <dxi-item
+    text="MetaData"
+    icon="columnchooser"
+  ></dxi-item>
+
+  <dxi-item
+    text="DB Data"
+    icon="datafield"
+  ></dxi-item>
+
+  <dxi-item
+    text="DB Action Log"
+    icon="menu"
+  ></dxi-item>
+
+  <dxi-item
+    text="Actions Debug"
+    icon="detailslayout"
+  ></dxi-item>
+</dx-tabs>
+
+@if (tabsIndex<3) {
+  <dx-accordion
+    [dataSource]="pages"
+    [collapsible]="true"
+    [multiple]="false"
+    [animationDuration]="300"
+    [(selectedIndex)]="selectedItemIndex"
+    (onSelectionChanged)="onSelectionChanged($event)"
+    width="auto"
+    height="auto"
+    id="page-container"
+    >
+    <div *dxTemplate="let page of 'title'">
+      <div class="pageHeader">{{page.prjId}}/{{page.formId}} - {{page.title}}</div>
+    </div>
+    <div *dxTemplate="let page of 'item'">
+      @if (tabsIndex===0) {
+        <div>
+          <div class="debugForm">
+            <dx-list
+              [dataSource]="page.metadata"
+              height="auto"
+              [allowItemDeleting]="false"
+              (onItemClick)="onMetaDataClick($event)"
+              width="120"
+              >
+              <div *dxTemplate="let item of 'item'"  >
+                <div>{{item.group}} - [{{item.size}}]</div>
+              </div>
+            </dx-list>
+          </div>
+          @if (metaDataRows !== null && metaDataRows.length > 0) {
+            <div class="debugForm" >
+              <!-- =============== ACTIONS =============== -->
+              @if (metaDataGroup === 'actions') {
+                <div style="float:left;">
+                  <div style="float:left; width:200px;">
+                    <dx-data-grid
+                      [id]="metaData.group"
+                      [dataSource]="metaDataRows"
+                      [showBorders]="true"
+                      [focusedRowEnabled]="true"
+                      (onFocusedRowChanged)="onActionFocusedRowChanged($event)"
+                      (onCellDblClick)="onCellDblClick($event)"
+                      keyExpr="objectName"
+                      width="200"
+                      >
+                      <dxi-column
+                        dataField="objectName"
+                      ></dxi-column>
+                    </dx-data-grid>
+                  </div>
+                  @if (actionRow !== null) {
+                    <div style="float:left; width:1200px;">
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="actionRow.actions"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onFocusedRowChanged)="onActionDetFocusedRowChanged($event)"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="actionOrder"
+                        >
+                        <dxi-column
+                          dataField="actionOrder"
+                          caption="Order"
+                          width="60"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="actionType"
+                          caption="Type"
+                          width="150"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="condId"
+                          caption="Rule ID"
+                          width="100"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="condValue"
+                          caption="Rule Value"
+                          width="100"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="msgId"
+                          caption="Message"
+                          width="100"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="clFldGrpId"
+                          caption="Group"
+                          width="100"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="dataAdapter"
+                          caption="Data Adapter"
+                          width="120"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="sqlId"
+                          caption="SQL ID"
+                          width="200"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="dataSetName"
+                          caption="DataSet"
+                          width="200"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="viewName"
+                          caption="View Name"
+                          width="200"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                </div>
+              }
+              <!-- =============== COND RULES =============== -->
+              @if (metaDataGroup === 'condRules') {
+                <div style="float:left; width:605px;">
+                  @if (metaDataRows !== null) {
+                    <div>
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="metaDataRows"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="condId"
+                        >
+                        <dxi-column
+                          dataField="condId"
+                          caption="ID"
+                          width="80"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="condDescr"
+                          width="400"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="condValue"
+                          caption="Value"
+                          width="120"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                </div>
+              }
+              <!-- =============== DATASETS =============== -->
+              @if (metaDataGroup === 'dataSets') {
+                <div style="float:left; width:420px;">
+                  @if (metaDataRows !== null) {
+                    <div>
+                      <dx-button
+                        stylingMode="contained"
+                        text="Show SQL"
+                        type="default"
+                        [width]="200"
+                        icon= "search"
+                        [disabled]="dataSetSelectedRowKeys !== null && dataSetSelectedRowKeys.length === 0"
+                        (onClick)="onMetaDataDataSetButtonClick()">
+                      </dx-button>
+                      @if (metaDataGroup === 'dataSets') {
+                        <div style="float:left; width:420px;">
+                          <dx-data-grid
+                            [id]="metaData.group"
+                            [dataSource]="metaDataRows"
+                            [showBorders]="true"
+                            [focusedRowEnabled]="true"
+                            [(selectedRowKeys)]="dataSetSelectedRowKeys"
+                            (onFocusedRowChanged)="onDataSetFocusedRowChanged($event)"
+                            (onCellDblClick)="onCellDblClick($event)"
+                            keyExpr="dataSetName"
+                            >
+                            <dxo-selection
+                              showCheckBoxesMode="always"
+                              mode="single"
+                              selectAllMode="allPages"
+                              showCheckBoxesMode="always"
+                            ></dxo-selection>
+                            <dxi-column
+                              dataField="dataAdapterName"
+                              caption="Data Adapter"
+                              width="150"
+                            ></dxi-column>
+                            <dxi-column
+                              dataField="dataSetName"
+                              caption="DataSet"
+                              width="150"
+                            ></dxi-column>
+                            <dxi-column
+                              dataField="sqlId"
+                              caption="SQL ID"
+                              width="120"
+                            ></dxi-column>
+                          </dx-data-grid>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+              <!-- =============== FORMS =============== -->
+              @if (metaDataGroup === 'forms') {
+                <div style="float:left;">
+                  @if (metaDataRows !== null) {
+                    <div style="float:left; width:535px;">
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="metaDataRows"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onFocusedRowChanged)="onFormFocusedRowChanged($event)"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="groupId"
+                        width="535"
+                        >
+                        <dxi-column
+                          dataField="groupId"
+                          caption="Group ID"
+                          width="100"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="objectName"
+                          caption="Form Name"
+                          width="250"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="groupType"
+                          caption="Type"
+                          width="100"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="groupShowPopUp"
+                          caption="PopUp"
+                          width="80"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                  @if (formRow !== null) {
+                    <div style="float:left; width:870px;">
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="formRow.fields"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="fieldId"
+                        >
+                        <dxi-column
+                          dataField="fieldId"
+                          caption="ID"
+                          width="60"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="objectName"
+                          caption="Field Name"
+                          width="350"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="fieldLabel"
+                          caption="Label"
+                          width="200"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="editorType"
+                          caption="Type"
+                          width="120"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="dataType"
+                          caption="Data"
+                          width="60"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="sqlId"
+                          caption="SQL ID"
+                          width="80"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                </div>
+              }
+              <!-- =============== GRIDS =============== -->
+              @if (metaDataGroup === 'grids') {
+                <div style="float:left;">
+                  <div>
+                    <dx-button
+                      stylingMode="contained"
+                      text="Show SQL"
+                      type="normal"
+                      [width]="120"
+                      icon= "preferences"
+                      [disabled]="this.gridRow === null"
+                      (onClick)="onGridSQLButtonClick()"
+                    ></dx-button>
+                  </div>
+                  @if (metaDataRows !== null) {
+                    <div style="float:left; width:655px;">
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="metaDataRows"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onFocusedRowChanged)="onGridFocusedRowChanged($event)"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="objectName"
+                        width="655"
+                        >
+                        <dxi-column
+                          dataField="objectName"
+                          caption="Grid Name"
+                          width="150"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="dataAdapter"
+                          caption="Data Adapter"
+                          width="150"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="dataSetName"
+                          caption="DataSet Name"
+                          width="150"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="sqlId"
+                          caption="SQL ID"
+                          width="100"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="selectionMode"
+                          caption="Mode"
+                          width="100"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                  @if (gridRow !== null) {
+                    <div style="float:left; width:600px;">
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="gridRow.columns"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="columnId"
+                        >
+                        <dxi-column
+                          dataField="columnId"
+                          caption="ID"
+                          width="60"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="fieldName"
+                          caption="Field Name"
+                          width="250"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="text"
+                          caption="Caption"
+                          width="200"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="columnType"
+                          caption="Type"
+                          width="80"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                </div>
+              }
+              <!-- =============== PAGE FIELDS =============== -->
+              @if (metaDataGroup === 'pageFields') {
+                <div style="float:left; width:955px;">
+                  @if (metaDataRows !== null) {
+                    <div>
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="metaDataRows"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        [showBorders]="true"
+                        [rowAlternationEnabled]="true"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="pageFieldName"
+                        >
+                        <dxo-header-filter
+                          [visible]="true"
+                        ></dxo-header-filter>
+                        <dxo-load-panel
+                          [enabled]="false"
+                        ></dxo-load-panel>
+                        <dxo-filter-row
+                          [visible]="true"
+                        ></dxo-filter-row>
+                        <dxo-filter-panel
+                          [visible]="true"
+                        ></dxo-filter-panel>
+                        <dxo-search-panel
+                          [visible]="true"
+                          [highlightCaseSensitive]="true"
+                        ></dxo-search-panel>
+                        <dxo-sorting
+                          mode="multiple"
+                        ></dxo-sorting>
+                        <dxi-column
+                          dataField="pageFieldName"
+                          caption="Field Name"
+                          width="300"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="dataType"
+                          caption="Type"
+                          width="100"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="dataSetName"
+                          caption="DataSet"
+                          width="150"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="dbFieldName"
+                          caption="DB Field Name"
+                          width="250"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="fieldGrpId"
+                          caption="Field Group ID"
+                          width="150"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                </div>
+              }
+              <!-- =============== TABS =============== -->
+              @if (metaDataGroup === 'tabs') {
+                <div style="float:left;">
+                  @if (metaDataRows !== null) {
+                    <div style="float:left; width:405px;">
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="metaDataRows"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onFocusedRowChanged)="onTabsFocusedRowChanged($event)"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="objectName"
+                        width="405"
+                        >
+                        <dxi-column
+                          dataField="objectName"
+                          caption="Tabs Name"
+                          width="250"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="gridArea"
+                          caption="Grid Area"
+                          width="150"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                  @if (tabsRow !== null) {
+                    <div style="float:left; width:720px;">
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="tabsRow.tabsData"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="tabId"
+                        >
+                        <dxi-column
+                          dataField="tabId"
+                          caption="ID"
+                          width="60"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="text"
+                          caption="Caption"
+                          width="300"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="iconId"
+                          caption="Icon"
+                          width="100"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="actionName"
+                          caption="Action"
+                          width="250"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                </div>
+              }
+              <!-- =============== TOOLBARS =============== -->
+              @if (metaDataGroup === 'toolbars') {
+                <div style="float:left;">
+                  @if (metaDataRows !== null) {
+                    <div style="float:left; width:1155px;">
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="metaDataRows"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onFocusedRowChanged)="onToolbarsFocusedRowChanged($event)"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="toolbarId"
+                        width="1150"
+                        >
+                        <dxi-column
+                          dataField="objectName"
+                          caption="Toolbar Name"
+                          width="200"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="objectDescr"
+                          caption="Toolbar Description"
+                          width="200"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="gridArea"
+                          caption="Grid Area"
+                          width="150"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="toolbarId"
+                          caption="Toolbar ID"
+                          width="120"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="toolbarFlagSubmit"
+                          caption="Submit"
+                          width="120"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="flagAction"
+                          caption="Action"
+                          width="100"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="actionTarget"
+                          caption="Target"
+                          width="150"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="flagPopover"
+                          caption="Popover"
+                          width="100"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                  @if (toolbarRow !== null) {
+                    <div style="float:left; width:700px;">
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="toolbarRow.itemsList"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="orderLogic"
+                        >
+                        <dxi-column
+                          dataField="objectName"
+                          caption="Name"
+                          width="200"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="text"
+                          caption="Caption"
+                          width="200"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="actionName"
+                          caption="Action"
+                          width="200"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="stdImageId"
+                          caption="Image"
+                          width="100"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                </div>
+              }
+              <!-- =============== VIEWS =============== -->
+              @if (metaDataGroup === 'views') {
+                <div style="float:left;">
+                  @if (metaDataRows !== null) {
+                    <div style="float:left; width:360px;">
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="metaDataRows"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onFocusedRowChanged)="onViewsFocusedRowChanged($event)"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="viewName"
+                        width="355"
+                        >
+                        <dxi-column
+                          dataField="viewName"
+                          caption="View Name"
+                          width="150"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="viewLevel"
+                          caption="Level"
+                          width="80"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="viewFLagAlwaysActive"
+                          caption="Always Active"
+                          width="120"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                  @if (viewRow !== null) {
+                    <div style="float:left; width:1030px;">
+                      <dx-data-grid
+                        [id]="metaData.group"
+                        [dataSource]="viewRow.objects"
+                        [showBorders]="true"
+                        [focusedRowEnabled]="true"
+                        (onCellDblClick)="onCellDblClick($event)"
+                        keyExpr="objectRN"
+                        >
+                        <dxi-column
+                          dataField="objectRN"
+                          caption="RN"
+                          width="60"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="objectName"
+                          caption="Name"
+                          width="200"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="objectType"
+                          caption="Type"
+                          width="120"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="selected"
+                          caption="Selected"
+                          width="100"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="selectedObjectName"
+                          caption="Selected Name"
+                          width="250"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="tabsName"
+                          caption="Tabs Name"
+                          width="200"
+                        ></dxi-column>
+                        <dxi-column
+                          dataField="tabRN"
+                          caption="Tab RN"
+                          width="100"
+                        ></dxi-column>
+                      </dx-data-grid>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+      <!-- =====================================================
+      ====================  PAGE DATA ====================
+      ==================================================== -->
+      @if (tabsIndex===1) {
+        <div>
+          <dx-accordion
+            [dataSource]="page.adapters"
+            [collapsible]="true"
+            [multiple]="false"
+            [animationDuration]="300"
+            [(selectedIndex)]="selectedAdapterIndex"
+            (onSelectionChanged)="onSelectionAdapterChanged($event)"
+            width="auto"
+            height="auto"
+            id="page-adapters-container"
+            >
+            <div *dxTemplate="let adapter of 'title'">
+              <div class="dataAdapterHeader">{{adapter.dataAdapter}} - dataSets: [{{adapter.size}}]</div>
+            </div>
+            <div *dxTemplate="let adapter of 'item'" >
+              <div class="debugForm">
+                <div style="float: left; padding-right: 10px;">
+                  <dx-button
+                    stylingMode="contained"
+                    text="Show Data"
+                    [type]="isRowSelected ? 'success' : 'default'"
+                    [width]="120"
+                    icon= "search"
+                    [disabled]="this.dataSet === null"
+                    (onClick)="onDataSetButtonClick()"
+                    >
+                  </dx-button>
+                </div>
+                <div>
+                  <dx-button
+                    stylingMode="contained"
+                    text="Show SQL"
+                    type="normal"
+                    [width]="120"
+                    icon= "preferences"
+                    [disabled]="this.dataSet === null"
+                    (onClick)="onDataSetSQLButtonClick()"
+                    >
+                  </dx-button>
+                </div>
+                @if (rowSelectedCaption !== null) {
+                  <div class="selectedRowText">
+                    <span>{{rowSelectedCaption}}</span>
+                  </div>
+                }
+                <dx-list
+                  [dataSource]="adapter.dataSets"
+                  height="auto"
+                  [allowItemDeleting]="false"
+                  (onItemClick)="onDataSetClick($event)"
+                  width="300"
+                  >
+                  <div *dxTemplate="let item of 'item'"  >
+                    <div>{{item.dataSetName}} - rows: [{{item.size}}]</div>
+                  </div>
+                </dx-list>
+              </div>
+              @if (dataSetRow !== null) {
+                <div
+                  class="debugForm"
+                  >
+                  <dx-form
+                    [visible]="dataSetRow !== null"
+                    [formData]="dataSetRow"
+                    id="form"
+                    formData="dataSetRow"
+                    [readOnly]="true"
+                    labelMode="static"
+                    [showColonAfterLabel]="false"
+                    labelLocation="left"
+                    [colCount]="1"
+                    height="auto"
+                    [width]="400"
+                  ></dx-form>
+                </div>
+              }
+            </div>
+          </dx-accordion>
+        </div>
+      }
+      <!-- =====================================================
+      ====================  DB LOG DATA ==================
+      ==================================================== -->
+      @if (tabsIndex===2) {
+        <div>
+          <div>
+            <dx-button
+              stylingMode="contained"
+              text="Show SQL"
+              type="default"
+              [width]="120"
+              icon= "preferences"
+              (onClick)="onDBLogSQLButtonClick()"
+            ></dx-button>
+          </div>
+          <div>
+            <dx-data-grid
+              [id]="dbLog"
+              [dataSource]="page.dbLog"
+              [columnAutoWidth]="true"
+              [focusedRowEnabled]="true"
+              [showBorders]="true"
+              [rowAlternationEnabled]="true"
+              keyExpr="logDate"
+              (onFocusedRowChanged)="onDBLogFocusedRowChanged($event)"
+              (onCellDblClick)="onCellDblClick($event)"
+              >
+              <dxo-header-filter
+                [visible]="true"
+              ></dxo-header-filter>
+              <dxo-filter-row
+                [visible]="true"
+              ></dxo-filter-row>
+              <dxo-search-panel
+                [visible]="true"
+                [highlightCaseSensitive]="true"
+              ></dxo-search-panel>
+              <dxo-sorting
+                mode="multiple"
+              ></dxo-sorting>
+              <dxi-column
+                dataField="logDate"
+                caption="Log"
+                dataType="date"
+                format="dd/MM/yyyy HH:mm:ss"
+                width="200"
+                sortOrder="desc"
+              ></dxi-column>
+              <dxi-column
+                dataField="prjId"
+                caption="Prj"
+                dataType="string"
+                width="50"
+              ></dxi-column>
+              <dxi-column
+                dataField="formId"
+                caption="Form"
+                dataType="string"
+                width="50"
+              ></dxi-column>
+              <dxi-column
+                dataField="action"
+                caption="Action"
+                dataType="string"
+                width="120"
+              ></dxi-column>
+              <dxi-column
+                dataField="sqlId"
+                caption="SQL ID"
+                dataType="number"
+                width="100"
+              ></dxi-column>
+              <dxi-column
+                dataField="dataAdapter"
+                caption="Data Adapter"
+                dataType="string"
+                width="150"
+              ></dxi-column>
+              <dxi-column
+                dataField="dataSetName"
+                caption="DataSet"
+                dataType="string"
+                width="150"
+              ></dxi-column>
+              <dxi-column
+                dataField="dataSetAction"
+                caption="DataSet Action"
+                dataType="string"
+                width="150"
+              ></dxi-column>
+              <dxi-column
+                dataField="connCode"
+                caption="Conn. Code"
+                dataType="string"
+                width="150"
+              ></dxi-column>
+            </dx-data-grid>
+          </div>
+        </div>
+      }
+    </div>
+  </dx-accordion>
+}
+
+@if (tabsIndex===3) {
+  <div>
+    <div [ngClass]="this.actionDebugActive ? 'actionDebugActive' : 'actionDebugInactive'">
+      {{actionDebugMessage}}
+    </div>
+    <div style="float:left; padding-right: 10px; margin-left: 20px;">
+      <dx-button
+        stylingMode="contained"
+        text="Activate Actions Debugging"
+        type="danger"
+        [width]="250"
+        [height]="50"
+        icon= "video"
+        [disabled]="actionDebugActive"
+        (onClick)="onActionDebugStartButtonClick()"
+      ></dx-button>
+    </div>
+    <div>
+      <dx-button
+        stylingMode="contained"
+        text="Stop Actions Debugging"
+        type="default"
+        [width]="250"
+        icon= "square"
+        [height]="50"
+        [disabled]="!actionDebugActive"
+        (onClick)="onActionDebugStopButtonClick()"
+      ></dx-button>
+    </div>
+  </div>
+}
+
+@if (isDataGridVisible) {
+  <div>
+    <dx-popup
+      [(visible)]="isDataGridVisible"
+      [dragEnabled]="true"
+      [showCloseButton]="true"
+      [hideOnOutsideClick]="false"
+      [height]="990"
+      [width]="1000"
+      [showTitle]="true"
+      [title]="dataSet.dataSetName"
+      id="dataGridPopup"
+      isMovable="true"
+      [resizeEnabled]="true"
+      >
+      <dx-data-grid
+        [id]="dataSet.dataSetName"
+        [dataSource]="gridData.dataSource"
+        [columnAutoWidth]="true"
+        [focusedRowEnabled]="true"
+        [showBorders]="true"
+        [rowAlternationEnabled]="true"
+        (onCellDblClick)="onCellDblClick($event)"
+        >
+        <dxo-header-filter
+          [visible]="true"
+        ></dxo-header-filter>
+        <dxo-filter-row
+          [visible]="true"
+        ></dxo-filter-row>
+        <dxo-search-panel
+          [visible]="true"
+          [highlightCaseSensitive]="true"
+        ></dxo-search-panel>
+        @for (column of dataSet.columns; track column) {
+          <dxi-column
+            [dataField]="column.dataField"
+            [caption]="column.caption"
+            [width]="column.width"
+          ></dxi-column>
+        }
+      </dx-data-grid>
+    </dx-popup>
+  </div>
+}
+
+<dx-popup
+  [hideOnOutsideClick]="true"
+  [showCloseButton]="true"
+  [(visible)]="jsonVisible"
+  [title]="jsonDataTitle"
+  [height]="800"
+  [width]="800"
+  isMovable="true"
+  [resizeEnabled]="true"
+  >
+  <div class="multiline">
+    <pre>{{jsonDataString}}</pre>
+  </div>
+</dx-popup>
+
+<dx-popup
+  [hideOnOutsideClick]="true"
+  [showCloseButton]="true"
+  [(visible)]="sqlPopupVisible"
+  [title]="sqlPopupTitle"
+  [height]="700"
+  [width]="1000"
+  isMovable="true"
+  [resizeEnabled]="true"
+  [dragEnabled]="false"
+  class="sql-popup"
+  >
+  <div>
+    <dx-button
+      text="Copy SQL to Clipboard"
+      icon="copy"
+      type="success"
+      stylingMode="contained"
+      [width]="250"
+      (onClick)="copySQLToClipboard()"
+    ></dx-button>
+  </div>
+  <dx-text-area
+    [value]="sqlCode"
+    [height]="600"
+    [readOnly]="true"
+  ></dx-text-area>
+</dx-popup>

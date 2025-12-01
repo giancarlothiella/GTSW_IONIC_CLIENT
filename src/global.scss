@@ -20,9 +20,10 @@
 
 /* Optional CSS utils that can be commented out */
 @import "@ionic/angular/css/padding.css";
-@import "@ionic/angular/css/float-elements.css";
-@import "@ionic/angular/css/text-alignment.css";
-@import "@ionic/angular/css/text-transformation.css";
+/* Commented out for performance - uncomment if needed */
+/* @import "@ionic/angular/css/float-elements.css"; */
+/* @import "@ionic/angular/css/text-alignment.css"; */
+/* @import "@ionic/angular/css/text-transformation.css"; */
 @import "@ionic/angular/css/flex-utils.css";
 
 /**
@@ -34,4 +35,71 @@
 
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+/* @import '@ionic/angular/css/palettes/dark.system.css'; */
+
+/**
+ * Custom Light Theme Overrides
+ * -----------------------------------------------------
+ */
+
+:root {
+  /* Forza lo sfondo chiaro */
+  --ion-background-color: #ffffff;
+  --ion-text-color: #000000;
+
+  /* Card e contenitori */
+  --ion-card-background: #ffffff;
+  --ion-item-background: #ffffff;
+
+  /* Colori chiari per le varie tonalità */
+  --ion-color-light: #f4f5f8;
+  --ion-color-light-shade: #d7d8da;
+  --ion-color-light-tint: #f5f6f9;
+
+  --ion-color-medium: #92949c;
+  --ion-color-medium-shade: #808289;
+  --ion-color-medium-tint: #9d9fa6;
+}
+
+/* Assicura che il body e ion-app abbiano sfondo bianco */
+body {
+  background: #ffffff;
+}
+
+ion-app {
+  background: #ffffff;
+}
+
+/* Content con sfondo chiaro */
+ion-content {
+  --background: #f4f5f8;
+}
+
+/* Card sempre con sfondo bianco */
+ion-card {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* Menu con sfondo chiaro */
+ion-menu {
+  --background: #ffffff;
+  --ion-item-background: #ffffff;
+}
+
+/* Toolbar con colori definiti */
+ion-toolbar {
+  --background: var(--ion-color-primary);
+  --color: #ffffff;
+}
+
+/* Testo sempre leggibile */
+ion-label, ion-text, p, h1, h2, h3, h4, h5, h6 {
+  color: #000000;
+}
+
+/* Item con sfondo chiaro */
+ion-item {
+  --background: #ffffff;
+  --color: #000000;
+}

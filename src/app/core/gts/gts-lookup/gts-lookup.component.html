@@ -1,0 +1,58 @@
+@if (lookUpReady) {
+  <dx-popup
+    [hideOnOutsideClick]="false"
+    [showCloseButton]="false"
+    [(visible)]="popUpVisible"
+    [title]="lookUpTitle"
+    [height]="660"
+    [width]="500"
+    >
+    <div class="lookup-grid-panel">
+      <dx-data-grid
+        [class]="lookUpGridClass"
+        [visible]="true"
+        [dataSource]="gridData.dataSource"
+        [columns]="gridData.columns"
+        [showBorders]="true"
+        [allowColumnResizing]="gridData.allowColumnResizing"
+        [columnAutoWidth]="true"
+        [showRowLines]="true"
+        [showColumnLines]="true"
+        [allowColumnReordering]="gridData.allowColumnReordering"
+        [rowAlternationEnabled]="true"
+        [focusedRowEnabled]="true"
+        width="100%"
+        height="auto"
+        [(selectedRowKeys)]="selectedRows"
+        (onSelectionChanged)="selectionChangedHandler($event)"
+        (onRowDblClick)="dblClickHandler($event)"
+        ><dxo-header-filter
+        [visible]="gridData.headerFilterVisible"
+      ></dxo-header-filter>
+      <dxo-filter-row [visible]="gridData.filterRowVisible"></dxo-filter-row>
+      <dxo-search-panel
+        [visible]="true"
+        [highlightCaseSensitive]="true"
+      ></dxo-search-panel>
+      <dxo-paging
+        [pageSize]="gridData.pageSize"
+      ></dxo-paging>
+      <dxo-pager
+        [showPageSizeSelector]="true"
+        [allowedPageSizes]="gridData.pageSelectorOptions"
+      ></dxo-pager>
+      <dxo-selection
+        showCheckBoxesMode="always"
+        [mode]="editorTypeML ? 'multiple' : 'single'"
+        selectAllMode="allPages"
+      ></dxo-selection>
+    </dx-data-grid>
+    <div class="lookup-toolbar-panel">
+      <dx-toolbar
+        [ngClass]="lookupToolbarClass"
+        [items]="lookupToolbarItems"
+      ></dx-toolbar>
+    </div>
+  </div>
+</dx-popup>
+}

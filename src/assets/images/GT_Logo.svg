@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 61.53 141.57">
+  <defs>
+    <style>
+      .cls-1 {
+        font-family: MyanmarMN, 'Myanmar MN';
+        font-size: 8px;
+        letter-spacing: .18em;
+      }
+
+      .cls-1, .cls-2 {
+        fill: #972228;
+      }
+
+      .cls-3 {
+        fill: #27348b;
+      }
+
+      .cls-4 {
+        fill: none;
+        stroke: #972228;
+        stroke-miterlimit: 10;
+        stroke-width: .3px;
+      }
+    </style>
+  </defs>
+  <path class="cls-3" d="m8.54,31.44c1.71,14.57,1.73,29.33,0,43.9-1.73-14.57-1.71-29.33,0-43.9h0Z"/>
+  <path class="cls-3" d="m50.44,54.39c1.72,6.85,1.73,14.1,0,20.95-1.73-6.85-1.72-14.1,0-20.95h0Z"/>
+  <path class="cls-3" d="m50.44,75.34c-13.9,1.71-28,1.73-41.9,0,13.9-1.73,28-1.71,41.9,0h0Z"/>
+  <path class="cls-3" d="m50.44,54.39c-6.49,1.51-13.3,1.52-19.8,0,6.49-1.52,13.3-1.51,19.8,0h0Z"/>
+  <path class="cls-2" d="m50.44,31.44c-13.9,1.71-28,1.73-41.9,0,13.9-1.73,28-1.71,41.9,0h0Z"/>
+  <path class="cls-2" d="m29.49,32.44c1.71,13.9,1.73,28,0,41.9-1.73-13.9-1.71-28,0-41.9h0Z"/>
+  <line class="cls-4" x1="0" y1="81.76" x2="59.81" y2="81.63"/>
+  <text class="cls-1" transform="translate(3.86 89.73)"><tspan x="0" y="0">SOFTWARE</tspan></text>
+</svg>
