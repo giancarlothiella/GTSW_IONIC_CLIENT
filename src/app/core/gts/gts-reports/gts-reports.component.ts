@@ -110,6 +110,7 @@ export class GtsReportsComponent implements OnInit,  OnDestroy {
   }
 
   async prepareReports() {
+    console.log('prepareReports ', this.metaData);
     this.reportTabs.push({
       id: 'reportPdf',
       text: 'PDF',
@@ -132,14 +133,14 @@ export class GtsReportsComponent implements OnInit,  OnDestroy {
     this.reportsGroups.cssToolbar = 'rptToolbar001' 
 
     if (this.reportCode === '') {
-      //  remove from reports array invisible reports
-      const visibleReports = this.metaData.reports.filter((report: any) => {return report.visible === true;});
+      // Remove from reports array invisible reports (default visible = true if not specified)
+      const visibleReports = this.metaData.reports.filter((report: any) => report.visible !== false);
       this.reportsGroups.radioValues = visibleReports.map((report: any) => {return report.reportDescr;});
       this.selectedValue = this.reportsGroups.radioValues[0];
       this.reportsGroups.radioIndex = 0;
     } else {
-      const visibleReports = this.metaData.reports.filter((report: any) => {return report.reportCode === this.reportCode;});
-      this.reportsGroups.radioValues = visibleReports.map((report: any) => {return report.reportDescr;});      
+      const visibleReports = this.metaData.reports.filter((report: any) => report.reportCode === this.reportCode && report.visible !== false);
+      this.reportsGroups.radioValues = visibleReports.map((report: any) => {return report.reportDescr;});
       this.selectedValue = this.reportsGroups.radioValues[0];
       this.reportsGroups.radioIndex = 0;
     }

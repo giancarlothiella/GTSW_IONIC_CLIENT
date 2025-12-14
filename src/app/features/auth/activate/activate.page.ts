@@ -1,7 +1,8 @@
 // src/app/features/auth/activate/activate.page.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import {
   IonContent,
   IonCard,
@@ -11,6 +12,7 @@ import {
   IonButton,
   IonText,
   IonSpinner,
+  IonInput,
   LoadingController,
   ToastController
 } from '@ionic/angular/standalone';
@@ -23,6 +25,7 @@ import { environment, webInfo } from '../../../../environments/environment';
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     IonContent,
     IonCard,
     IonCardHeader,
@@ -30,7 +33,8 @@ import { environment, webInfo } from '../../../../environments/environment';
     IonCardContent,
     IonButton,
     IonText,
-    IonSpinner
+    IonSpinner,
+    IonInput
   ],
   template: `
     <ion-content class="activate-content">
@@ -89,17 +93,52 @@ import { environment, webInfo } from '../../../../environments/environment';
                       <p class="app-code">{{ getText(506) }} {{ totpData.totp2FAAppCode }}</p>
                       <p class="info-text">{{ getText(507) }}</p>
                     </ion-text>
+
+                    <!-- Input per il codice TOTP -->
+                    <div class="code-input-section">
+                      <ion-text color="dark">
+                        <p class="input-label">{{ getText(307) || 'Inserisci il codice a 6 cifre' }}</p>
+                      </ion-text>
+
+                      <ion-input
+                        #totpInput
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="6"
+                        [(ngModel)]="totpCode"
+                        (ionInput)="onCodeInput()"
+                        [placeholder]="getText(308) || '000000'"
+                        class="totp-input"
+                        [disabled]="isVerifying">
+                      </ion-input>
+
+                      @if (totpErrorMessage) {
+                        <ion-text color="danger">
+                          <p class="error-message">{{ totpErrorMessage }}</p>
+                        </ion-text>
+                      }
+                    </div>
+
+                    <div class="button-container">
+                      <ion-button
+                        expand="block"
+                        (click)="onVerifyTotp()"
+                        [disabled]="totpCode.length !== 6 || isVerifying"
+                        class="submit-button">
+                        {{ isVerifying ? (getText(310) || 'Verifica in corso...') : (getText(309) || 'Verifica') }}
+                      </ion-button>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="button-container">
+                    <ion-button
+                      expand="block"
+                      (click)="goToLogin()"
+                      class="submit-button">
+                      {{ getText(508) }}
+                    </ion-button>
                   </div>
                 }
-
-                <div class="button-container">
-                  <ion-button
-                    expand="block"
-                    (click)="goToLogin()"
-                    class="submit-button">
-                    {{ getText(508) }}
-                  </ion-button>
-                </div>
               </div>
             } @else {
               <!-- Errore attivazione -->
@@ -297,6 +336,43 @@ import { environment, webInfo } from '../../../../environments/environment';
       font-size: 13px !important;
     }
 
+    .code-input-section {
+      margin-top: 25px;
+      margin-bottom: 10px;
+    }
+
+    .input-label {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: block;
+      text-align: center;
+    }
+
+    .totp-input {
+      --background: var(--ion-color-light);
+      --padding-start: 20px;
+      --padding-end: 20px;
+      --placeholder-color: rgba(0, 0, 0, 0.4);
+      --placeholder-font-weight: 300;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      border-radius: 12px;
+      height: 60px;
+      margin: 15px 0;
+    }
+
+    .error-message {
+      font-size: 13px;
+      text-align: center;
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(var(--ion-color-danger-rgb), 0.1);
+      border-radius: 8px;
+    }
+
     .button-container {
       margin-top: 30px;
     }
@@ -335,6 +411,8 @@ import { environment, webInfo } from '../../../../environments/environment';
   `]
 })
 export class ActivatePage implements OnInit {
+  @ViewChild('totpInput') totpInput!: IonInput;
+
   private authService = inject(AuthService);
   private translationService = inject(TranslationService);
   private router = inject(Router);
@@ -350,6 +428,12 @@ export class ActivatePage implements OnInit {
   errorMessage = '';
   authKey = '';
   totpData: any = null;
+
+  // TOTP verification
+  totpCode = '';
+  totpErrorMessage = '';
+  isVerifying = false;
+  userEmail = '';
 
   // Multi-lingua
   availableLanguages: Language[] = [];
@@ -429,6 +513,13 @@ export class ActivatePage implements OnInit {
             totp2FAQRCode: result.totp2FAQRCode,
             totp2FAAppCode: result.totp2FAAppCode || webInfo.appCode
           };
+          // Salva l'email per la verifica TOTP
+          this.userEmail = (result as any).email || result.data?.email || '';
+
+          // Focus sull'input TOTP dopo un breve ritardo
+          setTimeout(() => {
+            this.totpInput?.setFocus();
+          }, 300);
         }
 
         const toast = await this.toastCtrl.create({
@@ -464,5 +555,81 @@ export class ActivatePage implements OnInit {
 
   goToLogin() {
     this.router.navigate(['/login']);
+  }
+
+  /**
+   * Auto-verifica quando l'utente inserisce 6 cifre
+   */
+  async onCodeInput() {
+    this.totpErrorMessage = '';
+
+    // Se il codice è di 6 cifre, verifica automaticamente
+    if (this.totpCode.length === 6) {
+      await this.onVerifyTotp();
+    }
+  }
+
+  /**
+   * Verifica il codice TOTP
+   */
+  async onVerifyTotp() {
+    if (this.totpCode.length !== 6) {
+      this.totpErrorMessage = 'Il codice deve essere di 6 cifre';
+      return;
+    }
+
+    if (!this.userEmail) {
+      this.totpErrorMessage = 'Email utente non disponibile';
+      return;
+    }
+
+    this.isVerifying = true;
+    this.totpErrorMessage = '';
+
+    const loading = await this.loadingCtrl.create({
+      message: this.getText(301) || 'Verifica in corso...'
+    });
+    await loading.present();
+
+    try {
+      const result = await this.authService.verifyTotp(this.userEmail, this.totpCode);
+
+      await loading.dismiss();
+      this.isVerifying = false;
+
+      if (result.valid) {
+        const toast = await this.toastCtrl.create({
+          message: this.getText(312) || 'Verifica completata con successo!',
+          duration: 2000,
+          color: 'success'
+        });
+        await toast.present();
+
+        // Vai al login
+        this.router.navigate(['/login']);
+      } else {
+        this.totpErrorMessage = result.message || 'Codice non valido';
+        this.totpCode = '';
+
+        const toast = await this.toastCtrl.create({
+          message: this.totpErrorMessage,
+          duration: 3000,
+          color: 'danger'
+        });
+        await toast.present();
+      }
+    } catch (error: any) {
+      await loading.dismiss();
+      this.isVerifying = false;
+      this.totpErrorMessage = error.message || 'Errore durante la verifica';
+      this.totpCode = '';
+
+      const toast = await this.toastCtrl.create({
+        message: this.totpErrorMessage,
+        duration: 3000,
+        color: 'danger'
+      });
+      await toast.present();
+    }
   }
 }

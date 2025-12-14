@@ -2,7 +2,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { MenuResponse, MenuItem, ProjectInfo, MenuRequest } from '../models/menu.model';
 import { AuthService } from './auth.service';
@@ -40,45 +39,99 @@ export class MenuService {
       languageId: languageId || user.languageId
     };
 
-    return this.http.post<MenuResponse>(
-      `${environment.apiUrl}/data/getmenudata`,
-      request
-    ).pipe(
-      tap(async response => {
-        if (response.valid) {
-          // Registra le route dinamiche dal menu
-          this.dynamicRoutesService.registerDynamicRoutes(response.menu);
-
-          // Costruisci l'albero del menu
-          const menuTree = this.buildMenuTree(response.menu);
-          this.menuItemsSubject.next(menuTree);
-
-          // Scarica le immagini dei progetti e aggiorna
-          let projectsWithImages = await this.downloadProjectImages(response.projects);
-
-          // Se c'è una connessione da preservare, aggiorna lo stato
-          if (preserveConnectionState && request.prjId) {
-            projectsWithImages = projectsWithImages.map(project => {
-              if (project.prjId === request.prjId && project.dbConnections) {
-                return {
-                  ...project,
-                  dbConnections: project.dbConnections.map(conn => ({
-                    ...conn,
-                    connDefault: conn.connCode === preserveConnectionState
-                  }))
-                };
-              }
-              return project;
-            });
+    return new Observable<MenuResponse>(observer => {
+      this.http.post<MenuResponse>(
+        `${environment.apiUrl}/data/getmenudata`,
+        request
+      ).subscribe({
+        next: async (response) => {
+          try {
+            const result = await this.processMenuResponse(response, request.prjId, user, preserveConnectionState);
+            observer.next(result);
+            observer.complete();
+          } catch (err) {
+            console.error('MenuService loadMenu - processMenuResponse ERROR:', err);
+            observer.error(err);
           }
-
-          this.projectsSubject.next(projectsWithImages);
-
-          // Imposta il progetto corrente
-          this.currentProjectSubject.next(request.prjId);
+        },
+        error: (err) => {
+          console.error('MenuService loadMenu - HTTP ERROR:', err);
+          observer.error(err);
         }
-      })
-    );
+      });
+    });
+  }
+
+  /**
+   * Processa la risposta del menu (operazioni asincrone)
+   */
+  private async processMenuResponse(
+    response: MenuResponse,
+    prjId: string,
+    user: any,
+    preserveConnectionState?: string
+  ): Promise<MenuResponse> {
+    if (response.valid) {
+      // Registra le route dinamiche dal menu
+      this.dynamicRoutesService.registerDynamicRoutes(response.menu);
+
+      // Costruisci l'albero del menu
+      const menuTree = this.buildMenuTree(response.menu);
+      this.menuItemsSubject.next(menuTree);
+
+      // Scarica le immagini dei progetti e aggiorna
+      let projectsWithImages: ProjectInfo[];
+      try {
+        projectsWithImages = await this.downloadProjectImages(response.projects);
+      } catch (imgError) {
+        console.error('MenuService - downloadProjectImages ERROR:', imgError);
+        // Usa i progetti senza immagini in caso di errore
+        projectsWithImages = response.projects;
+      }
+
+      // Se c'è una connessione da preservare, aggiorna lo stato
+      if (preserveConnectionState && prjId) {
+        projectsWithImages = projectsWithImages.map(project => {
+          if (project.prjId === prjId && project.dbConnections) {
+            return {
+              ...project,
+              dbConnections: project.dbConnections.map(conn => ({
+                ...conn,
+                connDefault: conn.connCode === preserveConnectionState
+              }))
+            };
+          }
+          return project;
+        });
+      } else {
+        // Se non c'è connessione da preservare, usa le connessioni dell'utente (dal login)
+        // per impostare il connDefault corretto
+        const userConnections = user.prjConnections || [];
+        projectsWithImages = projectsWithImages.map(project => {
+          if (project.prjId === prjId && project.dbConnections) {
+            // Trova la connessione di default dalle prjConnections dell'utente
+            const defaultUserConn = userConnections.find((uc: any) => uc.connDefault);
+            if (defaultUserConn) {
+              return {
+                ...project,
+                dbConnections: project.dbConnections.map(conn => ({
+                  ...conn,
+                  connDefault: conn.connCode === defaultUserConn.connCode
+                }))
+              };
+            }
+          }
+          return project;
+        });
+      }
+
+      this.projectsSubject.next(projectsWithImages);
+
+      // Imposta il progetto corrente
+      this.currentProjectSubject.next(prjId);
+    }
+
+    return response;
   }
 
   /**

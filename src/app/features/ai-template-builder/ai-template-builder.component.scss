@@ -1,0 +1,4650 @@
+/* AI Template Builder Component Styles */
+
+.ai-template-builder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+
+  // ==========================================
+  // HEADER
+  // ==========================================
+  .builder-header {
+    background: #ffffff;
+    border-bottom: 2px solid #e0e0e0;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+    .header-left {
+      h2 {
+        margin: 0 0 5px 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        > i {
+          margin-right: 10px;
+          color: #2196F3;
+        }
+
+        .unsaved-indicator {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #e65100;
+          background: #fff3e0;
+          padding: 4px 10px;
+          border-radius: 16px;
+          border: 1px solid #ffcc80;
+          animation: pulse-unsaved 2s ease-in-out infinite;
+
+          i {
+            font-size: 14px;
+            color: #e65100;
+          }
+        }
+      }
+
+      .header-subtitle {
+        margin: 0;
+        font-size: 14px;
+        color: #666;
+      }
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      ::ng-deep .p-button {
+        &.p-button-warning {
+          background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+          border: none;
+          padding: 10px 20px;
+          font-weight: 600;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+          transition: all 0.2s ease;
+
+          &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #FFA726 0%, #FF9800 100%);
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+            transform: translateY(-1px);
+          }
+
+          &:disabled {
+            background: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+          }
+
+          .p-button-icon {
+            margin-right: 8px;
+          }
+        }
+      }
+    }
+  }
+
+  // Animation for unsaved indicator
+  @keyframes pulse-unsaved {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(0.98);
+    }
+  }
+
+  // ==========================================
+  // STEPS
+  // ==========================================
+  .steps-container {
+    background: #ffffff;
+    padding: 20px 30px;
+    border-bottom: 1px solid #e0e0e0;
+
+    ::ng-deep .p-steps {
+      .p-steps-item {
+        .p-menuitem-link {
+          background: transparent;
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // MAIN CONTENT
+  // ==========================================
+  .builder-content {
+    flex: 1;
+    overflow: auto;
+    padding: 30px;
+
+    .step-panel {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+  }
+
+  // ==========================================
+  // LOADING
+  // ==========================================
+  .loading-overlay-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .loading-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 60px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    min-width: 400px;
+    max-width: 500px;
+
+    // Versione espansa per analisi AI
+    &.analyzing {
+      padding: 50px 60px;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+      border: 2px solid #e0e0ff;
+    }
+
+    .loader-icon {
+      margin-bottom: 10px;
+    }
+
+    .loading-title {
+      margin: 15px 0 10px 0;
+      font-size: 18px;
+      color: #333;
+      font-weight: 600;
+      text-align: center;
+    }
+  }
+
+  // AI Loader Animation
+  .ai-loader {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .ai-brain {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      animation: pulse-brain 2s ease-in-out infinite;
+
+      i {
+        font-size: 32px;
+        color: #ffffff;
+      }
+    }
+
+    .ai-pulse {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 3px solid #7C3AED;
+      animation: ripple 2s ease-out infinite;
+
+      &.delay-1 {
+        animation-delay: 0.5s;
+      }
+
+      &.delay-2 {
+        animation-delay: 1s;
+      }
+    }
+  }
+
+  @keyframes pulse-brain {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px 5px rgba(124, 58, 237, 0.2);
+    }
+  }
+
+  @keyframes ripple {
+    0% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  // Analysis Info Box
+  .analysis-info {
+    margin-top: 20px;
+    width: 100%;
+
+    .elapsed-time {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 15px 25px;
+      background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%);
+      border-radius: 12px;
+      margin-bottom: 20px;
+
+      i {
+        font-size: 20px;
+        color: #ffffff;
+      }
+
+      .time-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: #ffffff;
+        font-family: 'Consolas', 'Monaco', monospace;
+        letter-spacing: 2px;
+      }
+    }
+
+    .analysis-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+
+      .step-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 15px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #666;
+        transition: all 0.3s ease;
+
+        i {
+          font-size: 16px;
+          color: #999;
+          width: 20px;
+          text-align: center;
+        }
+
+        &.active {
+          background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+          color: #5b21b6;
+          font-weight: 500;
+
+          i {
+            color: #7C3AED;
+          }
+        }
+
+        &.done {
+          background: #ecfdf5;
+          color: #059669;
+
+          i {
+            color: #10b981;
+          }
+        }
+      }
+    }
+
+    .patience-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #888;
+      font-size: 13px;
+      text-align: center;
+
+      i {
+        color: #7C3AED;
+      }
+    }
+  }
+
+  // ==========================================
+  // INFO GRID
+  // ==========================================
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+
+    .info-item {
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #666;
+        font-size: 13px;
+      }
+
+      span {
+        display: block;
+        font-size: 15px;
+        color: #333;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 600;
+
+        &.badge-info {
+          background: #E3F2FD;
+          color: #1976D2;
+        }
+
+        &.badge-success {
+          background: #E8F5E9;
+          color: #388E3C;
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // MANUAL PDF ALERT
+  // ==========================================
+  .manual-pdf-alert {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    border: 2px solid #ff9800;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    color: #e65100;
+
+    i {
+      font-size: 24px;
+      color: #f57c00;
+    }
+
+    span {
+      font-size: 14px;
+      font-weight: 500;
+    }
+  }
+
+  // ==========================================
+  // PDF SOURCE FIELD STYLES
+  // ==========================================
+  .pdf-source-field {
+    margin-bottom: 24px;
+
+    > label {
+      display: block;
+      margin-bottom: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #333;
+    }
+
+    // Stili per p-selectButton
+    ::ng-deep p-selectbutton {
+      display: block;
+      margin-bottom: 10px;
+
+      .p-selectbutton {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border: none;
+        background: transparent;
+
+        .p-button {
+          padding: 10px 20px;
+          border: 2px solid #e0e0e0 !important;
+          border-radius: 8px !important;
+          background: #ffffff !important;
+          color: #333 !important;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          margin: 0 !important;
+
+          &:hover:not(.p-disabled) {
+            border-color: #2196F3 !important;
+            background: #e3f2fd !important;
+          }
+
+          &.p-highlight {
+            background: #2196F3 !important;
+            border-color: #2196F3 !important;
+            color: #ffffff !important;
+          }
+
+          &.p-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f5f5f5 !important;
+          }
+        }
+      }
+    }
+
+    .pdf-source-description {
+      display: block;
+      margin-top: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #555;
+      background: #f8f9fa;
+      border-left: 3px solid #2196F3;
+      border-radius: 0 4px 4px 0;
+    }
+  }
+
+  // ==========================================
+  // PDF UPLOAD FIELD
+  // ==========================================
+  .pdf-upload-field {
+    margin-bottom: 24px;
+
+    > label {
+      display: block;
+      margin-bottom: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #333;
+    }
+
+    ::ng-deep p-fileupload {
+      .p-button {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // FILE UPLOAD
+  // ==========================================
+  .uploaded-file {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border: 2px solid #4caf50;
+    border-radius: 8px;
+
+    i {
+      font-size: 28px;
+      color: #388E3C;
+    }
+
+    .file-name {
+      flex: 1;
+      font-weight: 600;
+      font-size: 14px;
+      color: #2e7d32;
+    }
+
+    .file-size {
+      font-size: 13px;
+      color: #666;
+      font-weight: 400;
+    }
+
+    .file-size {
+      color: #666;
+      font-size: 13px;
+    }
+  }
+
+  // ==========================================
+  // DATA SUMMARY
+  // ==========================================
+  .data-summary {
+    margin-top: 30px;
+    padding: 20px;
+    background: #F5F5F5;
+    border-radius: 4px;
+
+    h4 {
+      margin: 0 0 15px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+
+      i {
+        margin-right: 8px;
+        color: #2196F3;
+      }
+    }
+
+    .summary-stats {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+
+      .stat-card {
+        flex: 1;
+        min-width: 100px;
+        padding: 15px;
+        background: #ffffff;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+        .stat-value {
+          font-size: 28px;
+          font-weight: 700;
+          color: #2196F3;
+          margin-bottom: 5px;
+        }
+
+        .stat-label {
+          font-size: 13px;
+          color: #666;
+          text-transform: uppercase;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // CARD ACTIONS (Footer con bottoni)
+  // ==========================================
+  .card-actions {
+    margin-top: 30px;
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+
+      // Bottone Analisi Veloce - Verde
+      .p-button-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+        border: 1px solid #1e7e34 !important;
+        box-shadow: 0 3px 6px rgba(40, 167, 69, 0.3) !important;
+        transition: all 0.2s ease !important;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 12px rgba(40, 167, 69, 0.4) !important;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+
+      // Bottone Solo PDF - Arancione/Warning
+      .p-button-warning {
+        background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%) !important;
+        border: 1px solid #e67700 !important;
+        color: #212529 !important;
+        box-shadow: 0 3px 6px rgba(253, 126, 20, 0.3) !important;
+        transition: all 0.2s ease !important;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 12px rgba(253, 126, 20, 0.4) !important;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+
+      // Bottone PDF + Dati - Viola/Primary AI
+      .btn-ai-primary {
+        height: 40px !important;
+        padding: 0 20px !important;
+        border-radius: 4px !important;
+        font-weight: 500 !important;
+        background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 50%, #A78BFA 100%) !important;
+        border: 1px solid #6D28D9 !important;
+        color: #ffffff !important;
+        box-shadow: 0 3px 6px rgba(124, 58, 237, 0.3) !important;
+        transition: all 0.2s ease !important;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 12px rgba(124, 58, 237, 0.4) !important;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+
+    // Bottone Torna ai Log - Outlined
+    .p-button-outlined {
+      background: #ffffff !important;
+      border: 2px solid #6c757d !important;
+      color: #495057 !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+      transition: all 0.2s ease !important;
+
+      &:hover {
+        background: #f8f9fa !important;
+        border-color: #495057 !important;
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  // ==========================================
+  // ANALYZING PANEL
+  // ==========================================
+  .analyzing-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+    h3 {
+      margin: 30px 0 10px 0;
+      font-size: 22px;
+      color: #333;
+    }
+
+    p {
+      color: #666;
+      font-size: 15px;
+    }
+  }
+
+  // ==========================================
+  // PREVIEW TOOLBAR
+  // ==========================================
+  .preview-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+    .toolbar-left,
+    .toolbar-right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    // Controlli PDF inline (formato + orientamento)
+    .pdf-controls-inline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 8px;
+      border-left: 1px solid #dee2e6;
+      border-right: 1px solid #dee2e6;
+      margin: 0;
+
+      ::ng-deep .p-select {
+        height: 34px;
+
+        .p-select-label {
+          padding: 0 8px;
+          font-size: 12px;
+          display: flex;
+          align-items: center;
+        }
+
+        .p-select-dropdown {
+          width: 24px;
+        }
+      }
+    }
+
+    // RESET completo per tutti i bottoni nella toolbar
+    button,
+    ::ng-deep button,
+    ::ng-deep .p-button {
+      // Stile base forzato - più compatto
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      height: 34px !important;
+      padding: 0 12px !important;
+      border-radius: 5px !important;
+      font-weight: 500 !important;
+      font-size: 12px !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+
+      .p-button-icon,
+      i {
+        font-size: 13px;
+      }
+
+      .p-button-label {
+        font-weight: 500;
+      }
+    }
+
+    // Bottone secondary (grigio/bianco) - Aggiorna Preview, Formatta HTML, Apri in Tab
+    ::ng-deep .p-button-secondary,
+    ::ng-deep .p-button.p-button-secondary {
+      background: #ffffff !important;
+      border: 1px solid #ced4da !important;
+      color: #495057 !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+
+      &:hover {
+        background: #f8f9fa !important;
+        border-color: #adb5bd !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+      }
+    }
+
+    // Bottone primary (viola) - Download PDF, Modifica Manuale
+    // Escludi i bottoni AI e warning che hanno i loro stili specifici
+    ::ng-deep .p-button:not(.p-button-secondary):not(.p-button-text):not(.btn-ai-quickedit):not(.btn-ai-style):not(.p-button-outlined):not(.p-button-warning) {
+      background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%) !important;
+      border: 1px solid #6D28D9 !important;
+      color: #ffffff !important;
+      box-shadow: 0 3px 6px rgba(124, 58, 237, 0.3) !important;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 12px rgba(124, 58, 237, 0.4) !important;
+      }
+    }
+
+    // Bottone Warning (arancione) - Rigenera PDF
+    ::ng-deep .p-button-warning,
+    ::ng-deep .p-button.p-button-warning {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+      border: 1px solid #c2410c !important;
+      color: #ffffff !important;
+      box-shadow: 0 3px 6px rgba(249, 115, 22, 0.3) !important;
+
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 12px rgba(249, 115, 22, 0.4) !important;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+    }
+
+    // Bottone Quick Edit AI (cyan/turchese)
+    ::ng-deep .btn-ai-quickedit {
+      height: 38px !important;
+      padding: 0 16px !important;
+      border-radius: 6px !important;
+      font-weight: 600 !important;
+      background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+      border: 1px solid #0e7490 !important;
+      color: #ffffff !important;
+      box-shadow: 0 3px 8px rgba(6, 182, 212, 0.3) !important;
+
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(6, 182, 212, 0.4) !important;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+    }
+
+    // Bottone Migliora Stile AI (arancione)
+    ::ng-deep .btn-ai-style {
+      height: 38px !important;
+      padding: 0 16px !important;
+      border-radius: 6px !important;
+      font-weight: 600 !important;
+      background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%) !important;
+      border: 1px solid #ea580c !important;
+      color: #ffffff !important;
+      box-shadow: 0 3px 8px rgba(245, 158, 11, 0.3) !important;
+
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4) !important;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+    }
+
+    // Bottoni outlined (PDF Sorgente, PDF Cached)
+    ::ng-deep .p-button-outlined {
+      background: transparent !important;
+
+      &.p-button-help {
+        border: 1px solid #a855f7 !important;
+        color: #a855f7 !important;
+
+        &:hover {
+          background: rgba(168, 85, 247, 0.1) !important;
+        }
+      }
+
+      &.p-button-success {
+        border: 1px solid #22c55e !important;
+        color: #22c55e !important;
+
+        &:hover {
+          background: rgba(34, 197, 94, 0.1) !important;
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // TABS & EDITORS (PrimeNG 21) - COMPLETAMENTE RESETTATO
+  // ==========================================
+
+  // Reset TOTALE di tutti i bordi PrimeNG sui tabs
+  ::ng-deep {
+    // Reset globale per eliminare TUTTI i bordi neri
+    .p-tabs,
+    .p-tablist,
+    .p-tablist-content,
+    .p-tablist-tab-list,
+    .p-tab,
+    .p-tabpanels,
+    .p-tabpanel,
+    p-tabs,
+    p-tablist,
+    p-tab,
+    p-tabpanels,
+    p-tabpanel {
+      border: none !important;
+      border-color: transparent !important;
+      outline: none !important;
+      box-shadow: none !important;
+    }
+  }
+
+  ::ng-deep p-tabs {
+    display: block;
+    background: #ffffff;
+    border: 2px solid #7C3AED !important;
+    border-top: none !important;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+  }
+
+  ::ng-deep p-tablist {
+    display: flex;
+    background: #e9ecef;
+    border: none !important;
+    border-bottom: 2px solid #dee2e6 !important;
+    padding: 8px 8px 0 8px;
+    gap: 4px;
+
+    .p-tablist-content,
+    .p-tablist-tab-list {
+      display: flex;
+      gap: 4px;
+      border: none !important;
+      background: transparent !important;
+    }
+  }
+
+  // TABS con aspetto distintivo "scheda"
+  ::ng-deep p-tab {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 20px;
+    font-weight: 500;
+    font-size: 14px;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    gap: 8px;
+    outline: none !important;
+    box-shadow: none !important;
+
+    // Stile scheda inattiva - sfondo grigio chiaro con bordo
+    background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    border: 1px solid #ced4da !important;
+    border-bottom: none !important;
+    border-radius: 8px 8px 0 0 !important;
+    margin-bottom: -2px;
+    position: relative;
+
+    // Inner button reset (PrimeNG 21 può avere un button interno)
+    button,
+    .p-tab-header,
+    .p-ripple {
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+
+    i {
+      font-size: 16px;
+      opacity: 0.7;
+    }
+
+    &:hover {
+      color: #495057;
+      background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%) !important;
+      border-color: #adb5bd !important;
+
+      i {
+        opacity: 1;
+      }
+    }
+
+    &:focus,
+    &:focus-visible {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+
+    // Tab ATTIVO - sfondo bianco, connesso al contenuto
+    &[data-p-active="true"],
+    &.p-tab-active,
+    &.p-highlight {
+      color: #7C3AED !important;
+      background: #ffffff !important;
+      border: 2px solid #7C3AED !important;
+      border-bottom: 2px solid #ffffff !important;
+      font-weight: 600;
+      z-index: 2;
+
+      // Indicatore superiore colorato
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #7C3AED 0%, #A78BFA 100%);
+        border-radius: 8px 8px 0 0;
+      }
+
+      i {
+        color: #7C3AED;
+        opacity: 1;
+      }
+    }
+  }
+
+  ::ng-deep p-tabpanels {
+    display: block;
+    background: #ffffff;
+    padding: 0;
+    border: none !important;
+  }
+
+  // IMPORTANTE: Nasconde i pannelli inattivi in PrimeNG 21
+  ::ng-deep p-tabpanel {
+    display: none !important;
+    padding: 20px;
+    background: #ffffff;
+    border: none !important;
+
+    // Mostra solo il pannello attivo
+    &[data-p-active="true"],
+    &.p-tabpanel-active {
+      display: block !important;
+    }
+
+    > div {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+  }
+
+  .editor-container {
+    height: 600px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    .code-editor {
+      width: 100% !important;
+      height: 100% !important;
+      min-height: 600px;
+      padding: 15px !important;
+      margin: 0;
+      border: none !important;
+      border-radius: 0;
+      resize: none;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+      font-size: 13px !important;
+      line-height: 1.5;
+      background: #1e1e1e !important;
+      color: #d4d4d4 !important;
+      white-space: pre !important;
+      overflow: auto !important;
+      tab-size: 2;
+
+      &:focus {
+        outline: none;
+        box-shadow: none;
+      }
+    }
+  }
+
+  .mock-data-viewer {
+    height: 600px;
+    overflow: auto;
+    padding: 20px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+    }
+  }
+
+  .preview-frame-container {
+    height: 600px;
+    overflow: hidden;  // Nessuno scroll sul container - solo l'iframe ha lo scroll
+    background: #ffffff;
+    padding: 0;  // Nessun padding - l'iframe gestisce tutto
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    .preview-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #ffffff;
+      display: block;  // Rimuove spazio sotto l'iframe
+    }
+  }
+
+  // ==========================================
+  // STEP ACTIONS
+  // ==========================================
+  .step-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 30px;
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    // Bottone Indietro - Secondary
+    .p-button-secondary {
+      height: 44px !important;
+      padding: 0 24px !important;
+      border-radius: 6px !important;
+      font-weight: 500 !important;
+      background: #6c757d !important;
+      border: 1px solid #5a6268 !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+      transition: all 0.2s ease !important;
+
+      &:hover {
+        background: #5a6268 !important;
+        transform: translateY(-1px);
+      }
+    }
+
+    // Bottone Salva Template - Verde Success Grande
+    .p-button-success {
+      height: 48px !important;
+      padding: 0 32px !important;
+      border-radius: 8px !important;
+      font-weight: 600 !important;
+      font-size: 16px !important;
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+      border: 2px solid #1e7e34 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.35) !important;
+      transition: all 0.2s ease !important;
+
+      i {
+        font-size: 18px;
+        margin-right: 8px;
+      }
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(40, 167, 69, 0.45) !important;
+      }
+    }
+
+    // p-button-lg già incluso ma rafforziamo
+    .p-button-lg {
+      min-width: 180px;
+    }
+  }
+
+  // ==========================================
+  // SAVE DIALOG
+  // ==========================================
+  ::ng-deep .p-dialog-mask {
+    z-index: 10000 !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+  }
+
+  ::ng-deep .p-dialog {
+    z-index: 10001 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+    overflow: hidden;
+
+    .p-dialog-header {
+      background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%) !important;
+      color: #ffffff !important;
+      padding: 16px 24px !important;
+      border-bottom: none !important;
+
+      .p-dialog-title {
+        font-size: 18px !important;
+        font-weight: 600 !important;
+      }
+
+      .p-dialog-header-close {
+        color: #ffffff !important;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2) !important;
+        }
+      }
+    }
+
+    .p-dialog-content {
+      padding: 24px !important;
+      background: #ffffff !important;
+    }
+
+    .p-dialog-footer {
+      padding: 16px 24px !important;
+      background: #f8f9fa !important;
+      border-top: 1px solid #e9ecef !important;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .p-fluid {
+      .field-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .field {
+        margin-bottom: 20px;
+
+        label {
+          display: block;
+          margin-bottom: 8px;
+          font-weight: 600;
+          font-size: 14px;
+          color: #333;
+        }
+
+        input[type="text"],
+        textarea {
+          width: 100%;
+          padding: 10px 12px;
+          border: 1px solid #ced4da;
+          border-radius: 6px;
+          font-size: 14px;
+          transition: border-color 0.2s, box-shadow 0.2s;
+
+          &:focus {
+            border-color: #7C3AED;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+            outline: none;
+          }
+
+          &::placeholder {
+            color: #adb5bd;
+          }
+        }
+
+        textarea {
+          resize: vertical;
+          min-height: 80px;
+        }
+
+        .p-text-secondary {
+          display: block;
+          margin-top: 6px;
+          font-size: 12px;
+          color: #6c757d;
+          line-height: 1.4;
+        }
+      }
+    }
+
+    // SelectButton styling
+    .p-selectbutton {
+      display: flex;
+      gap: 0;
+
+      .p-button {
+        flex: 1;
+        padding: 8px 16px !important;
+        font-size: 13px !important;
+        border-radius: 0 !important;
+
+        &:first-child {
+          border-radius: 6px 0 0 6px !important;
+        }
+
+        &:last-child {
+          border-radius: 0 6px 6px 0 !important;
+        }
+
+        &.p-highlight {
+          background: #7C3AED !important;
+          border-color: #7C3AED !important;
+        }
+      }
+    }
+
+    // Select dropdown styling
+    .p-select {
+      width: 100%;
+
+      .p-select-label {
+        padding: 10px 12px;
+      }
+    }
+
+    // Footer buttons styling
+    .p-dialog-footer {
+      button {
+        min-width: 100px;
+        padding: 10px 20px !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        border-radius: 6px !important;
+        transition: all 0.2s ease !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+
+        .p-button-icon {
+          font-size: 14px;
+        }
+
+        // Bottone Annulla (secondary)
+        &.p-button-secondary {
+          background: #ffffff !important;
+          border: 1px solid #ced4da !important;
+          color: #495057 !important;
+
+          &:hover {
+            background: #f8f9fa !important;
+            border-color: #adb5bd !important;
+          }
+        }
+
+        // Bottone Salva (success)
+        &.p-button-success {
+          background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+          border: none !important;
+          color: #ffffff !important;
+          box-shadow: 0 3px 8px rgba(34, 197, 94, 0.3) !important;
+
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(34, 197, 94, 0.4) !important;
+          }
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // RESPONSIVE
+  // ==========================================
+  @media (max-width: 1024px) {
+    .info-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .summary-stats {
+      .stat-card {
+        min-width: 80px;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .builder-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 15px;
+    }
+
+    .info-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .preview-toolbar {
+      flex-direction: column;
+      gap: 10px;
+
+      .toolbar-left,
+      .toolbar-right {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    .step-actions {
+      flex-direction: column;
+      gap: 10px;
+
+      button {
+        width: 100%;
+      }
+    }
+
+    ::ng-deep .p-dialog .field-group {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// ==========================================
+// MODE SELECTION (Step 0)
+// ==========================================
+.mode-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 10px 0;
+
+  .mode-card {
+    display: flex;
+    gap: 20px;
+    padding: 25px;
+    background: #ffffff;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: #2196F3;
+      box-shadow: 0 4px 15px rgba(33, 150, 243, 0.2);
+      transform: translateY(-3px);
+    }
+
+    .mode-icon {
+      flex-shrink: 0;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
+      border-radius: 12px;
+
+      i {
+        font-size: 28px;
+        color: #ffffff;
+      }
+
+      &.pdf {
+        background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+      }
+    }
+
+    .mode-content {
+      flex: 1;
+
+      h3 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      p {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        color: #666;
+        line-height: 1.5;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+
+        li {
+          font-size: 13px;
+          color: #888;
+          margin-bottom: 4px;
+        }
+      }
+    }
+  }
+}
+
+// ==========================================
+// PDF UPLOAD AREA (newWithPdf mode)
+// ==========================================
+.pdf-upload-area {
+  padding: 20px 24px;
+  border: 2px dashed #ccc;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #fd7e14;
+    background: linear-gradient(135deg, #fff8f0 0%, #fff3e6 100%);
+  }
+
+  // Stato drag-over - evidenzia quando si trascina un file sopra
+  &.drag-over {
+    border-color: #fd7e14 !important;
+    border-style: solid !important;
+    background: linear-gradient(135deg, #fff3e6 0%, #ffe8cc 100%) !important;
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px rgba(253, 126, 20, 0.25);
+
+    .drop-icon {
+      color: #fd7e14 !important;
+      transform: scale(1.2);
+    }
+
+    .drop-text {
+      color: #fd7e14 !important;
+      font-weight: 600;
+    }
+  }
+
+  .drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .drop-icon {
+    font-size: 32px;
+    color: #aaa;
+    transition: all 0.3s ease;
+  }
+
+  .drop-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    margin: 0;
+    transition: all 0.3s ease;
+  }
+
+  .drop-divider {
+    font-size: 12px;
+    color: #999;
+    margin: 2px 0;
+  }
+
+  ::ng-deep .p-fileupload {
+    .p-button {
+      background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%) !important;
+      border: none !important;
+      padding: 12px 24px !important;
+      font-size: 15px !important;
+      font-weight: 600 !important;
+      box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3) !important;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(253, 126, 20, 0.4) !important;
+      }
+
+      .pi-upload {
+        font-size: 18px;
+        margin-right: 8px;
+      }
+    }
+  }
+
+  .upload-hint {
+    margin: 15px 0 0 0;
+    color: #888;
+    font-size: 13px;
+
+    i {
+      margin-right: 6px;
+    }
+  }
+}
+
+// ==========================================
+// JSON UPLOAD AREA (newWithMock mode)
+// ==========================================
+.json-upload-area {
+  padding: 20px 24px;
+  border: 2px dashed #ccc;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #2196F3;
+    background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%);
+  }
+
+  // Stato drag-over - evidenzia quando si trascina un file sopra
+  &.drag-over {
+    border-color: #2196F3 !important;
+    border-style: solid !important;
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px rgba(33, 150, 243, 0.25);
+
+    .drop-icon {
+      color: #2196F3 !important;
+      transform: scale(1.2);
+    }
+
+    .drop-text {
+      color: #2196F3 !important;
+      font-weight: 600;
+    }
+  }
+
+  .drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .drop-icon {
+    font-size: 32px;
+    color: #aaa;
+    transition: all 0.3s ease;
+  }
+
+  .drop-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    margin: 0;
+    transition: all 0.3s ease;
+  }
+
+  .drop-divider {
+    font-size: 12px;
+    color: #999;
+    margin: 2px 0;
+  }
+
+  ::ng-deep .p-fileupload {
+    .p-button {
+      background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%) !important;
+      border: none !important;
+      padding: 12px 24px !important;
+      font-size: 15px !important;
+      font-weight: 600 !important;
+      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3) !important;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4) !important;
+      }
+
+      .pi-upload {
+        font-size: 18px;
+        margin-right: 8px;
+      }
+    }
+  }
+
+  .upload-hint {
+    margin: 15px 0 0 0;
+    color: #888;
+    font-size: 13px;
+
+    i {
+      margin-right: 6px;
+    }
+  }
+}
+
+// Uploaded file card (better styling)
+.uploaded-file-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border: 2px solid #4caf50;
+  border-radius: 8px;
+  margin-top: 10px;
+
+  .file-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #4caf50;
+    border-radius: 8px;
+
+    i {
+      font-size: 24px;
+      color: white;
+    }
+  }
+
+  .file-info {
+    flex: 1;
+
+    .file-name {
+      display: block;
+      font-weight: 600;
+      font-size: 15px;
+      color: #2e7d32;
+      margin-bottom: 4px;
+    }
+
+    .file-size {
+      font-size: 13px;
+      color: #666;
+    }
+  }
+
+  // Variante JSON (blu invece di verde)
+  &.json {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-color: #2196F3;
+
+    .file-icon {
+      background: #2196F3;
+    }
+
+    .file-info {
+      .file-name {
+        color: #1565c0;
+      }
+
+      .file-size {
+        color: #1976D2;
+      }
+    }
+  }
+}
+
+// JSON Example Box
+.json-example-box {
+  padding: 20px;
+  background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+
+  h5 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #555;
+    font-weight: 600;
+
+    i {
+      margin-right: 8px;
+      color: #7C3AED;
+    }
+  }
+
+  .json-example-code {
+    margin: 0;
+    padding: 15px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: 6px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+}
+
+// Info box
+.info-box {
+  padding: 20px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border: 1px solid #90caf9;
+  border-radius: 8px;
+
+  h5 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    color: #1565c0;
+
+    i {
+      margin-right: 8px;
+    }
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 20px;
+
+    li {
+      margin-bottom: 8px;
+      color: #333;
+      font-size: 14px;
+
+      strong {
+        color: #1565c0;
+      }
+    }
+  }
+
+  .time-estimate {
+    margin: 15px 0 0 0;
+    padding-top: 15px;
+    border-top: 1px solid #90caf9;
+    color: #666;
+    font-size: 13px;
+
+    i {
+      margin-right: 6px;
+      color: #1565c0;
+    }
+  }
+}
+
+// ==========================================
+// GLOBAL BUTTON STYLES
+// ==========================================
+// Bottone AI Primary - Viola (usabile ovunque)
+.btn-ai-primary {
+  height: 40px !important;
+  padding: 0 20px !important;
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+  background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 50%, #A78BFA 100%) !important;
+  border: 1px solid #6D28D9 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 6px rgba(124, 58, 237, 0.3) !important;
+  transition: all 0.2s ease !important;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 12px rgba(124, 58, 237, 0.4) !important;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+// ==========================================
+// UTILITIES
+// ==========================================
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  color: #999;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+.mb-20 {
+  margin-bottom: 20px;
+}
+
+// ==========================================
+// SPEECH BUBBLE (fumetto) - Appare solo su hover
+// ==========================================
+.btn-with-bubble {
+  position: relative;
+  display: inline-block;
+
+  // Mostra la bubble solo su hover
+  &:hover .speech-bubble {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.speech-bubble {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  background: linear-gradient(135deg, #f0e6ff 0%, #e8daff 100%);
+  border: 1px solid #c9b3f5;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #5b21b6;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+  white-space: nowrap;
+  z-index: 100;
+
+  // Nascosto di default
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+
+  i {
+    margin-right: 6px;
+    color: #7c3aed;
+  }
+
+  // Freccia/punta verso il basso
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid #e8daff;
+  }
+
+  // Bordo della freccia
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 9px solid #c9b3f5;
+  }
+}
+
+// ==========================================
+// GLOBAL SAVE DIALOG STYLES (fuori da tutti i contenitori)
+// ==========================================
+:host ::ng-deep {
+  .p-dialog-mask {
+    z-index: 10000 !important;
+    background: rgba(0, 0, 0, 0.7) !important;
+    backdrop-filter: blur(4px);
+  }
+
+  .p-dialog {
+    z-index: 10001 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4) !important;
+    overflow: hidden;
+    border: none !important;
+    max-height: 90vh;
+
+    .p-dialog-header {
+      background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%) !important;
+      color: #ffffff !important;
+      padding: 20px 28px !important;
+      border-bottom: none !important;
+      border-radius: 16px 16px 0 0 !important;
+
+      .p-dialog-title {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.02em;
+      }
+
+      .p-dialog-header-close,
+      .p-dialog-header-icon {
+        color: #ffffff !important;
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 8px !important;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        .p-icon {
+          color: #ffffff !important;
+        }
+      }
+    }
+
+    .p-dialog-content {
+      padding: 28px !important;
+      background: #ffffff !important;
+      overflow-y: auto;
+      max-height: calc(90vh - 150px);
+    }
+
+    .p-dialog-footer {
+      padding: 20px 28px !important;
+      background: #f8f9fa !important;
+      border-top: 1px solid #e9ecef !important;
+      display: flex !important;
+      justify-content: flex-end !important;
+      gap: 14px !important;
+      border-radius: 0 0 16px 16px !important;
+
+      button,
+      .p-button {
+        min-width: 110px !important;
+        padding: 12px 24px !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        border-radius: 8px !important;
+        transition: all 0.2s ease !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        height: auto !important;
+
+        .p-button-icon,
+        .p-icon {
+          font-size: 14px !important;
+        }
+      }
+
+      // Bottone Annulla
+      .p-button-secondary {
+        background: #ffffff !important;
+        border: 2px solid #dee2e6 !important;
+        color: #495057 !important;
+
+        &:hover {
+          background: #f1f3f4 !important;
+          border-color: #adb5bd !important;
+        }
+      }
+
+      // Bottone Salva (verde)
+      .p-button-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        border: none !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35) !important;
+
+        &:hover {
+          transform: translateY(-2px) !important;
+          box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45) !important;
+        }
+      }
+
+      // Bottone Primary (viola) - usato per "Carica Template"
+      .p-button-primary,
+      .p-button:not(.p-button-secondary):not(.p-button-success):not(.p-button-text):not(.p-button-icon-only) {
+        background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%) !important;
+        border: none !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35) !important;
+
+        &:hover {
+          transform: translateY(-2px) !important;
+          box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45) !important;
+        }
+
+        &:disabled {
+          background: #e5e7eb !important;
+          color: #9ca3af !important;
+          box-shadow: none !important;
+          transform: none !important;
+          cursor: not-allowed;
+        }
+      }
+    }
+
+    // Form fields dentro il dialog
+    .p-fluid {
+      .field {
+        margin-bottom: 24px !important;
+
+        label {
+          display: block !important;
+          margin-bottom: 10px !important;
+          font-weight: 600 !important;
+          font-size: 14px !important;
+          color: #374151 !important;
+        }
+
+        input[type="text"],
+        .p-inputtext {
+          width: 100% !important;
+          padding: 12px 16px !important;
+          border: 2px solid #e5e7eb !important;
+          border-radius: 10px !important;
+          font-size: 14px !important;
+          background: #ffffff !important;
+          transition: all 0.2s ease !important;
+
+          &:focus {
+            border-color: #7C3AED !important;
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12) !important;
+            outline: none !important;
+          }
+
+          &::placeholder {
+            color: #9ca3af !important;
+          }
+        }
+
+        textarea,
+        .p-inputtextarea {
+          width: 100% !important;
+          padding: 12px 16px !important;
+          border: 2px solid #e5e7eb !important;
+          border-radius: 10px !important;
+          font-size: 14px !important;
+          resize: vertical !important;
+          min-height: 100px !important;
+          background: #ffffff !important;
+          transition: all 0.2s ease !important;
+
+          &:focus {
+            border-color: #7C3AED !important;
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12) !important;
+            outline: none !important;
+          }
+        }
+
+        .p-text-secondary,
+        small {
+          display: block !important;
+          margin-top: 8px !important;
+          font-size: 12px !important;
+          color: #6b7280 !important;
+          line-height: 1.5 !important;
+        }
+      }
+
+      .field-group {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 20px !important;
+      }
+    }
+
+    // SelectButton
+    .p-selectbutton {
+      display: flex !important;
+      border: 2px solid #e5e7eb !important;
+      border-radius: 10px !important;
+      overflow: hidden !important;
+
+      .p-button {
+        flex: 1 !important;
+        padding: 10px 16px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        background: #f9fafb !important;
+        color: #6b7280 !important;
+        min-width: auto !important;
+
+        &.p-highlight {
+          background: #7C3AED !important;
+          color: #ffffff !important;
+        }
+
+        &:not(:last-child) {
+          border-right: 1px solid #e5e7eb !important;
+        }
+      }
+    }
+
+    // Select dropdown
+    .p-select,
+    .p-dropdown {
+      width: 100% !important;
+      border: 2px solid #e5e7eb !important;
+      border-radius: 10px !important;
+
+      .p-select-label,
+      .p-dropdown-label {
+        padding: 12px 16px !important;
+      }
+
+      &:hover {
+        border-color: #d1d5db !important;
+      }
+
+      &.p-focus {
+        border-color: #7C3AED !important;
+        box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12) !important;
+      }
+    }
+  }
+}
+
+// ==========================================
+// MODE CARD - LOAD EXISTING (terzo blocco)
+// ==========================================
+.mode-selection-grid {
+  .mode-card.load-existing {
+    &:hover {
+      border-color: #10b981;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25);
+    }
+
+    .mode-icon.existing {
+      background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    }
+  }
+}
+
+// ==========================================
+// LOAD TEMPLATE DIALOG
+// ==========================================
+:host ::ng-deep .load-template-dialog {
+  .p-dialog-content {
+    padding: 0 !important;
+    max-height: 60vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.template-filters {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  align-items: center;
+
+  .filter-group {
+    flex: 1;
+
+    .p-input-icon-left {
+      width: 100%;
+
+      input {
+        width: 100%;
+        padding-left: 36px;
+      }
+    }
+
+    // Stile per il dropdown status nella dialog Load Template
+    ::ng-deep .p-select {
+      width: 100%;
+      min-width: 160px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      background: #ffffff;
+      min-height: 42px;
+
+      .p-select-label,
+      .p-dropdown-label {
+        padding: 10px 14px;
+        font-size: 14px;
+        color: #374151;
+      }
+
+      // Bottone freccia - stile viola come il tema
+      .p-select-dropdown,
+      .p-select-trigger,
+      .p-dropdown-trigger {
+        width: 40px;
+        background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%);
+        border-radius: 0 6px 6px 0;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .p-icon,
+        .p-select-dropdown-icon {
+          color: #ffffff;
+          font-size: 12px;
+        }
+      }
+
+      &:hover {
+        border-color: #A78BFA;
+      }
+
+      &.p-focus,
+      &:focus {
+        border-color: #7C3AED;
+        box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+      }
+    }
+  }
+}
+
+// Overlay per il dropdown status nella dialog Load Template
+::ng-deep .load-template-dialog {
+  .p-select-overlay,
+  .p-dropdown-panel {
+    z-index: 10200 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18) !important;
+    margin-top: 2px !important;
+    background: #ffffff !important;
+
+    .p-select-list-container,
+    .p-select-items-wrapper,
+    .p-dropdown-items-wrapper {
+      max-height: unset !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    .p-select-list,
+    .p-select-items,
+    .p-dropdown-items {
+      padding: 6px !important;
+
+      .p-select-option,
+      .p-select-item,
+      .p-dropdown-item {
+        padding: 12px 16px !important;
+        border-radius: 6px !important;
+        margin-bottom: 4px !important;
+        font-size: 14px !important;
+        color: #374151 !important;
+        background: #fafafa !important;
+        border: 1px solid transparent !important;
+        cursor: pointer !important;
+
+        &:last-child {
+          margin-bottom: 0 !important;
+        }
+
+        &:hover {
+          background: #f5f0ff !important;
+          color: #7C3AED !important;
+          border-color: #A78BFA !important;
+        }
+
+        &.p-highlight,
+        &.p-select-option-selected,
+        &.p-select-item-selected {
+          background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%) !important;
+          color: #ffffff !important;
+          border-color: #7C3AED !important;
+        }
+      }
+    }
+  }
+}
+
+.templates-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: #666;
+}
+
+.templates-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  max-height: 400px;
+}
+
+.template-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #ffffff;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #7C3AED;
+    background: #faf8ff;
+  }
+
+  &.selected {
+    border-color: #7C3AED;
+    background: linear-gradient(135deg, #f5f0ff 0%, #ede5ff 100%);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+  }
+
+  .template-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%);
+    border-radius: 10px;
+
+    i {
+      font-size: 22px;
+      color: #ffffff;
+    }
+  }
+
+  .template-info {
+    flex: 1;
+    min-width: 0;
+
+    .template-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+
+      .template-code {
+        font-weight: 700;
+        font-size: 15px;
+        color: #333;
+      }
+
+      .template-status {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+
+        &.status-draft {
+          background: #fef3c7;
+          color: #92400e;
+        }
+
+        &.status-active {
+          background: #d1fae5;
+          color: #065f46;
+        }
+
+        &.status-archived {
+          background: #e5e7eb;
+          color: #6b7280;
+        }
+      }
+    }
+
+    .template-name {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .template-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: #888;
+
+      span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        i {
+          font-size: 11px;
+        }
+      }
+    }
+  }
+
+  .template-actions {
+    flex-shrink: 0;
+    color: #ccc;
+
+    i {
+      font-size: 18px;
+      transition: all 0.2s ease;
+    }
+  }
+
+  &:hover .template-actions i,
+  &.selected .template-actions i {
+    color: #7C3AED;
+    transform: translateX(3px);
+  }
+}
+
+.templates-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #aaa;
+
+  i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  p {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0 0 8px 0;
+    color: #888;
+  }
+
+  small {
+    font-size: 13px;
+  }
+}
+
+// ==========================================
+// AI STYLE ENHANCEMENT BUTTON
+// ==========================================
+.btn-ai-style {
+  height: 40px !important;
+  padding: 0 18px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%) !important;
+  border: 1px solid #ea580c !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 8px rgba(245, 158, 11, 0.3) !important;
+  transition: all 0.2s ease !important;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4) !important;
+  }
+
+  i {
+    margin-right: 8px;
+    font-size: 14px;
+  }
+}
+
+// ==========================================
+// AI STYLE ENHANCEMENT DIALOG
+// ==========================================
+:host ::ng-deep .style-enhancement-dialog {
+  .p-dialog-header {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%) !important;
+    padding: 14px 20px !important;
+
+    .p-dialog-title {
+      font-size: 17px !important;
+    }
+  }
+
+  .p-dialog-content {
+    padding: 20px !important;
+    overflow: visible !important;  // Permette al dropdown di uscire
+  }
+
+  // Permetti overflow per il dropdown
+  .p-dialog {
+    overflow: visible !important;
+  }
+}
+
+.style-dialog-content {
+  .style-intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #fbbf24;
+    border-radius: 8px;
+    margin-bottom: 18px;
+
+    i {
+      font-size: 20px;
+      color: #f59e0b;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #92400e;
+      line-height: 1.5;
+    }
+  }
+
+  .field {
+    margin-bottom: 16px;
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      color: #374151;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 80px;
+      background: #ffffff;
+      transition: all 0.2s ease;
+      font-family: inherit;
+
+      &:focus {
+        border-color: #f59e0b;
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.12);
+        outline: none;
+      }
+
+      &::placeholder {
+        color: #9ca3af;
+      }
+    }
+  }
+
+  // Timeout box
+  .style-timeout {
+    padding: 20px;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 2px solid #f87171;
+    border-radius: 10px;
+    margin-top: 16px;
+    text-align: center;
+
+    .timeout-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 12px;
+
+      i {
+        font-size: 24px;
+        color: #ef4444;
+      }
+
+      span {
+        font-size: 16px;
+        font-weight: 600;
+        color: #b91c1c;
+      }
+    }
+
+    p {
+      margin: 0 0 16px 0;
+      font-size: 13px;
+      color: #7f1d1d;
+      line-height: 1.5;
+    }
+
+    .timeout-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+  }
+
+  .style-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 16px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+    border-radius: 10px;
+    margin: 20px 0;
+
+    span {
+      font-size: 15px;
+      font-weight: 500;
+      color: #92400e;
+    }
+  }
+
+  .style-result {
+    padding: 20px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 2px solid #10b981;
+    border-radius: 12px;
+    margin-top: 20px;
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+
+      i {
+        font-size: 24px;
+        color: #10b981;
+      }
+
+      span {
+        font-size: 16px;
+        font-weight: 600;
+        color: #065f46;
+      }
+    }
+
+    .color-palette {
+      margin-bottom: 20px;
+
+      label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #374151;
+      }
+
+      .color-swatches {
+        display: flex;
+        gap: 10px;
+
+        .swatch {
+          width: 40px;
+          height: 40px;
+          border-radius: 8px;
+          border: 2px solid #ffffff;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          cursor: pointer;
+          transition: transform 0.2s ease;
+
+          &:hover {
+            transform: scale(1.1);
+          }
+        }
+      }
+    }
+
+    .suggestions {
+      margin-bottom: 16px;
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #374151;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+
+        li {
+          font-size: 13px;
+          color: #4b5563;
+          margin-bottom: 6px;
+          line-height: 1.5;
+        }
+      }
+    }
+
+    .regenerate-hint {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 8px;
+      font-size: 12px;
+      color: #6b7280;
+
+      i {
+        font-size: 14px;
+        color: #9ca3af;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+    }
+  }
+}
+
+// Fix per il select nel dialog style
+:host ::ng-deep .style-enhancement-dialog {
+  .p-dialog-footer {
+    padding: 14px 20px !important;
+
+    .btn-ai-primary {
+      background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%) !important;
+      border: 1px solid #ea580c !important;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35) !important;
+
+      &:hover:not(:disabled) {
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45) !important;
+      }
+    }
+  }
+}
+
+// Style preset dropdown - stile specifico per il select degli stili
+:host ::ng-deep .style-preset-dropdown {
+  width: 100% !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  min-height: 44px !important;
+
+  .p-select-label,
+  .p-dropdown-label {
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    color: #374151 !important;
+  }
+
+  // Bottone freccia - ben evidenziato
+  .p-select-dropdown,
+  .p-select-trigger,
+  .p-dropdown-trigger {
+    width: 44px !important;
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%) !important;
+    border-radius: 0 6px 6px 0 !important;
+    color: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    .p-icon,
+    .p-select-dropdown-icon {
+      color: #ffffff !important;
+      font-size: 14px !important;
+    }
+  }
+
+  &:hover {
+    border-color: #fbbf24 !important;
+  }
+
+  &.p-focus,
+  &:focus {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15) !important;
+  }
+}
+
+// Stile globale per il panel overlay del select (fuori dal dialog - deve essere a livello globale)
+// PrimeNG 21 usa p-select-overlay - forziamo altezza automatica per mostrare tutte le opzioni
+::ng-deep .p-select-overlay,
+::ng-deep .p-dropdown-panel,
+::ng-deep .p-overlay {
+  z-index: 10100 !important;
+  border: none !important;  // Nessun bordo sul panel - evita doppio bordo
+  border-radius: 10px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18) !important;
+  margin-top: 2px !important;
+  background: #ffffff !important;
+  max-height: unset !important;
+  height: auto !important;
+  overflow: visible !important;
+
+  // Wrapper principale - NO scroll, altezza automatica
+  .p-select-list-container,
+  .p-select-items-wrapper,
+  .p-dropdown-items-wrapper,
+  .p-listbox-list-wrapper {
+    max-height: unset !important;
+    height: auto !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+  }
+
+  // Lista items - mostra tutti senza scroll
+  .p-select-list,
+  .p-select-items,
+  .p-dropdown-items,
+  .p-listbox-list {
+    padding: 6px !important;
+    max-height: unset !important;
+    height: auto !important;
+    overflow: visible !important;
+
+    .p-select-option,
+    .p-select-item,
+    .p-dropdown-item {
+      padding: 12px 16px !important;
+      border-radius: 6px !important;
+      margin-bottom: 4px !important;
+      font-size: 14px !important;
+      color: #374151 !important;
+      transition: all 0.15s ease !important;
+      cursor: pointer !important;
+      background: #fafafa !important;
+      border: 1px solid transparent !important;
+
+      &:last-child {
+        margin-bottom: 0 !important;
+      }
+
+      &:hover {
+        background: #fef3c7 !important;
+        color: #92400e !important;
+        border-color: #fbbf24 !important;
+      }
+
+      &.p-highlight,
+      &.p-select-option-selected,
+      &.p-select-item-selected {
+        background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%) !important;
+        color: #ffffff !important;
+        border-color: #ea580c !important;
+      }
+    }
+  }
+
+  // Rimuovi scrollbar (nascondile se presenti)
+  &::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+// ==========================================
+// AI TOOLTIP BUBBLE - Stile fumetto per hint AI
+// ==========================================
+::ng-deep .ai-tooltip-bubble {
+  .p-tooltip-text {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+    color: #92400e !important;
+    border: 2px solid #f59e0b !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    max-width: 320px !important;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.25) !important;
+    font-weight: 500 !important;
+  }
+
+  // Freccia del tooltip
+  .p-tooltip-arrow {
+    border-bottom-color: #f59e0b !important;
+  }
+
+  &.p-tooltip-top .p-tooltip-arrow {
+    border-top-color: #f59e0b !important;
+  }
+
+  &.p-tooltip-bottom .p-tooltip-arrow {
+    border-bottom-color: #f59e0b !important;
+  }
+
+  &.p-tooltip-left .p-tooltip-arrow {
+    border-left-color: #f59e0b !important;
+  }
+
+  &.p-tooltip-right .p-tooltip-arrow {
+    border-right-color: #f59e0b !important;
+  }
+}
+
+// ==========================================
+// TOOLTIP STANDARD - Per bottoni non-AI
+// ==========================================
+::ng-deep .p-tooltip:not(.ai-tooltip-bubble) {
+  .p-tooltip-text {
+    background: #374151 !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    max-width: 280px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    font-weight: 400 !important;
+  }
+
+  .p-tooltip-arrow {
+    border-color: transparent !important;
+  }
+
+  &.p-tooltip-top .p-tooltip-arrow {
+    border-top-color: #374151 !important;
+  }
+
+  &.p-tooltip-bottom .p-tooltip-arrow {
+    border-bottom-color: #374151 !important;
+  }
+
+  &.p-tooltip-left .p-tooltip-arrow {
+    border-left-color: #374151 !important;
+  }
+
+  &.p-tooltip-right .p-tooltip-arrow {
+    border-right-color: #374151 !important;
+  }
+}
+
+// ==========================================
+// AI QUICK EDIT BUTTON
+// ==========================================
+.btn-ai-quickedit {
+  height: 40px !important;
+  padding: 0 18px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+  border: 1px solid #0e7490 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 8px rgba(6, 182, 212, 0.3) !important;
+  transition: all 0.2s ease !important;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(6, 182, 212, 0.4) !important;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  i {
+    margin-right: 8px;
+    font-size: 14px;
+  }
+}
+
+// ==========================================
+// AI QUICK EDIT DIALOG
+// ==========================================
+:host ::ng-deep .quick-edit-dialog {
+  .p-dialog-header {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+    padding: 14px 20px !important;
+
+    .p-dialog-title {
+      font-size: 17px !important;
+    }
+  }
+
+  .p-dialog-content {
+    padding: 20px !important;
+  }
+
+  .p-dialog-footer {
+    padding: 14px 20px !important;
+
+    .btn-ai-primary {
+      background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+      border: 1px solid #0e7490 !important;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.35) !important;
+
+      &:hover:not(:disabled) {
+        box-shadow: 0 6px 20px rgba(6, 182, 212, 0.45) !important;
+      }
+    }
+  }
+}
+
+// ==========================================
+// AI LOADER MINI (per dialog)
+// ==========================================
+.ai-loader-mini {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 12px;
+
+  .ai-brain-mini {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+
+    i {
+      font-size: 18px;
+      color: #ffffff;
+      animation: pulse-icon 1.5s ease-in-out infinite;
+    }
+
+    // Variante per Style (arancione)
+    &.style {
+      background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+  }
+
+  .ai-pulse-mini {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(6, 182, 212, 0.2);
+    animation: pulse-ring-mini 1.5s ease-out infinite;
+
+    // Variante per Style (arancione)
+    &.style {
+      background: rgba(245, 158, 11, 0.2);
+    }
+  }
+}
+
+@keyframes pulse-icon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes pulse-ring-mini {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.4);
+    opacity: 0;
+  }
+}
+
+.elapsed-time-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 20px;
+
+  i {
+    font-size: 14px;
+    color: #64748b;
+  }
+
+  .time-value {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #334155;
+  }
+}
+
+.loading-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.loading-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 8px;
+}
+
+.quick-edit-content {
+  .quick-edit-intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
+    border: 1px solid #22d3ee;
+    border-radius: 8px;
+    margin-bottom: 16px;
+
+    i {
+      font-size: 20px;
+      color: #0891b2;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #0e7490;
+      line-height: 1.5;
+    }
+  }
+
+  .quick-edit-examples {
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 0;
+      list-style: none;
+
+      li {
+        font-size: 12px;
+        color: #475569;
+        margin-bottom: 6px;
+        padding-left: 16px;
+        position: relative;
+
+        &::before {
+          content: '•';
+          position: absolute;
+          left: 0;
+          color: #06b6d4;
+        }
+
+        code {
+          background: #e0f2fe;
+          color: #0284c7;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-family: 'Consolas', 'Monaco', monospace;
+          font-size: 11px;
+        }
+      }
+    }
+  }
+
+  .field {
+    margin-bottom: 16px;
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      color: #374151;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 100px;
+      background: #ffffff;
+      transition: all 0.2s ease;
+      font-family: inherit;
+
+      &:focus {
+        border-color: #06b6d4;
+        box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.12);
+        outline: none;
+      }
+
+      &::placeholder {
+        color: #9ca3af;
+      }
+
+      &:disabled {
+        background: #f3f4f6;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .quick-edit-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 12px;
+    background: linear-gradient(135deg, #cffafe 0%, #e0f2fe 100%);
+    border-radius: 10px;
+    margin: 16px 0;
+
+    span {
+      font-size: 15px;
+      font-weight: 500;
+      color: #0e7490;
+    }
+
+    small {
+      font-size: 12px;
+      color: #64748b;
+    }
+  }
+
+  .quick-edit-timeout {
+    padding: 20px;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 2px solid #f87171;
+    border-radius: 10px;
+    margin-top: 16px;
+    text-align: center;
+
+    .timeout-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 12px;
+
+      i {
+        font-size: 24px;
+        color: #ef4444;
+      }
+
+      span {
+        font-size: 16px;
+        font-weight: 600;
+        color: #b91c1c;
+      }
+    }
+
+    p {
+      margin: 0 0 16px 0;
+      font-size: 13px;
+      color: #7f1d1d;
+      line-height: 1.5;
+    }
+
+    .timeout-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+  }
+
+  .quick-edit-result {
+    padding: 20px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 2px solid #10b981;
+    border-radius: 12px;
+    margin-top: 16px;
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+
+      i {
+        font-size: 24px;
+        color: #10b981;
+      }
+
+      span {
+        font-size: 16px;
+        font-weight: 600;
+        color: #065f46;
+      }
+    }
+
+    .changes-list {
+      margin-bottom: 16px;
+
+      label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #374151;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 0;
+        list-style: none;
+
+        li {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          font-size: 13px;
+          color: #065f46;
+          margin-bottom: 8px;
+          padding: 8px 12px;
+          background: rgba(255, 255, 255, 0.6);
+          border-radius: 6px;
+
+          i {
+            color: #10b981;
+            font-size: 14px;
+            flex-shrink: 0;
+            margin-top: 1px;
+          }
+        }
+      }
+    }
+
+    .suggestions {
+      margin-bottom: 16px;
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #374151;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+
+        li {
+          font-size: 13px;
+          color: #4b5563;
+          margin-bottom: 6px;
+          line-height: 1.5;
+        }
+      }
+    }
+
+    .another-edit-hint {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 8px;
+      font-size: 12px;
+      color: #6b7280;
+
+      i {
+        font-size: 14px;
+        color: #9ca3af;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+    }
+  }
+}
+
+// ============================================
+// EDITING MODE STYLES
+// Stili per la modalità modifica manuale dei tab
+// ============================================
+
+.ai-template-builder .tab-edit-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 0;
+  min-height: 56px;
+
+  // Bottone "Modifica" - Warning/Arancione
+  .p-button-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    i {
+      margin-right: 6px;
+    }
+  }
+
+  .edit-mode-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+
+    i {
+      font-size: 16px;
+      color: #94a3b8;
+    }
+  }
+
+  .edit-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .p-button {
+      font-size: 13px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      &.p-button-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        border: none !important;
+        color: white !important;
+
+        &:hover {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+      }
+
+      &.p-button-secondary {
+        background: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #64748b !important;
+
+        &:hover {
+          background: #e2e8f0 !important;
+          border-color: #94a3b8 !important;
+          color: #475569 !important;
+        }
+      }
+    }
+  }
+
+  // Stile quando è in modalità editing attiva
+  &.editing-active-toolbar {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-bottom-color: #f59e0b;
+
+    .edit-mode-label {
+      color: #92400e;
+
+      i {
+        color: #f59e0b;
+      }
+    }
+  }
+}
+
+// Badge "EDITING" sui tab
+.ai-template-builder .editing-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border-radius: 10px;
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+}
+
+// Editor container quando in editing mode
+.ai-template-builder .editing-active {
+  border: 2px solid #f59e0b !important;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+
+  textarea {
+    background: #fffbeb !important;
+    border-color: #fcd34d !important;
+
+    &:focus {
+      border-color: #f59e0b !important;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2) !important;
+    }
+  }
+}
+
+// Stile per textarea readonly
+.ai-template-builder .template-editor,
+.ai-template-builder .rules-editor,
+.ai-template-builder .mock-data-editor {
+  textarea {
+    &[readonly] {
+      background: #f8fafc !important;
+      color: #475569;
+      cursor: default;
+      border-color: #e2e8f0;
+
+      &:focus {
+        border-color: #e2e8f0;
+        box-shadow: none;
+      }
+    }
+  }
+}
+
+// Mock data readonly view
+.ai-template-builder .mock-data-readonly {
+  pre {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #334155;
+    max-height: 400px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}
+
+// Mock data editing textarea
+.ai-template-builder .mock-data-edit-area {
+  textarea {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    min-height: 400px;
+    width: 100%;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    resize: vertical;
+    background: #fffbeb;
+    color: #334155;
+
+    &:focus {
+      outline: none;
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+  }
+}
+
+// Tab disabilitato durante editing
+.ai-template-builder ::ng-deep .p-tabs {
+  .p-tab {
+    &[disabled],
+    &.p-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+  }
+}
+
+// ==========================================
+// CONFIRM EXIT DIALOG
+// ==========================================
+::ng-deep .confirm-exit-dialog {
+  .p-dialog-header {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    color: white;
+    border-radius: 8px 8px 0 0;
+    padding: 16px 20px;
+
+    .p-dialog-title {
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .p-dialog-header-icons {
+      .p-dialog-header-close {
+        color: white;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+      }
+    }
+  }
+
+  .p-dialog-content {
+    padding: 24px;
+  }
+
+  .p-dialog-footer {
+    padding: 16px 24px;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 8px 8px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+}
+
+.confirm-exit-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+
+  .confirm-exit-icon {
+    font-size: 48px;
+    color: #ff9800;
+    flex-shrink: 0;
+  }
+
+  .confirm-exit-message {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #333;
+    padding-top: 8px;
+  }
+}
+
+// ==========================================
+// CONFIRM REGENERATE DIALOG
+// ==========================================
+::ng-deep .confirm-regenerate-dialog {
+  .p-dialog-header {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    color: white;
+    border-radius: 8px 8px 0 0;
+    padding: 16px 20px;
+
+    .p-dialog-title {
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .p-dialog-header-icons {
+      .p-dialog-header-close {
+        color: white;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+      }
+    }
+  }
+
+  .p-dialog-content {
+    padding: 24px;
+  }
+}
+
+.confirm-regenerate-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+
+  .confirm-regenerate-icon {
+    font-size: 52px;
+    color: #ff9800;
+  }
+
+  .confirm-regenerate-message {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: #333;
+  }
+
+  .confirm-regenerate-warning {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #666;
+  }
+}
+
+// ==========================================
+// PDF VIEWER POPUP DIALOG
+// ==========================================
+::ng-deep .pdf-viewer-dialog {
+  .p-dialog-content {
+    padding: 0 !important;
+    height: calc(90vh - 120px) !important;
+    overflow: hidden;
+  }
+
+  .p-dialog-header {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    color: white;
+
+    .p-dialog-title {
+      color: white;
+      font-weight: 600;
+    }
+
+    .p-dialog-header-icons {
+      .p-dialog-header-icon {
+        color: white;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+      }
+    }
+  }
+
+  .p-dialog-footer {
+    padding: 12px 20px;
+    background: #f5f5f5;
+    border-top: 1px solid #e0e0e0;
+  }
+}
+
+.pdf-viewer-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #525659;
+}
+
+.pdf-viewer-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: white;
+
+  span {
+    font-size: 16px;
+    font-weight: 500;
+  }
+}
+
+.pdf-viewer-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: white;
+}
+
+.pdf-viewer-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: #999;
+
+  i {
+    font-size: 64px;
+    color: #ccc;
+  }
+
+  p {
+    margin: 0;
+    font-size: 16px;
+  }
+}
+
+.pdf-viewer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+
+  .pdf-filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #666;
+
+    i {
+      color: #e53935;
+      font-size: 18px;
+    }
+  }
+
+  .pdf-viewer-actions {
+    display: flex;
+    gap: 10px;
+  }
+}
+
+// ==========================================
+// SAVE DIALOG - Status Radio Buttons
+// ==========================================
+.status-radio-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+
+  // Ogni opzione radio con il suo label
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fafafa;
+    margin-right: 8px;
+
+    &:hover {
+      border-color: #90caf9;
+      background: #e3f2fd;
+    }
+
+    &.selected {
+      border-color: #1976d2;
+      background: #e3f2fd;
+
+      label {
+        color: #1565c0;
+        font-weight: 600;
+      }
+    }
+
+    label {
+      cursor: pointer;
+      margin: 0 !important;
+      user-select: none;
+      font-size: 14px;
+      color: #555;
+    }
+  }
+}
+
+// ==========================================
+// TEMPLATE MANAGEMENT BUTTONS (Footer)
+// ==========================================
+.template-management-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  margin-right: 20px;
+
+  button {
+    height: 40px !important;
+    padding: 0 16px !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.2s ease !important;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    // Versioni - Info (blu)
+    &.p-button-info {
+      background: transparent !important;
+      border: 2px solid #2196F3 !important;
+      color: #1976D2 !important;
+
+      &:hover {
+        background: #e3f2fd !important;
+      }
+    }
+
+    // Duplica - Help (viola)
+    &.p-button-help {
+      background: transparent !important;
+      border: 2px solid #9c27b0 !important;
+      color: #7b1fa2 !important;
+
+      &:hover {
+        background: #f3e5f5 !important;
+      }
+    }
+
+    // Pulisci - Warning (arancione)
+    &.p-button-warning {
+      background: transparent !important;
+      border: 2px solid #ff9800 !important;
+      color: #f57c00 !important;
+
+      &:hover {
+        background: #fff3e0 !important;
+      }
+    }
+  }
+}
+
+// ==========================================
+// DUPLICATE TEMPLATE DIALOG
+// ==========================================
+::ng-deep .duplicate-template-dialog {
+  .p-dialog-content {
+    padding: 24px;
+  }
+
+  // Stile dropdown connessione destinazione - come il dropdown status in Load Template
+  .p-select {
+    width: 100%;
+    border: 2px solid #e5e7eb !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    min-height: 42px;
+
+    .p-select-label,
+    .p-dropdown-label {
+      padding: 10px 14px !important;
+      font-size: 14px !important;
+      color: #374151 !important;
+    }
+
+    // Bottone freccia - stile viola come il tema
+    .p-select-dropdown,
+    .p-select-trigger,
+    .p-dropdown-trigger {
+      width: 40px !important;
+      background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%) !important;
+      border-radius: 0 6px 6px 0 !important;
+      color: #ffffff !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      .p-icon,
+      .p-select-dropdown-icon {
+        color: #ffffff !important;
+        font-size: 12px !important;
+      }
+    }
+
+    &:hover {
+      border-color: #A78BFA !important;
+    }
+
+    &.p-focus,
+    &:focus {
+      border-color: #7C3AED !important;
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15) !important;
+    }
+  }
+}
+
+// Overlay per il dropdown nel Duplicate Dialog (appendTo="body")
+::ng-deep .p-select-overlay {
+  z-index: 10200 !important;
+}
+
+.duplicate-dialog-content {
+  .duplicate-source-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    border-radius: 8px;
+    margin-bottom: 20px;
+
+    i {
+      font-size: 24px;
+      color: #7b1fa2;
+      margin-top: 2px;
+    }
+
+    p {
+      margin: 0;
+      color: #4a148c;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  }
+
+  .field {
+    margin-bottom: 20px;
+
+    label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .p-text-secondary {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #666;
+    }
+  }
+
+  .source-template-box {
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .template-key {
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      color: #1976d2;
+
+      strong {
+        color: #0d47a1;
+      }
+    }
+
+    .template-name {
+      font-size: 12px;
+      color: #666;
+    }
+  }
+
+  .duplicate-warning {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #fff3e0;
+    border: 1px solid #ffcc80;
+    border-radius: 6px;
+    margin-bottom: 16px;
+
+    i {
+      font-size: 18px;
+      color: #f57c00;
+    }
+
+    span {
+      font-size: 13px;
+      color: #e65100;
+    }
+  }
+
+  .duplicate-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 8px;
+
+    span {
+      font-size: 14px;
+      color: #666;
+    }
+  }
+}
+
+// ==========================================
+// CLEAN VERSIONS DIALOG
+// ==========================================
+::ng-deep .clean-versions-dialog {
+  .p-dialog-content {
+    padding: 24px;
+  }
+
+  // Stile dropdown - come il duplicate dialog
+  .p-select {
+    width: 100%;
+    border: 2px solid #e5e7eb !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    min-height: 42px;
+
+    .p-select-label,
+    .p-dropdown-label {
+      padding: 10px 14px !important;
+      font-size: 14px !important;
+      color: #374151 !important;
+    }
+
+    .p-select-dropdown,
+    .p-select-trigger,
+    .p-dropdown-trigger {
+      width: 40px !important;
+      background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%) !important;
+      border-radius: 0 6px 6px 0 !important;
+      color: #ffffff !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      .p-icon,
+      .p-select-dropdown-icon {
+        color: #ffffff !important;
+        font-size: 12px !important;
+      }
+    }
+
+    &:hover {
+      border-color: #FBBF24 !important;
+    }
+
+    &.p-focus,
+    &:focus {
+      border-color: #F59E0B !important;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15) !important;
+    }
+  }
+}
+
+.clean-versions-content {
+  .clean-versions-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-radius: 8px;
+    margin-bottom: 20px;
+
+    i {
+      font-size: 24px;
+      color: #d97706;
+      margin-top: 2px;
+    }
+
+    p {
+      margin: 0;
+      color: #92400e;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  }
+
+  .versions-stats {
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .stat-label {
+        font-size: 14px;
+        color: #666;
+      }
+
+      .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1976d2;
+      }
+    }
+  }
+
+  .field {
+    margin-bottom: 20px;
+
+    label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .p-text-secondary {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #666;
+    }
+  }
+
+  .delete-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+
+    &.warning {
+      background: #fff3e0;
+      border: 1px solid #ffcc80;
+
+      i {
+        color: #f57c00;
+        font-size: 24px;
+      }
+
+      .preview-text {
+        color: #e65100;
+        font-size: 14px;
+
+        strong {
+          font-size: 18px;
+          color: #d84315;
+        }
+      }
+    }
+
+    &.safe {
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+
+      i {
+        color: #43a047;
+        font-size: 24px;
+      }
+
+      .preview-text {
+        color: #2e7d32;
+        font-size: 14px;
+      }
+    }
+  }
+
+  .clean-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #fce4ec;
+    border: 1px solid #f48fb1;
+    border-radius: 6px;
+    margin-bottom: 16px;
+
+    i {
+      font-size: 18px;
+      color: #c2185b;
+      margin-top: 2px;
+    }
+
+    span {
+      font-size: 13px;
+      color: #880e4f;
+      line-height: 1.4;
+    }
+  }
+
+  .clean-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 8px;
+
+    span {
+      font-size: 14px;
+      color: #666;
+    }
+  }
+
+}
+
+// ==========================================
+// USER INSTRUCTIONS SECTION
+// ==========================================
+.user-instructions-section {
+  margin: 20px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+  border: 1px solid #e0e7ff;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #c7d2fe;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  }
+
+  .user-instructions-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+
+    h4 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #667eea;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      i {
+        font-size: 18px;
+      }
+    }
+
+    .optional-badge {
+      font-size: 12px;
+      font-weight: 400;
+      color: #9ca3af;
+      margin-left: 8px;
+    }
+  }
+
+  .user-instructions-textarea {
+    width: 100%;
+    min-height: 90px;
+    padding: 14px;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.5;
+    color: #374151;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    resize: vertical;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+
+    &:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    }
+
+    &::placeholder {
+      color: #9ca3af;
+      font-style: italic;
+    }
+  }
+
+  .user-instructions-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.4;
+
+    i {
+      font-size: 12px;
+      margin-top: 1px;
+      color: #9ca3af;
+    }
+  }
+}
+
+// ==========================================
+// TEMPLATE INFO PANEL (Tab Info)
+// ==========================================
+.template-info-panel {
+  padding: 20px;
+  background: #fafafa;
+  border-radius: 8px;
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .info-grid-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+    max-width: 450px;
+  }
+
+  .info-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #ffffff;
+      transition: all 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+      }
+
+      &:disabled {
+        background: #f3f4f6;
+        color: #6b7280;
+        cursor: not-allowed;
+      }
+    }
+
+    ::ng-deep .p-select {
+      width: 100%;
+
+      .p-select-label {
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+    }
+  }
+
+  .info-field-wide {
+    margin-bottom: 16px;
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+
+      i {
+        color: #667eea;
+        margin-right: 6px;
+      }
+
+      .optional-badge {
+        font-size: 11px;
+        font-weight: 400;
+        color: #9ca3af;
+        text-transform: none;
+      }
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #ffffff;
+      resize: vertical;
+      min-height: 60px;
+      transition: all 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+      }
+
+      &::placeholder {
+        color: #9ca3af;
+        font-style: italic;
+      }
+    }
+
+    .field-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #6b7280;
+
+      i {
+        color: #9ca3af;
+      }
+    }
+
+    &.ai-instructions {
+      margin-top: 20px;
+      padding: 16px;
+      background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+      border: 1px solid #e0e7ff;
+      border-radius: 8px;
+
+      label {
+        color: #667eea;
+      }
+
+      textarea {
+        background: #ffffff;
+        border-color: #c7d2fe;
+
+        &:focus {
+          border-color: #667eea;
+        }
+      }
+    }
+  }
+}

@@ -21,7 +21,7 @@ import {
   ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { informationCircleOutline, checkmarkCircle, closeCircle, arrowBackOutline } from 'ionicons/icons';
+import { informationCircleOutline, checkmarkCircle, closeCircle, arrowBackOutline, mailOutline } from 'ionicons/icons';
 import { DxFormModule, DxButtonModule, DxFormComponent, DxLinearGaugeModule } from 'devextreme-angular';
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslationService, Language } from '../../../core/services/translation.service';
@@ -32,7 +32,8 @@ addIcons({
   'information-circle-outline': informationCircleOutline,
   'checkmark-circle': checkmarkCircle,
   'close-circle': closeCircle,
-  'arrow-back-outline': arrowBackOutline
+  'arrow-back-outline': arrowBackOutline,
+  'mail-outline': mailOutline
 });
 
 interface RegisterFormData {
@@ -363,6 +364,36 @@ interface RegisterFormData {
               <!-- Link per tornare indietro -->
               <div class="login-link">
                 {{ getText(125) }} <a routerLink="/login">{{ getText(114) }}</a>
+              </div>
+            }
+
+            <!-- Pagina 3: Conferma Email Inviata -->
+            @if (page === 3) {
+              <div class="email-confirmation-section">
+                <div class="email-icon">
+                  <ion-icon name="mail-outline" color="primary"></ion-icon>
+                </div>
+                <h2>{{ getText(129) || 'Controlla la tua email!' }}</h2>
+                <p class="confirmation-message">
+                  {{ getText(130) || 'Ti abbiamo inviato una email di conferma.' }}
+                </p>
+                <p class="confirmation-details">
+                  {{ getText(131) || 'Clicca sul link presente nella email per attivare il tuo account.' }}
+                </p>
+                <div class="email-sent-to">
+                  <strong>{{ formData.email }}</strong>
+                </div>
+                <p class="spam-notice">
+                  {{ getText(132) || 'Se non trovi la email, controlla anche nella cartella spam.' }}
+                </p>
+                <div class="button-container">
+                  <ion-button
+                    expand="block"
+                    (click)="goToLogin()"
+                    class="register-button">
+                    {{ getText(114) || 'Torna al Login' }}
+                  </ion-button>
+                </div>
               </div>
             }
           </ion-card-content>
@@ -817,6 +848,59 @@ interface RegisterFormData {
         display: none;
       }
     }
+
+    /* Email Confirmation Section (Page 3) */
+    .email-confirmation-section {
+      text-align: center;
+      padding: 30px 20px;
+    }
+
+    .email-icon {
+      margin-bottom: 20px;
+    }
+
+    .email-icon ion-icon {
+      font-size: 80px;
+      color: var(--ion-color-primary);
+    }
+
+    .email-confirmation-section h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--ion-color-primary);
+      margin: 0 0 20px 0;
+    }
+
+    .confirmation-message {
+      font-size: 16px;
+      color: var(--ion-text-color);
+      margin: 0 0 10px 0;
+    }
+
+    .confirmation-details {
+      font-size: 14px;
+      color: var(--ion-color-medium);
+      margin: 0 0 20px 0;
+    }
+
+    .email-sent-to {
+      background: rgba(var(--ion-color-primary-rgb), 0.1);
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+
+    .email-sent-to strong {
+      font-size: 16px;
+      color: var(--ion-color-primary);
+    }
+
+    .spam-notice {
+      font-size: 13px;
+      color: var(--ion-color-medium);
+      font-style: italic;
+      margin: 15px 0 25px 0;
+    }
   `]
 })
 export class RegisterPage implements OnInit, AfterViewInit {
@@ -986,6 +1070,7 @@ export class RegisterPage implements OnInit, AfterViewInit {
           icon: 'eyeclose',
           type: 'default',
           stylingMode: 'text',
+          tabIndex: -1,
           onClick: () => {
             this.togglePasswordVisibility();
           }
@@ -1003,6 +1088,7 @@ export class RegisterPage implements OnInit, AfterViewInit {
           icon: 'eyeclose',
           type: 'default',
           stylingMode: 'text',
+          tabIndex: -1,
           onClick: () => {
             this.togglePasswordVisibility();
           }
@@ -1027,6 +1113,7 @@ export class RegisterPage implements OnInit, AfterViewInit {
           icon: icon,
           type: 'default',
           stylingMode: 'text',
+          tabIndex: -1,
           onClick: () => {
             this.togglePasswordVisibility();
           }
@@ -1044,6 +1131,7 @@ export class RegisterPage implements OnInit, AfterViewInit {
           icon: icon,
           type: 'default',
           stylingMode: 'text',
+          tabIndex: -1,
           onClick: () => {
             this.togglePasswordVisibility();
           }
@@ -1198,15 +1286,8 @@ export class RegisterPage implements OnInit, AfterViewInit {
       await loading.dismiss();
       this.isLoading = false;
 
-      const toast = await this.toastCtrl.create({
-        message: this.getText(128),
-        duration: 3000,
-        color: 'success'
-      });
-      await toast.present();
-
-      // Naviga alla pagina di login
-      this.router.navigate(['/login']);
+      // Mostra pagina 3 con messaggio di conferma email
+      this.page = 3;
     } catch (error: any) {
       await loading.dismiss();
       this.isLoading = false;

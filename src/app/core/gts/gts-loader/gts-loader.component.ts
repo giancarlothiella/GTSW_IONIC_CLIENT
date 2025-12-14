@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { GtsDataService } from '../../services/gts-data.service';
@@ -13,7 +13,10 @@ import { DxLoadPanelModule } from 'devextreme-angular';
 })
 export class GtsLoaderComponent implements OnInit, OnDestroy {
 
-  appLoaderListenerSubs: Subscription | undefined; 
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
+
+  appLoaderListenerSubs: Subscription | undefined;
 
   constructor(
     public gtsDataService: GtsDataService
@@ -22,11 +25,14 @@ export class GtsLoaderComponent implements OnInit, OnDestroy {
   loading: boolean = false;
 
   ngOnInit(): void {
-    // Loader Listener
+    // Loader Listener - force change detection in Angular 18+ standalone
     this.appLoaderListenerSubs = this.gtsDataService
     .getAppLoaderListener()
     .subscribe((loading) => {
-      this.loading = loading;    
+      this.ngZone.run(() => {
+        this.loading = loading;
+        this.cdr.detectChanges();
+      });
     })
   }
 

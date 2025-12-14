@@ -90,7 +90,7 @@ import { ProjectInfo } from '../../core/models/menu.model';
                         <div class="project-image-container admin-image-container">
                           <img [src]="project.homeImage" [alt]="project.description" class="project-image">
                           @if (project.prjId === user?.prjId) {
-                            <ion-badge color="success" class="active-badge">Attivo</ion-badge>
+                            <ion-badge color="success" class="active-badge">{{ getText(1301) }}</ion-badge>
                           }
                         </div>
                       }
@@ -150,7 +150,7 @@ import { ProjectInfo } from '../../core/models/menu.model';
                       <div class="project-image-container">
                         <img [src]="project.homeImage" [alt]="project.description" class="project-image">
                         @if (project.prjId === user?.prjId) {
-                          <ion-badge color="success" class="active-badge">Attivo</ion-badge>
+                          <ion-badge color="success" class="active-badge">{{ getText(1301) }}</ion-badge>
                         }
                       </div>
                     }
@@ -396,6 +396,8 @@ export class HomePage implements OnInit, ViewWillEnter {
   // Toggle per visualizzazione progetti/amministrazione
   showAdminSection = false;
 
+  private readonly ADMIN_SECTION_KEY = 'gts_show_admin_section';
+
   constructor() {
     // Registra le icone necessarie
     addIcons({
@@ -416,9 +418,25 @@ export class HomePage implements OnInit, ViewWillEnter {
   }
 
   ngOnInit() {
+    this.syncProjectSection();
   }
 
   ionViewWillEnter() {
+    // Ri-sincronizza ogni volta che la home diventa visibile
+    this.syncProjectSection();
+  }
+
+  /**
+   * Sincronizza la sezione visualizzata con il progetto corrente dell'utente
+   */
+  private syncProjectSection() {
+    if (!this.user?.prjId) return;
+
+    const isAdminPrj = this.isAdminProject({ prjId: this.user.prjId } as ProjectInfo);
+
+    // Mostra la sezione corretta in base al progetto dell'utente
+    this.showAdminSection = isAdminPrj;
+    localStorage.setItem(this.ADMIN_SECTION_KEY, String(isAdminPrj));
   }
 
   /**
@@ -426,6 +444,8 @@ export class HomePage implements OnInit, ViewWillEnter {
    */
   toggleAdminSection() {
     this.showAdminSection = !this.showAdminSection;
+    // Salva lo stato in localStorage
+    localStorage.setItem(this.ADMIN_SECTION_KEY, String(this.showAdminSection));
   }
 
   /**
@@ -460,6 +480,10 @@ export class HomePage implements OnInit, ViewWillEnter {
       connCode = defaultConn?.connCode || project.dbConnections[0].connCode;
     }
 
+    // Salva lo stato della sezione in base al tipo di progetto selezionato
+    const isAdmin = this.isAdminProject(project);
+    localStorage.setItem(this.ADMIN_SECTION_KEY, String(isAdmin));
+
     // Cambia progetto e ricarica il menu
     this.loading = true;
     this.menuService.changeProject(project.prjId, connCode).subscribe({
@@ -478,6 +502,10 @@ export class HomePage implements OnInit, ViewWillEnter {
    */
   onConnectionClick(event: Event, project: ProjectInfo, connection: any) {
     event.stopPropagation();
+
+    // Salva lo stato della sezione in base al tipo di progetto selezionato
+    const isAdmin = this.isAdminProject(project);
+    localStorage.setItem(this.ADMIN_SECTION_KEY, String(isAdmin));
 
     // Cambia progetto con connessione specifica
     this.loading = true;

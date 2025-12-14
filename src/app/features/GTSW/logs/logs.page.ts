@@ -2,7 +2,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription, throwError } from 'rxjs';
+import { Subscription } from 'rxjs';
 import DataSource from 'devextreme/data/data_source';
 import ArrayStore from 'devextreme/data/array_store';
 import { DxPopupModule, DxHtmlEditorModule, DxDataGridModule } from 'devextreme-angular';
@@ -16,6 +16,11 @@ import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form
 import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';
 import { GtsTabsComponent } from '../../../core/gts/gts-tabs/gts-tabs.component';
 import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.component';
+import {
+  mapOracleDataForTemplateBuilder,
+  mapOracleMetadataForTemplateBuilder,
+  extractSessionData
+} from './helpers/oracle-data-mapper.helper';
 
 @Component({
   selector: 'app-logs',
@@ -191,6 +196,7 @@ import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.c
         <dxi-column dataField="sqlDeleteId" caption="Delete SQL Id"></dxi-column>
       </dx-data-grid>
     </dx-popup>
+
   `,
   styles: [`
     .pageFormat {
@@ -404,7 +410,189 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
           } else {
             const errorMessage = this.report.message;
             this.gtsDataService.sendAppLoaderListener(false);
-            console.error('Error getting report data:', errorMessage);
+            // Show error message to user
+            alert('Error getting report data: ' + errorMessage);
+          }
+        }
+
+        if (customCode === 'SHOW_RPTDATA') {
+          this.gtsDataService.sendAppLoaderListener(true);
+          const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daRptLog','qRptLog');
+          this.reportCode = row.reportCode;
+          this.reportFieldGrpId = row.fieldGrpId;
+          this.reportPrjId = row.prjId;
+          this.reportFormId = row.formId;
+          this.reportParams = row.params;
+          this.reportConnCode = row.connCode;
+          const report = {
+            sessionId: row.sessionId,
+            fieldGrpId: row.fieldGrpId,
+            reportCode: row.reportCode,
+            reportName: row.reportName,
+            sqlId: row.sqlId,
+          };
+          await this.gtsDataService.getOtherPageData(this.reportPrjId, this.reportFormId);
+          this.report = await this.gtsDataService.getReportData(this.reportPrjId, this.reportFormId, report, this.reportParams, this.reportConnCode, false, false);
+          if (this.report !== undefined && this.report !== null && this.report.valid) {
+            // const dataRows = report with only keys beginnig with rows
+            const dataRows: any = {};
+            Object.keys(this.report).forEach((key: any) => {
+              if (key.startsWith('rows_')) {  
+                dataRows[key] = this.report[key];
+              }
+            });
+            this.jsonDataTitle = this.reportCode + ' - Data Rows';
+            this.jsonDataString = JSON.stringify(dataRows, null, 2);
+            console.log('dataRows', dataRows);
+            this.jsonVisible = true;
+          } else {
+            const errorMessage = this.report.message;
+            this.gtsDataService.sendAppLoaderListener(false);
+            // Show error message to user
+            alert('Error getting report data: ' + errorMessage);
+          }
+        }
+
+        if (customCode === 'SHOW_AI_BUILDER') {
+          console.log('[SHOW_AI_BUILDER] Starting...');
+          this.gtsDataService.sendAppLoaderListener(true);
+          const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daRptLog','qRptLog');
+          console.log('[SHOW_AI_BUILDER] Selected row:', row);
+
+          // Carica i dati del report per passarli al builder
+          const report = {
+            sessionId: row.sessionId,
+            fieldGrpId: row.fieldGrpId,
+            reportCode: row.reportCode,
+            reportName: row.reportName,
+            sqlId: row.sqlId,
+          };
+          console.log('[SHOW_AI_BUILDER] Report object:', report);
+
+          await this.gtsDataService.getOtherPageData(row.prjId, row.formId);
+          console.log('[SHOW_AI_BUILDER] Calling getReportData with prjId:', row.prjId, 'formId:', row.formId, 'params:', row.params, 'connCode:', row.connCode);
+          const reportData = await this.gtsDataService.getReportData(row.prjId, row.formId, report, row.params, row.connCode, false, true);
+          console.log('[SHOW_AI_BUILDER] getReportData response:', reportData);
+
+          if (reportData && reportData.valid) {
+            console.log('[SHOW_AI_BUILDER] Report data is valid, calling mappers...');
+            // Usa helper per mappare i dati
+            const oracleData = mapOracleDataForTemplateBuilder(reportData);
+            const oracleMetadata = mapOracleMetadataForTemplateBuilder(reportData);
+            const sessionData = extractSessionData(row);
+
+            console.log('[SHOW_AI_BUILDER] Final mapped data:');
+            console.log('[SHOW_AI_BUILDER] - sessionData:', sessionData);
+            console.log('[SHOW_AI_BUILDER] - oracleData:', oracleData);
+            console.log('[SHOW_AI_BUILDER] - oracleMetadata:', oracleMetadata);
+
+            this.gtsDataService.sendAppLoaderListener(false);
+
+            // Naviga alla pagina Template Builder
+            // Estrai il PDF dalla risposta (se presente)
+            const reportPdf = reportData.reportPdf || null;
+            console.log('[SHOW_AI_BUILDER] reportPdf available:', !!reportPdf, reportPdf ? `(${reportPdf.length} chars)` : '');
+
+            console.log('[SHOW_AI_BUILDER] Navigating to /GTSW/templateBuilder with state...');
+            this.router.navigate(['/GTSW/templateBuilder'], {
+              state: {
+                sessionData: sessionData,
+                oracleData: oracleData,
+                oracleMetadata: oracleMetadata,
+                fastReportPdf: reportPdf
+              }
+            });
+          } else {
+            console.log('[SHOW_AI_BUILDER] Report data invalid or null:', reportData);
+            this.gtsDataService.sendAppLoaderListener(false);
+            alert('Errore caricamento dati report: ' + (reportData?.message || 'Errore sconosciuto'));
+          }
+        }
+
+        // AI_BUILD_NOPDF: Come SHOW_AI_BUILDER ma senza PDF automatico
+        // L'utente dovrà caricare manualmente il PDF nel template builder
+        // Usato quando la sessione ha i metadati ma il PDF viene generato esternamente
+        if (customCode === 'u') {
+          console.log('[AI_BUILD_NOPDF] Starting...');
+          this.gtsDataService.sendAppLoaderListener(true);
+          const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daRptLog','qRptLog');
+          console.log('[AI_BUILD_NOPDF] Selected row:', row);
+
+          // Carica i dati del report per passarli al builder (senza generare PDF)
+          const report = {
+            sessionId: row.sessionId,
+            fieldGrpId: row.fieldGrpId,
+            reportCode: row.reportCode,
+            reportName: row.reportName,
+            sqlId: row.sqlId,
+          };
+
+          await this.gtsDataService.getOtherPageData(row.prjId, row.formId);
+          // Passa false per skipPdf per ottenere solo i dati senza generare PDF
+          const reportData = await this.gtsDataService.getReportData(row.prjId, row.formId, report, row.params, row.connCode, false, false);
+          console.log('[AI_BUILD_NOPDF] getReportData response:', reportData);
+
+          if (reportData && reportData.valid) {
+            // Usa helper per mappare i dati
+            const oracleData = mapOracleDataForTemplateBuilder(reportData);
+            const oracleMetadata = mapOracleMetadataForTemplateBuilder(reportData);
+            const sessionData = extractSessionData(row);
+
+            console.log('[AI_BUILD_NOPDF] Mapped data ready, navigating without PDF...');
+
+            this.gtsDataService.sendAppLoaderListener(false);
+
+            // Naviga alla pagina Template Builder SENZA PDF
+            // L'utente dovrà caricare il PDF manualmente
+            this.router.navigate(['/GTSW/templateBuilder'], {
+              state: {
+                sessionData: sessionData,
+                oracleData: oracleData,
+                oracleMetadata: oracleMetadata,
+                fastReportPdf: null,  // Nessun PDF automatico
+                requireManualPdf: true  // Flag per indicare che serve upload manuale
+              }
+            });
+          } else {
+            console.log('[AI_BUILD_NOPDF] Report data invalid or null:', reportData);
+            this.gtsDataService.sendAppLoaderListener(false);
+            alert('Errore caricamento dati report: ' + (reportData?.message || 'Errore sconosciuto'));
+          }
+        }
+
+        if (customCode === 'SHOW_RPT_METADATA') {
+          this.gtsDataService.sendAppLoaderListener(true);
+          const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daRptLog','qRptLog');
+          this.reportCode = row.reportCode;
+          this.reportFieldGrpId = row.fieldGrpId;
+          this.reportPrjId = row.prjId;
+          this.reportFormId = row.formId;
+          this.reportParams = row.params;
+          this.reportConnCode = row.connCode;
+          const report = {
+            sessionId: row.sessionId,
+            fieldGrpId: row.fieldGrpId,
+            reportCode: row.reportCode,
+            reportName: row.reportName,
+            sqlId: row.sqlId,
+          };
+          await this.gtsDataService.getOtherPageData(this.reportPrjId, this.reportFormId);
+          this.report = await this.gtsDataService.getReportData(this.reportPrjId, this.reportFormId, report, this.reportParams, this.reportConnCode, false, false);
+          if (this.report !== undefined && this.report !== null && this.report.valid) {
+            // const dataRows = report with only keys beginnig with rows
+            const dataRows: any = {};
+            Object.keys(this.report).forEach((key: any) => {
+              if (key.startsWith('fields_')) {  
+                dataRows[key] = this.report[key];
+              }
+            });
+            this.jsonDataTitle = this.reportCode + ' - Data Fields';
+            this.jsonDataString = JSON.stringify(dataRows, null, 2);
+            console.log('dataRows', dataRows);
+            this.jsonVisible = true;
+          } else {
+            const errorMessage = this.report.message;
+            this.gtsDataService.sendAppLoaderListener(false);
             // Show error message to user
             alert('Error getting report data: ' + errorMessage);
           }

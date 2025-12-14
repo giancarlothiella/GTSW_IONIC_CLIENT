@@ -29,9 +29,9 @@
     font-weight:normal;    
 }
 
-.form001Toolbar {
+::ng-deep .form001Toolbar {
     width: 100%;
-    height: 80px;
+    padding-right: 5px;
 }
 
 ::ng-deep .form001Field.dx-texteditor.dx-editor-filled {

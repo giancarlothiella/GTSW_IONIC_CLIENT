@@ -1511,7 +1511,7 @@ export class GtsDataService {
       valid: false,
       data: []
     };
-    
+
     let fields: any[];
     if (fieldName === '*') {
       fields = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
@@ -1519,27 +1519,27 @@ export class GtsDataService {
       .forms
       .filter((form: any) => form.groupId === clFldGrpId)[0]
       .fields
-      .filter((field: any) => field.sqlId !== null && field.details !== null && field.details !== undefined && field.details.length > 0 ); 
+      .filter((field: any) => field.sqlId !== null && field.details !== null && field.details !== undefined && field.details.length > 0 );
     } else {
       fields = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
       .pageData
       .forms
       .filter((form: any) => form.groupId === clFldGrpId)[0]
       .fields
-      .filter((field: any) => field.sqlId !== null && field.fieldName === fieldName && field.objectName === fieldCaller);   
+      .filter((field: any) => field.sqlId !== null && field.fieldName === fieldName && field.objectName === fieldCaller);
     }
-    
+
     if (fields.length > 0) {
-      for (let i = 0; i < fields.length; i++) {         
-        const field = fields[i];     
+      for (let i = 0; i < fields.length; i++) {
+        const field = fields[i];
 
         let params: any = {};
-        
+
         if (field.sqlParams !== undefined && field.sqlParams !== null && field.sqlParams.length > 0) {
           // Get params matching param from page field value
           field.sqlParams.forEach((fieldParam: any) => {
             let value: any;
-              
+
             // Check if ObjectParamName is a Form Field
             const paramIsFormFields = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
             .pageData
@@ -1555,15 +1555,15 @@ export class GtsDataService {
               .filter((form: any) => form.groupId === clFldGrpId)[0]
               .fields
               .filter((metaField: any) => metaField.objectName === fieldParam.paramObjectName)[0]
-              .value; 
+              .value;
             } else {
               value = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
               .pageData
               .pageFields
               .filter((pageField: any) => pageField.pageFieldName === fieldParam.paramObjectName)[0].value;
-            }              
-              
-            params[fieldParam.paramName] = value;        
+            }
+
+            params[fieldParam.paramName] = value;
           });
         } 
         
@@ -2439,23 +2439,26 @@ export class GtsDataService {
   }
 
   // Get Report Data
-  async getReportData(prjId: string, formId: number, report: any, params: any, connCode: string, createSession: boolean = true) {  
+  async getReportData(prjId: string, formId: number, report: any, params: any, connCode: string, createSession: boolean = true, goToNextStep: boolean = true) {
     this.appLoaderListener.next(true);
     const action = {
       sqlId: report.sqlId,
       sqlParams: report.sqlParams,
       sqlType: 'SQL'
     };
-    
+
     let reportParams: any = {};
     let reportConn: string = '';
     if (connCode !== undefined && connCode !== '') {
-      reportParams = params    
+      reportParams = params
       reportConn = connCode;
     } else {
       reportParams = this.buildParamsArray(prjId, formId, action);
       reportConn = this.getConnCode();
     }
+
+    // DEBUG: Log per verificare quale connCode viene usato
+    console.log(`[getReportData] connCode param: "${connCode}", reportConn used: "${reportConn}", getConnCode(): "${this.getConnCode()}"`)
     
     const dataReq: ExecReportData = {
       prjId: prjId,
@@ -2466,7 +2469,7 @@ export class GtsDataService {
       sqlId: report.sqlId,
       params: reportParams,
       connCode: reportConn,
-      goToNextStep: true,
+      goToNextStep: goToNextStep,
       sessionId: 0
     };
 

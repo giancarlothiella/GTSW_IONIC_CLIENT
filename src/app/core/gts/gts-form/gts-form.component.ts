@@ -219,7 +219,14 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     let field = this.formData.filter(f => f.sqlQueryField === this.lookUpField.fieldName && f.objectName === this.lookUpField.lookUpName)[0];
     if (event !== null) {
       field.updateFromLookUp = true;
-      field.value = event.fieldValue;    
+      field.validated = true;
+      field.value = event.fieldValue;
+
+      // Aggiorna anche metaData.fields per sincronizzare i params nelle validazioni successive
+      const metaField = this.metaData.fields.filter((f: any) => f.objectName === field.objectName)[0];
+      if (metaField) {
+        metaField.value = event.fieldValue;
+      }
 
       this.formData
       .filter((f: any) => f.masterFieldName === field.objectName)
@@ -227,6 +234,8 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         formField.value = event.data[formField.fieldName];
       });
     }
+
+    this.changeDetector.detectChanges();
     field.component.focus();
   }
 
@@ -499,11 +508,8 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async onFieldDataChanged(event: any, element: any)  {
-    console.log('Field data changed:', element.objectName, event.value);
     let valid: boolean = true;
     const field = this.formData.filter(f => f.objectName === element.objectName)[0];
-    field.validated = false;
-    console.log('Field data changed a:', field);
 
     // convert event.previousValue to string if it is not null or undefined
     let previousValue = event.previousValue;
@@ -519,7 +525,8 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
       currentValue = '';
     }
 
-    if (currentValue !== previousValue || !field.validated ) {
+    // Only validate if value actually changed
+    if (currentValue !== previousValue) {
       field.validated = false;
       valid = await this.fieldValidation(field);
 
@@ -530,13 +537,9 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         } else {
           field.value = event.value.value;
         }
-
-        console.log('Field data changed B:', field.value);
       } else {
         field.component.focus();
       }
-    } else {
-      field.validated = true;
     }
     return valid;
   }
@@ -586,8 +589,13 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // convert to value to number if dataType is N
     if (field.dataType === 'N') {
-      value = parseFloat(value);
-      field.value = value;
+      // Only parse if value is not empty/null/undefined
+      if (value !== undefined && value !== null && value !== '') {
+        value = parseFloat(value);
+        if (!isNaN(value)) {
+          field.value = value;
+        }
+      }
     }
 
     if (field.editorType !== 'RadioGroup' && field.editorType !== 'CheckBox') {

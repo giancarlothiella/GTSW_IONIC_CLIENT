@@ -123,25 +123,18 @@ export class AuthService {
    * Logout - rimuove tutti i dati salvati
    */
   async logout(): Promise<void> {
-    // Rimuovi i dati dall'Ionic Storage
+    // Rimuovi i dati di autenticazione specifici invece di clear() per evitare problemi
+    // con la re-inizializzazione dello storage
     await this.storage.remove(this.tokenKey);
     await this.storage.remove(this.userKey);
     await this.storage.remove(this.tokenExpiryKey);
 
-    // Pulisci tutti i dati sensibili dal localStorage
-    localStorage.removeItem('totpData');
-    localStorage.removeItem('authUserData');
-    localStorage.removeItem('languageId');
-    localStorage.removeItem('languages');
-    localStorage.removeItem('stdMLTexts');
-    localStorage.removeItem('connCode');
+    // Pulisci i dati di sessione nel localStorage ma mantieni le preferenze
+    // Non usiamo più localStorage.clear() per evitare di perdere traduzioni e altre preferenze
+    localStorage.removeItem('gts_show_admin_section');
 
     // Reset dello stato utente corrente
     this.currentUserSubject.next(null);
-
-    // NON puliamo i dati del menu qui perché causerebbe che i subscriber
-    // ricevano array vuoti prima del prossimo caricamento.
-    // I dati verranno sovrascritti al prossimo login quando loadMenu() viene chiamato.
   }
 
   /**
@@ -888,6 +881,27 @@ export class AuthService {
       return {
         valid: false,
         message: error.error?.message || 'Errore durante il cambio password'
+      };
+    }
+  }
+
+  /**
+   * Imposta una nuova password usando la chiave di recupero (dal link email forgot-password)
+   * Chiama /user/changepsswna (na = non autenticato) passando temporaryKey
+   */
+  async recoverPassword(temporaryKey: string, newPassword: string): Promise<{valid: boolean, message: string}> {
+    try {
+      const response = await firstValueFrom(this.http.post<{valid: boolean, message: string}>(
+        `${environment.apiUrl}/user/changepsswna`,
+        { temporaryKey, password: newPassword }
+      ));
+
+      return response || { valid: false, message: 'No response from server' };
+    } catch (error: any) {
+      console.error('Error recovering password:', error);
+      return {
+        valid: false,
+        message: error.error?.message || 'Errore durante il recupero della password'
       };
     }
   }

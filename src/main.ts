@@ -3,7 +3,7 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { RouteReuseStrategy, provideRouter } from '@angular/router';
 import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular/standalone';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
-import { importProvidersFrom } from '@angular/core';
+import { importProvidersFrom, provideZoneChangeDetection } from '@angular/core';
 import { IonicStorageModule } from '@ionic/storage-angular';
 import { addIcons } from 'ionicons';
 import {
@@ -61,6 +61,8 @@ addIcons({
 
 bootstrapApplication(AppComponent, {
   providers: [
+    // IMPORTANTE: Angular 21 richiede configurazione esplicita di zone.js
+    provideZoneChangeDetection({ eventCoalescing: true }),
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideIonicAngular({
       mode: 'md' // Force Material Design mode only (improves performance)

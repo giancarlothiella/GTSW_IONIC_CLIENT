@@ -34,7 +34,8 @@ export const routesInitGuard: CanMatchFn = async (route, segments) => {
 
     if (!currentMenu || currentMenu.length === 0) {
       // Carica il menu in modo sincrono (questo registrerà anche le route)
-      await firstValueFrom(menuService.loadMenu());
+      // Passa esplicitamente il prjId dell'utente per evitare inconsistenze
+      await firstValueFrom(menuService.loadMenu(user.prjId));
       currentMenu = menuService.getCurrentMenu();
     }
 

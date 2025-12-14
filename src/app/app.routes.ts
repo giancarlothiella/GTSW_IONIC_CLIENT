@@ -49,6 +49,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/activate/activate.page').then(m => m.ActivatePage)
   },
   {
+    path: 'account/recover/:key',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/auth/recover-password/recover-password.page').then(m => m.RecoverPasswordPage)
+  },
+  {
     path: 'forgot-password',
     canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/forgot-password/forgot-password.page').then(m => m.ForgotPasswordPage)

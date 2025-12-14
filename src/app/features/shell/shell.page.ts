@@ -451,8 +451,16 @@ export class ShellPage implements OnInit {
     });
 
     // Sottoscrivi ai cambiamenti dell'utente
+    // IMPORTANTE: quando l'utente passa da null a un utente valido (dopo login),
+    // ricarica il menu perché ngOnInit non viene richiamato se la Shell è già in memoria
     this.authService.currentUser$.subscribe(user => {
+      const wasLoggedOut = this.user === null;
       this.user = user;
+
+      // Se l'utente è appena loggato (era null, ora è valido) e il menu è vuoto, ricaricalo
+      if (wasLoggedOut && user && this.menuItems.length === 0) {
+        this.loadMenuData();
+      }
     });
 
     // Sottoscrivi ai cambiamenti del menu
@@ -517,10 +525,17 @@ export class ShellPage implements OnInit {
     }
 
     this.loading = true;
-    this.menuService.loadMenu().subscribe({
+    const prjId = this.user.prjId;
+    console.log('Shell loadMenuData - starting loadMenu for user:', prjId);
+
+    // Passa esplicitamente il prjId dell'utente per evitare che venga usato
+    // un progetto diverso salvato in precedenza
+    this.menuService.loadMenu(prjId).subscribe({
       next: (response) => {
+        console.log('Shell loadMenuData - loadMenu completed, response valid:', response.valid);
         this.menuItems = this.menuService.getCurrentMenu();
         this.currentProjectInfo = this.menuService.getCurrentProjectInfo();
+        console.log('Shell loadMenuData - menuItems:', this.menuItems.length, 'currentProjectInfo:', this.currentProjectInfo?.prjId);
         this.loading = false;
 
         // Registra le route dinamiche basate sul menu
@@ -622,6 +637,8 @@ export class ShellPage implements OnInit {
    * Logout
    */
   async onLogout() {
+    // Pulisci i dati del menu (BehaviorSubject) prima del logout
+    this.menuService.clearMenuData();
     await this.authService.logout();
     this.router.navigate(['/login']);
   }

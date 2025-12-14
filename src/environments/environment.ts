@@ -17,7 +17,7 @@ export const environment = {
   languageId: 'EN',
   signWithGoogle: false,
   signWithMicrosoft: false,
-  TOTP2FAEnabled: false,
+  TOTP2FAEnabled: true,
 
   aiEnabled: true,
   aiChatgptEnabled: true,

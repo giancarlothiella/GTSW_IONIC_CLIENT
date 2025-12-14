@@ -1,5 +1,5 @@
 // src/app/features/auth/login/login.page.ts
-import { Component, inject, ViewChild, AfterViewInit, OnInit } from '@angular/core';
+import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import {
@@ -40,6 +40,11 @@ import { environment, webInfo } from '../../../../environments/environment';
   ],
   template: `
     <ion-content class="login-content">
+      @if (!textsLoaded) {
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+        </div>
+      } @else {
       <div class="login-container">
         <!-- Language Selector -->
         <div class="language-selector">
@@ -170,6 +175,7 @@ import { environment, webInfo } from '../../../../environments/environment';
           </ion-card-content>
         </ion-card>
       </div>
+      }
     </ion-content>
 
     <!-- Footer -->
@@ -194,6 +200,26 @@ import { environment, webInfo } from '../../../../environments/environment';
   styles: [`
     .login-content {
       --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .loading-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100%;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     .login-container {
@@ -507,6 +533,7 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
   private router = inject(Router);
   private loadingCtrl = inject(LoadingController);
   private toastCtrl = inject(ToastController);
+  private cdr = inject(ChangeDetectorRef);
 
   // Dati dell'app dall'environment
   webInfo = webInfo;
@@ -521,6 +548,7 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
 
   isLoading = false;
   errorMessage = '';
+  textsLoaded = false;
 
   // Controllo visibilità password
   passwordVisible = false;
@@ -556,6 +584,7 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
           icon: 'eyeclose',
           type: 'default',
           stylingMode: 'text',
+          tabIndex: -1,
           onClick: () => {
             this.togglePasswordVisibility();
           }
@@ -580,6 +609,13 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
       await this.translationService.initialize();
       this.availableLanguages = this.translationService.getLanguages();
       this.currentLanguage = this.translationService.getCurrentLanguage();
+      this.textsLoaded = true;
+
+      // Force change detection after async operation
+      this.cdr.detectChanges();
+
+      // Aggiorna le opzioni dopo che i testi sono caricati
+      this.updatePasswordEditorOptions();
 
       // Sottoscrivi ai cambiamenti di lingua
       this.translationService.currentLanguage$.subscribe(lang => {
@@ -590,6 +626,8 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
       console.error('Error initializing translations:', error);
       // Fallback: usa solo la lingua di default
       this.currentLanguage = environment.languageId;
+      this.textsLoaded = true;
+      this.cdr.detectChanges();
     }
   }
 
@@ -637,6 +675,7 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
           icon: 'eyeclose',
           type: 'default',
           stylingMode: 'text',
+          tabIndex: -1,
           onClick: () => {
             this.togglePasswordVisibility();
           }
@@ -665,6 +704,7 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
           icon: this.passwordVisible ? 'eyeopen' : 'eyeclose',
           type: 'default',
           stylingMode: 'text',
+          tabIndex: -1,
           onClick: () => {
             this.togglePasswordVisibility();
           }

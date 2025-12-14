@@ -40,6 +40,13 @@ export class LandingPageComponent {
       size: '50 KB'
     },
     {
+      title: 'Architecture Technical Document',
+      description: 'Complete technical architecture: three-tier design, metadata flow, database schema, deployment',
+      filename: 'GTS_ARCHITECTURE_TECHNICAL_DOCUMENT.pdf',
+      icon: 'layers-outline',
+      size: '257 KB'
+    },
+    {
       title: 'Designer Documentation',
       description: 'Comprehensive guide to the GTS Designer metadata editor',
       filename: 'GTSuite_Designer_Documentation.pdf',
