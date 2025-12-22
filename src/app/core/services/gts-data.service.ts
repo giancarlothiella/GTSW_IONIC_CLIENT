@@ -28,7 +28,7 @@ export class GtsDataService {
     private authService: AuthService,
     private appInfo: AppInfoService,
     private menuService: MenuService
-  ) { 
+  ) {
     this.appActionsDebugListenerSubs = this.appInfo
     .getAppActionsDebugListener()
     .subscribe(async (debug) => {
@@ -209,6 +209,8 @@ export class GtsDataService {
   // END LISTENERS ========================================================================================
 
   async runPage(prjId: string, formId: number) {
+    // Reset actualView to prevent NG0100 when navigating between pages
+    this.actualView = '';
     await this.runGtsPage(prjId, formId);
     this.appViewListener.next(this.actualView);
   }
@@ -374,8 +376,8 @@ export class GtsDataService {
         }
       }
     } else {
-      // set all page element not visible 
-      this.resetMetadataVisibility(prjId, formId);   
+      // set all page element not visible
+      this.resetMetadataVisibility(prjId, formId);
     }
     await this.runAction(prjId, formId, page[0].pageData.page.initAction);
     this.actualFormId = formId;
@@ -598,8 +600,22 @@ export class GtsDataService {
     return this.pageReady;
   }
 
-  getActualView() {  
+  getActualView() {
     return this.actualView;
+  }
+
+  getActualFormId() {
+    return this.actualFormId;
+  }
+
+  getActualPrjId() {
+    return this.actualPrjId;
+  }
+
+  // Reset view state when leaving a page to prevent NG0100 error on next page
+  resetViewState() {
+    this.actualView = '';
+    this.previousView = [];
   }
 
   checkPageRule(prjId: string, formId: number, condRules: any[]) {  
@@ -1713,7 +1729,9 @@ export class GtsDataService {
 
   // Set Page Rule
   setPageRule(prjId: string, formId: number, condId: number, condValue: number) {
-    this.pageRules.filter((rule) => rule.prjId === prjId && rule.formId === formId && rule.condId === condId)[0].condValue = condValue;       
+    this.pageRules.filter((rule) => rule.prjId === prjId && rule.formId === formId && rule.condId === condId)[0].condValue = condValue;
+    // Refresh the view to apply the rule change
+    this.setView(prjId, formId, this.actualView, false);
   }    
 
   refreshActualView(prjId: string, formId: number) {
@@ -2229,7 +2247,7 @@ export class GtsDataService {
       });
 
       this.appViewListener.next(this.actualView);
-    }    
+    }
 
     return valid;
   }

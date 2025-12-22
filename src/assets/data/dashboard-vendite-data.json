@@ -1,0 +1,757 @@
+{
+  "metadata": {
+    "generated_at": "2025-12-16T11:21:24.521454",
+    "period_start": "2021-01-07",
+    "period_end": "2025-12-09",
+    "total_records": 76052
+  },
+  "kpi": {
+    "totale_fatturato": 106433719.12231901,
+    "totale_kg": 2166884.731272376,
+    "totale_costi": 81618809.30036359,
+    "margine_totale": 24814909.82245453,
+    "margine_percentuale": 23.314894966637386,
+    "num_ordini": 5352,
+    "num_clienti": 1535,
+    "num_prodotti": 571,
+    "prezzo_medio_kg": 49.118311457122154
+  },
+  "trend_mensile": [
+    {
+      "periodo": "2021-01",
+      "fatturato": 883285.89,
+      "quantita": 23698.597960124,
+      "margine": 229016.71260954087,
+      "margine_pct": 25.93,
+      "num_ordini": 245
+    },
+    {
+      "periodo": "2021-02",
+      "fatturato": 1023749.31,
+      "quantita": 28413.697564,
+      "margine": 261132.4461863519,
+      "margine_pct": 25.51,
+      "num_ordini": 313
+    },
+    {
+      "periodo": "2021-03",
+      "fatturato": 1149450.2,
+      "quantita": 25744.2692313,
+      "margine": 278955.50295574905,
+      "margine_pct": 24.27,
+      "num_ordini": 453
+    },
+    {
+      "periodo": "2021-04",
+      "fatturato": 1078865.84,
+      "quantita": 25997.023835764,
+      "margine": 258811.30526050655,
+      "margine_pct": 23.99,
+      "num_ordini": 398
+    },
+    {
+      "periodo": "2021-05",
+      "fatturato": 1104309.38,
+      "quantita": 27733.2939215,
+      "margine": 271987.0893718683,
+      "margine_pct": 24.63,
+      "num_ordini": 346
+    },
+    {
+      "periodo": "2021-06",
+      "fatturato": 1254253.11,
+      "quantita": 29439.0454408,
+      "margine": 291482.3544961594,
+      "margine_pct": 23.24,
+      "num_ordini": 320
+    },
+    {
+      "periodo": "2021-07",
+      "fatturato": 1551027.51,
+      "quantita": 39304.082520968,
+      "margine": 386048.56857027387,
+      "margine_pct": 24.89,
+      "num_ordini": 365
+    },
+    {
+      "periodo": "2021-08",
+      "fatturato": 579352.02,
+      "quantita": 15056.804268036,
+      "margine": 155897.8349394093,
+      "margine_pct": 26.91,
+      "num_ordini": 103
+    },
+    {
+      "periodo": "2021-09",
+      "fatturato": 1899614.06,
+      "quantita": 51901.062133366,
+      "margine": 452891.61340677924,
+      "margine_pct": 23.84,
+      "num_ordini": 328
+    },
+    {
+      "periodo": "2021-10",
+      "fatturato": 2062639.93,
+      "quantita": 55408.135974282,
+      "margine": 462946.85054102883,
+      "margine_pct": 22.44,
+      "num_ordini": 437
+    },
+    {
+      "periodo": "2021-11",
+      "fatturato": 1596989.13,
+      "quantita": 44109.2976457,
+      "margine": 352605.2355950952,
+      "margine_pct": 22.08,
+      "num_ordini": 419
+    },
+    {
+      "periodo": "2021-12",
+      "fatturato": 1265325.59,
+      "quantita": 35106.44875255,
+      "margine": 277616.2703284691,
+      "margine_pct": 21.94,
+      "num_ordini": 384
+    },
+    {
+      "periodo": "2022-01",
+      "fatturato": 1278064.28,
+      "quantita": 29466.0855929,
+      "margine": 258565.86519973446,
+      "margine_pct": 20.23,
+      "num_ordini": 285
+    },
+    {
+      "periodo": "2022-02",
+      "fatturato": 1314411.18,
+      "quantita": 28416.90097505,
+      "margine": 277875.30727091926,
+      "margine_pct": 21.14,
+      "num_ordini": 311
+    },
+    {
+      "periodo": "2022-03",
+      "fatturato": 1874811.71,
+      "quantita": 41322.419600746,
+      "margine": 454622.28346016974,
+      "margine_pct": 24.25,
+      "num_ordini": 379
+    },
+    {
+      "periodo": "2022-04",
+      "fatturato": 1557299.3800000001,
+      "quantita": 33124.830445978,
+      "margine": 370591.67111147754,
+      "margine_pct": 23.8,
+      "num_ordini": 384
+    },
+    {
+      "periodo": "2022-05",
+      "fatturato": 2014590.95,
+      "quantita": 43607.9260616,
+      "margine": 441584.55190784525,
+      "margine_pct": 21.92,
+      "num_ordini": 412
+    },
+    {
+      "periodo": "2022-06",
+      "fatturato": 1775608.8,
+      "quantita": 37329.31971305,
+      "margine": 378090.6171215735,
+      "margine_pct": 21.29,
+      "num_ordini": 328
+    },
+    {
+      "periodo": "2022-07",
+      "fatturato": 1878774.82,
+      "quantita": 44178.104362562,
+      "margine": 489056.4164552304,
+      "margine_pct": 26.03,
+      "num_ordini": 347
+    },
+    {
+      "periodo": "2022-08",
+      "fatturato": 739470.77,
+      "quantita": 14219.256165234,
+      "margine": 181575.76090955947,
+      "margine_pct": 24.55,
+      "num_ordini": 132
+    },
+    {
+      "periodo": "2022-09",
+      "fatturato": 2634059.06,
+      "quantita": 63666.711296558,
+      "margine": 616723.7274659395,
+      "margine_pct": 23.41,
+      "num_ordini": 431
+    },
+    {
+      "periodo": "2022-10",
+      "fatturato": 2114513.36,
+      "quantita": 48072.677177912,
+      "margine": 488226.8600055716,
+      "margine_pct": 23.09,
+      "num_ordini": 391
+    },
+    {
+      "periodo": "2022-11",
+      "fatturato": 2161046.54,
+      "quantita": 46467.19822555,
+      "margine": 531225.8283406477,
+      "margine_pct": 24.58,
+      "num_ordini": 469
+    },
+    {
+      "periodo": "2022-12",
+      "fatturato": 2243752.55,
+      "quantita": 46255.414969532,
+      "margine": 459011.2201727945,
+      "margine_pct": 20.46,
+      "num_ordini": 487
+    },
+    {
+      "periodo": "2023-01",
+      "fatturato": 1589501.49,
+      "quantita": 27466.563614498,
+      "margine": 345384.7420101748,
+      "margine_pct": 21.73,
+      "num_ordini": 335
+    },
+    {
+      "periodo": "2023-02",
+      "fatturato": 1670456.53,
+      "quantita": 28848.2243988,
+      "margine": 370346.2553868811,
+      "margine_pct": 22.17,
+      "num_ordini": 370
+    },
+    {
+      "periodo": "2023-03",
+      "fatturato": 2116586.43,
+      "quantita": 37834.0644268,
+      "margine": 502073.613555853,
+      "margine_pct": 23.72,
+      "num_ordini": 510
+    },
+    {
+      "periodo": "2023-04",
+      "fatturato": 1714967.47,
+      "quantita": 31996.78594715,
+      "margine": 307932.00064845395,
+      "margine_pct": 17.96,
+      "num_ordini": 409
+    },
+    {
+      "periodo": "2023-05",
+      "fatturato": 1857740.65,
+      "quantita": 38930.90872365,
+      "margine": 376643.16318237566,
+      "margine_pct": 20.27,
+      "num_ordini": 456
+    },
+    {
+      "periodo": "2023-06",
+      "fatturato": 2153674.26,
+      "quantita": 42496.6890986,
+      "margine": 486384.32359743124,
+      "margine_pct": 22.58,
+      "num_ordini": 406
+    },
+    {
+      "periodo": "2023-07",
+      "fatturato": 3133991.63,
+      "quantita": 59425.289420524,
+      "margine": 763122.9063435391,
+      "margine_pct": 24.35,
+      "num_ordini": 440
+    },
+    {
+      "periodo": "2023-08",
+      "fatturato": 1193259.39,
+      "quantita": 22877.37059885,
+      "margine": 268328.6566834578,
+      "margine_pct": 22.49,
+      "num_ordini": 189
+    },
+    {
+      "periodo": "2023-09",
+      "fatturato": 3087643.02,
+      "quantita": 58563.224818442,
+      "margine": 846581.6201589782,
+      "margine_pct": 27.42,
+      "num_ordini": 457
+    },
+    {
+      "periodo": "2023-10",
+      "fatturato": 2710912.31,
+      "quantita": 55282.418726,
+      "margine": 711103.2066240971,
+      "margine_pct": 26.23,
+      "num_ordini": 510
+    },
+    {
+      "periodo": "2023-11",
+      "fatturato": 2074240.64,
+      "quantita": 39434.230483,
+      "margine": 525804.6564753188,
+      "margine_pct": 25.35,
+      "num_ordini": 475
+    },
+    {
+      "periodo": "2023-12",
+      "fatturato": 1468227.25,
+      "quantita": 27669.896063,
+      "margine": 345423.321657235,
+      "margine_pct": 23.53,
+      "num_ordini": 372
+    },
+    {
+      "periodo": "2024-01",
+      "fatturato": 1826083.56,
+      "quantita": 31494.990304,
+      "margine": 456780.7147507095,
+      "margine_pct": 25.01,
+      "num_ordini": 401
+    },
+    {
+      "periodo": "2024-02",
+      "fatturato": 1888161.46,
+      "quantita": 31371.193928,
+      "margine": 400255.6847683873,
+      "margine_pct": 21.2,
+      "num_ordini": 404
+    },
+    {
+      "periodo": "2024-03",
+      "fatturato": 2007766.16,
+      "quantita": 39773.43101,
+      "margine": 499972.53737121343,
+      "margine_pct": 24.9,
+      "num_ordini": 457
+    },
+    {
+      "periodo": "2024-04",
+      "fatturato": 1893081.73,
+      "quantita": 34668.872686,
+      "margine": 474104.0786499428,
+      "margine_pct": 25.04,
+      "num_ordini": 485
+    },
+    {
+      "periodo": "2024-05",
+      "fatturato": 2321401.07,
+      "quantita": 46130.165465,
+      "margine": 529099.2645810716,
+      "margine_pct": 22.79,
+      "num_ordini": 502
+    },
+    {
+      "periodo": "2024-06",
+      "fatturato": 1953630.58,
+      "quantita": 38097.400452,
+      "margine": 421605.1849496704,
+      "margine_pct": 21.58,
+      "num_ordini": 363
+    },
+    {
+      "periodo": "2024-07",
+      "fatturato": 3034289.45,
+      "quantita": 53405.192540000004,
+      "margine": 798475.0539273547,
+      "margine_pct": 26.32,
+      "num_ordini": 451
+    },
+    {
+      "periodo": "2024-08",
+      "fatturato": 974510.74,
+      "quantita": 17761.726088,
+      "margine": 257379.6995087812,
+      "margine_pct": 26.41,
+      "num_ordini": 163
+    },
+    {
+      "periodo": "2024-09",
+      "fatturato": 2913015.78,
+      "quantita": 52661.992865,
+      "margine": 711511.5901300133,
+      "margine_pct": 24.43,
+      "num_ordini": 505
+    },
+    {
+      "periodo": "2024-10",
+      "fatturato": 3133555.01,
+      "quantita": 57147.552470200004,
+      "margine": 822148.5300973603,
+      "margine_pct": 26.24,
+      "num_ordini": 578
+    },
+    {
+      "periodo": "2024-11",
+      "fatturato": 2374733.67,
+      "quantita": 39695.069208,
+      "margine": 523422.8454789837,
+      "margine_pct": 22.04,
+      "num_ordini": 566
+    },
+    {
+      "periodo": "2024-12",
+      "fatturato": 1528033.28,
+      "quantita": 27496.875922,
+      "margine": 353578.9059028104,
+      "margine_pct": 23.14,
+      "num_ordini": 391
+    },
+    {
+      "periodo": "2025-01",
+      "fatturato": 1845849.44,
+      "quantita": 31719.2904274,
+      "margine": 391260.60555248655,
+      "margine_pct": 21.2,
+      "num_ordini": 396
+    },
+    {
+      "periodo": "2025-02",
+      "fatturato": 2210895.16,
+      "quantita": 34293.1803276,
+      "margine": 466882.54835815413,
+      "margine_pct": 21.12,
+      "num_ordini": 439
+    },
+    {
+      "periodo": "2025-03",
+      "fatturato": 1902751.73,
+      "quantita": 31495.7045038,
+      "margine": 425294.86683460313,
+      "margine_pct": 22.35,
+      "num_ordini": 519
+    },
+    {
+      "periodo": "2025-04",
+      "fatturato": 2037060.69,
+      "quantita": 40031.975994,
+      "margine": 462434.6430211552,
+      "margine_pct": 22.7,
+      "num_ordini": 486
+    },
+    {
+      "periodo": "2025-05",
+      "fatturato": 2272215.78,
+      "quantita": 42273.9042038,
+      "margine": 478699.2104239322,
+      "margine_pct": 21.07,
+      "num_ordini": 507
+    },
+    {
+      "periodo": "2025-06",
+      "fatturato": 1948532.9,
+      "quantita": 37911.5339374,
+      "margine": 414318.1326943733,
+      "margine_pct": 21.26,
+      "num_ordini": 425
+    },
+    {
+      "periodo": "2025-07",
+      "fatturato": 2801644.672319,
+      "quantita": 54259.2791852,
+      "margine": 600295.7231987513,
+      "margine_pct": 21.43,
+      "num_ordini": 579
+    },
+    {
+      "periodo": "2025-08",
+      "fatturato": 496442.85,
+      "quantita": 8573.733165,
+      "margine": 123312.59951300848,
+      "margine_pct": 24.84,
+      "num_ordini": 132
+    },
+    {
+      "periodo": "2025-09",
+      "fatturato": 3263596.97,
+      "quantita": 67757.3964356,
+      "margine": 728407.0427352788,
+      "margine_pct": 22.32,
+      "num_ordini": 519
+    }
+  ],
+  "top_clienti": [
+    {
+      "cliente": "GRUPPO DONDI S.P.A.",
+      "fatturato": 13251469.89,
+      "quantita": 251439.766175164,
+      "margine": 2872417.966267586,
+      "num_ordini": 387,
+      "margine_pct": 21.68
+    },
+    {
+      "cliente": "MAGLIFICIO MAGGIA S.R.L.",
+      "fatturato": 3265173.65,
+      "quantita": 55719.293469896,
+      "margine": 478704.4078440776,
+      "num_ordini": 192,
+      "margine_pct": 14.66
+    },
+    {
+      "cliente": "DAMA SPA",
+      "fatturato": 2348616.77,
+      "quantita": 42459.89831292,
+      "margine": 550212.4127928672,
+      "num_ordini": 181,
+      "margine_pct": 23.43
+    },
+    {
+      "cliente": "FILPUCCI SPA",
+      "fatturato": 2215788.38,
+      "quantita": 60982.0682445,
+      "margine": 282253.35118132737,
+      "num_ordini": 94,
+      "margine_pct": 12.74
+    },
+    {
+      "cliente": "MAGLIFICIO GRAN SASSO SPA",
+      "fatturato": 2096320.83,
+      "quantita": 37842.882474,
+      "margine": 589838.8287782118,
+      "num_ordini": 160,
+      "margine_pct": 28.14
+    },
+    {
+      "cliente": "LANIFICIO CARIAGGI S.P.A.",
+      "fatturato": 1755006.19,
+      "quantita": 25125.51465,
+      "margine": 277336.1386286025,
+      "num_ordini": 71,
+      "margine_pct": 15.8
+    },
+    {
+      "cliente": "BONOTTO SPA",
+      "fatturato": 1736474.97,
+      "quantita": 21209.06257,
+      "margine": 364954.819555934,
+      "num_ordini": 103,
+      "margine_pct": 21.02
+    },
+    {
+      "cliente": "LANIFICIO CESARE GATTI SPA",
+      "fatturato": 1674617.36,
+      "quantita": 28298.876251499998,
+      "margine": 299600.2041728358,
+      "num_ordini": 110,
+      "margine_pct": 17.89
+    },
+    {
+      "cliente": "VITALE BARBERIS CANONICO SPA",
+      "fatturato": 1674318.07,
+      "quantita": 39295.241235,
+      "margine": 360627.059626014,
+      "num_ordini": 129,
+      "margine_pct": 21.54
+    },
+    {
+      "cliente": "LANIF.TG DI FABIO",
+      "fatturato": 1575713.97,
+      "quantita": 68172.28398685,
+      "margine": 205838.18264069158,
+      "num_ordini": 154,
+      "margine_pct": 13.06
+    }
+  ],
+  "top_prodotti": [
+    {
+      "prodotto": "NEBRASKA NM 2/115",
+      "fatturato": 9825921.380544,
+      "quantita": 145562.8880156,
+      "margine": 1679416.0576799032,
+      "num_ordini": 1213,
+      "margine_pct": 17.09
+    },
+    {
+      "prodotto": "SHAPPE 2/120 EXTRA AAA",
+      "fatturato": 7943277.86,
+      "quantita": 90733.96707315,
+      "margine": 1508183.5192559413,
+      "num_ordini": 1545,
+      "margine_pct": 18.99
+    },
+    {
+      "prodotto": "LINO MELANGE 1/26",
+      "fatturato": 5779794.79,
+      "quantita": 249297.319131,
+      "margine": 1337913.8602671092,
+      "num_ordini": 1670,
+      "margine_pct": 23.15
+    },
+    {
+      "prodotto": "COTTONSILK 2/48",
+      "fatturato": 4903363.14,
+      "quantita": 87531.450274264,
+      "margine": 1265611.2088217703,
+      "num_ordini": 1878,
+      "margine_pct": 25.81
+    },
+    {
+      "prodotto": "OPACUM 2/60 EXTRAGRADE",
+      "fatturato": 4479917.69,
+      "quantita": 64413.62266575,
+      "margine": 1257350.7198426554,
+      "num_ordini": 1300,
+      "margine_pct": 28.07
+    },
+    {
+      "prodotto": "OPACUM 2/120 EXTRAGRADE",
+      "fatturato": 3364964.65464,
+      "quantita": 47112.8599493,
+      "margine": 806169.3201581999,
+      "num_ordini": 906,
+      "margine_pct": 23.96
+    },
+    {
+      "prodotto": "MAKALU' 2/120",
+      "fatturato": 3009751.58,
+      "quantita": 40634.17981025,
+      "margine": 725837.0922514688,
+      "num_ordini": 363,
+      "margine_pct": 24.12
+    },
+    {
+      "prodotto": "SHAPPE 2/60 EXTRA AAA",
+      "fatturato": 2606315.91,
+      "quantita": 33659.624247,
+      "margine": 597989.9603548163,
+      "num_ordini": 727,
+      "margine_pct": 22.94
+    },
+    {
+      "prodotto": "NEBRASKA NM 2/115 MELANGE",
+      "fatturato": 2085134.44,
+      "quantita": 29457.321758176,
+      "margine": 492403.961915702,
+      "num_ordini": 422,
+      "margine_pct": 23.61
+    },
+    {
+      "prodotto": "KYOTO NM 2/42",
+      "fatturato": 1936928.67,
+      "quantita": 65740.723036,
+      "margine": 561031.6342560312,
+      "num_ordini": 174,
+      "margine_pct": 28.97
+    }
+  ],
+  "per_categoria": [
+    {
+      "categoria": "ALTRO",
+      "fatturato": 295.08,
+      "quantita": 3.0,
+      "margine": 82.70999999999998,
+      "margine_pct": 28.03
+    },
+    {
+      "categoria": "JERSEY",
+      "fatturato": 28224892.964944,
+      "quantita": 494666.56539487,
+      "margine": 5773225.6544959415,
+      "margine_pct": 20.45
+    },
+    {
+      "categoria": "MAGLIERIA",
+      "fatturato": 35290756.652015,
+      "quantita": 591590.66683764,
+      "margine": 10533423.083070802,
+      "margine_pct": 29.85
+    },
+    {
+      "categoria": "MANIFATTURA",
+      "fatturato": 13549042.01,
+      "quantita": 327562.2426491,
+      "margine": 2245704.133762697,
+      "margine_pct": 16.57
+    },
+    {
+      "categoria": "STOCCHISTA",
+      "fatturato": 38842.46,
+      "quantita": 1525.309101,
+      "margine": -9614.513988667,
+      "margine_pct": -24.75
+    },
+    {
+      "categoria": "TESSITURA",
+      "fatturato": 29329284.07536,
+      "quantita": 751530.816953766,
+      "margine": 6271992.353702695,
+      "margine_pct": 21.38
+    }
+  ],
+  "per_famiglia": [
+    {
+      "famiglia": "FILATI SETA",
+      "fatturato": 68369422.335184,
+      "quantita": 1061323.300919692,
+      "margine": 15173684.984128032,
+      "margine_pct": 22.19
+    },
+    {
+      "famiglia": "FILATI LINO",
+      "fatturato": 25945592.22536,
+      "quantita": 869483.5658149,
+      "margine": 6823055.896972143,
+      "margine_pct": 26.3
+    },
+    {
+      "famiglia": "FILATI LANA",
+      "fatturato": 7235981.727375,
+      "quantita": 158205.64068105,
+      "margine": 1563732.9105522125,
+      "margine_pct": 21.61
+    },
+    {
+      "famiglia": "FILATI COTONE",
+      "fatturato": 4464367.89,
+      "quantita": 70485.483686734,
+      "margine": 1178810.1531255415,
+      "margine_pct": 26.4
+    },
+    {
+      "famiglia": "FILATI MISTO SETA",
+      "fatturato": 250219.78,
+      "quantita": 2824.319052,
+      "margine": 36805.0382193427,
+      "margine_pct": 14.71
+    },
+    {
+      "famiglia": "FILATI VISCOSA",
+      "fatturato": 83790.11,
+      "quantita": 2333.8257,
+      "margine": 21522.034212837498,
+      "margine_pct": 25.69
+    },
+    {
+      "famiglia": "FILATI MISTO VISCOSA",
+      "fatturato": 77512.3544,
+      "quantita": 2087.310215,
+      "margine": 16093.427499195499,
+      "margine_pct": 20.76
+    },
+    {
+      "famiglia": "FILATI POLIESTERE",
+      "fatturato": 4134.74,
+      "quantita": 84.211393,
+      "margine": 930.5190942504,
+      "margine_pct": 22.5
+    },
+    {
+      "famiglia": "MISTO LANA",
+      "fatturato": 1114.05,
+      "quantita": 30.9115,
+      "margine": 101.38926,
+      "margine_pct": 9.1
+    },
+    {
+      "famiglia": "MISTO LINO",
+      "fatturato": 929.62,
+      "quantita": 13.9104,
+      "margine": 123.93102304,
+      "margine_pct": 13.33
+    }
+  ]
+}

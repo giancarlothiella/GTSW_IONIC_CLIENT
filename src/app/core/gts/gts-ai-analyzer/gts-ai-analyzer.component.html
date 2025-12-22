@@ -1,0 +1,322 @@
+<!-- GTS AI Analyzer Component -->
+<p-toast></p-toast>
+
+<!-- Main Dialog -->
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [appendTo]="'body'"
+  [blockScroll]="true"
+  [style]="{ width: config.dialogWidth || '90vw', maxWidth: '1400px', height: config.dialogHeight || '90vh' }"
+  [header]="config.dialogTitle || 'AI Data Analyzer'"
+  [closable]="true"
+  (onHide)="onDialogHide()">
+
+  <div class="ai-analyzer-container" [class.panel-collapsed]="panelCollapsed">
+    <!-- TOGGLE BUTTON -->
+    <button class="panel-toggle-btn" (click)="panelCollapsed = !panelCollapsed"
+            [pTooltip]="panelCollapsed ? t(1587, 'Mostra pannello') : t(1588, 'Nascondi pannello')"
+            tooltipPosition="right">
+      <i class="pi" [class.pi-chevron-right]="panelCollapsed" [class.pi-chevron-left]="!panelCollapsed"></i>
+    </button>
+
+    <!-- LEFT PANEL: Input Form -->
+    <div class="ai-analyzer-input-panel" [class.collapsed]="panelCollapsed">
+      <div class="panel-content">
+        <!-- Request Input -->
+        <div class="input-section">
+          <label for="aiRequest">{{ t(1566, 'Descrivi l\'analisi che vuoi effettuare:') }}</label>
+          <textarea
+            pTextarea
+            id="aiRequest"
+            [(ngModel)]="userRequest"
+            [rows]="6"
+            [placeholder]="t(1567, 'Es: Mostrami le vendite per cliente ordinate per fatturato...')"
+            class="request-textarea">
+          </textarea>
+        </div>
+
+        <!-- Chart Type Selection -->
+        <div class="chart-type-section">
+          <label>{{ t(1568, 'Tipo di grafico:') }}</label>
+          <div class="chart-type-grid">
+            @for (opt of chartTypeOptions; track opt.value) {
+              <div class="chart-type-option"
+                   [class.selected]="chartType === opt.value"
+                   (click)="chartType = opt.value">
+                <i [class]="opt.icon"></i>
+                <span>{{ opt.label }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Max Results -->
+        <div class="max-results-section">
+          <label>{{ t(1569, 'Max risultati:') }}</label>
+          <p-select
+            [(ngModel)]="maxResults"
+            [options]="maxResultsOptions"
+            optionLabel="label"
+            optionValue="value"
+            [style]="{ width: '120px' }">
+          </p-select>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions-section">
+          <p-button
+            icon="pi pi-bolt"
+            [label]="t(1570, 'Genera Analisi')"
+            styleClass="generate-btn"
+            [loading]="loading"
+            (onClick)="generateAnalysis()"
+            [disabled]="!userRequest.trim()">
+          </p-button>
+
+          <p-button
+            icon="pi pi-folder-open"
+            [label]="t(1571, 'Carica Salvate')"
+            severity="secondary"
+            [outlined]="true"
+            (onClick)="loadSavedAnalyses()">
+          </p-button>
+
+          @if (analysisResult) {
+            <p-button
+              icon="pi pi-save"
+              [label]="t(1576, 'Salva Analisi')"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="openSaveDialog()">
+            </p-button>
+
+            <p-button
+              icon="pi pi-file-pdf"
+              [label]="t(1670, 'Esporta PDF')"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="exportToPdf()">
+            </p-button>
+          }
+        </div>
+
+        <!-- Error Message -->
+        @if (error) {
+          <div class="error-message">
+            <i class="pi pi-exclamation-triangle"></i>
+            {{ error }}
+          </div>
+        }
+
+        <!-- Loading -->
+        @if (loading) {
+          <div class="loading-section">
+            <p-progressSpinner [style]="{ width: '40px', height: '40px' }"></p-progressSpinner>
+            <span>{{ t(1572, 'Generazione analisi in corso...') }}</span>
+          </div>
+        }
+
+        <!-- Explanation -->
+        @if (analysisResult?.explanation) {
+          <div class="explanation-section">
+            <h4>{{ t(1573, 'Analisi') }}</h4>
+            <p>{{ analysisResult?.explanation }}</p>
+          </div>
+        }
+
+        <!-- Feedback Buttons -->
+        @if (showFeedbackButtons && analysisResult) {
+          <div class="feedback-section">
+            <h4>{{ t(1605, 'I dati sono corretti?') }}</h4>
+            <div class="feedback-buttons">
+              <p-button
+                icon="pi pi-check"
+                [label]="t(1606, 'Si, corretti')"
+                severity="success"
+                [outlined]="true"
+                (onClick)="confirmDataCorrect()"
+                [pTooltip]="t(1607, 'Conferma che i dati sono corretti')">
+              </p-button>
+              <p-button
+                icon="pi pi-times"
+                [label]="t(1608, 'No, riprova')"
+                severity="danger"
+                [outlined]="true"
+                (onClick)="reportDataIncorrect()"
+                [pTooltip]="t(1609, 'Segnala che i dati non sono corretti')">
+              </p-button>
+            </div>
+            @if (retryCount > 0) {
+              <p class="retry-info">
+                <i class="pi pi-info-circle"></i>
+                {{ t(1610, 'Tentativo') }} {{ retryCount }} / {{ maxRetries + 1 }}
+              </p>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: Results -->
+    <div class="ai-analyzer-results-panel">
+      @if (analysisResult && aggregatedData.length > 0) {
+        <!-- Chart -->
+        <div class="result-chart">
+          <h4>{{ analysisResult.chartConfig?.title || 'Risultato Analisi' }}</h4>
+          <div class="chart-wrapper" [style]="{ height: '300px' }">
+            <p-chart
+              #aiChartRef
+              [type]="getChartType()"
+              [data]="resultChart"
+              [options]="getChartOptions()"
+              [style]="{ width: '100%', height: '100%' }">
+            </p-chart>
+          </div>
+        </div>
+
+        <!-- Data Grid -->
+        <div class="result-grid">
+          <div class="grid-header">
+            <h4>{{ t(1574, 'Dati Aggregati') }} ({{ aggregatedData.length }} {{ t(1575, 'righe') }})</h4>
+          </div>
+          <p-table
+            [value]="aggregatedData"
+            [paginator]="aggregatedData.length > 10"
+            [rows]="10"
+            [showCurrentPageReport]="true"
+            responsiveLayout="scroll"
+            [scrollable]="true"
+            scrollHeight="430px">
+            <ng-template pTemplate="header">
+              <tr>
+                @for (col of analysisResult.gridConfig?.columns || []; track col.field) {
+                  <th [ngClass]="{ 'text-right': col.type === 'number' || col.type === 'currency' }">{{ col.header }}</th>
+                }
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row>
+              <tr>
+                @for (col of analysisResult.gridConfig?.columns || []; track col.field) {
+                  <td [ngClass]="{ 'text-right': col.type === 'number' || col.type === 'currency' }">
+                    @if (col.type === 'currency') {
+                      {{ formatCurrency(row[col.field]) }}
+                    } @else if (col.type === 'number') {
+                      {{ formatNumber(row[col.field], 2) }}
+                    } @else {
+                      {{ row[col.field] }}
+                    }
+                  </td>
+                }
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      } @else if (!loading) {
+        <div class="no-results">
+          <i class="pi pi-chart-bar" style="font-size: 4rem; color: #ccc;"></i>
+          <p>{{ t(1577, 'Inserisci una richiesta e clicca "Genera Analisi" per vedere i risultati') }}</p>
+          <div class="examples">
+            <p><strong>{{ t(1578, 'Esempi di richieste:') }}</strong></p>
+            <ul>
+              <li>"{{ t(1579, 'Top 10 clienti per fatturato') }}"</li>
+              <li>"{{ t(1580, 'Vendite mensili del 2024') }}"</li>
+              <li>"{{ t(1581, 'Margine per categoria prodotto') }}"</li>
+              <li>"{{ t(1582, 'Andamento kg venduti per mese') }}"</li>
+              <li>"{{ t(1583, 'Confronto fatturato per famiglia prodotto') }}"</li>
+            </ul>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</p-dialog>
+
+<!-- SAVED ANALYSES DIALOG -->
+<p-dialog
+  [(visible)]="showSavedAnalyses"
+  [modal]="true"
+  [draggable]="false"
+  [appendTo]="'body'"
+  [blockScroll]="true"
+  [style]="{ width: '600px' }"
+  [header]="t(1584, 'Analisi Salvate')">
+
+  @if (savedAnalyses.length > 0) {
+    <div class="saved-analyses-list">
+      @for (analysis of savedAnalyses; track analysis._id) {
+        <div class="saved-analysis-item" (click)="applySavedAnalysis(analysis)">
+          <div class="analysis-info">
+            <div class="analysis-name">{{ analysis.analysisName }}</div>
+            <div class="analysis-request">{{ analysis.userRequest }}</div>
+            <div class="analysis-meta">
+              <span class="chart-type">
+                <i class="pi pi-chart-bar"></i>
+                {{ analysis.chartConfig?.type || 'bar' }}
+              </span>
+              <span class="created-at">
+                {{ analysis.createdAt | date:'dd/MM/yyyy HH:mm' }}
+              </span>
+            </div>
+          </div>
+          <div class="analysis-actions">
+            <p-button
+              icon="pi pi-trash"
+              severity="danger"
+              [text]="true"
+              size="small"
+              (onClick)="deleteSavedAnalysis(analysis, $event)"
+              [pTooltip]="t(1585, 'Elimina')">
+            </p-button>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="no-saved-analyses">
+      <i class="pi pi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+      <p>{{ t(1586, 'Nessuna analisi salvata') }}</p>
+    </div>
+  }
+</p-dialog>
+
+<!-- SAVE ANALYSIS DIALOG -->
+<p-dialog
+  [(visible)]="showSaveDialog"
+  [modal]="true"
+  [draggable]="false"
+  [appendTo]="'body'"
+  [blockScroll]="true"
+  [style]="{ width: '450px' }"
+  [header]="t(1589, 'Salva Analisi')">
+
+  <div class="save-dialog-content">
+    <label for="analysisName">{{ t(1522, 'Nome per questa analisi:') }}</label>
+    <input
+      pInputText
+      id="analysisName"
+      [(ngModel)]="saveAnalysisName"
+      [placeholder]="t(1590, 'Es: Vendite Top Clienti 2024')"
+      class="save-name-input"
+      (keyup.enter)="saveCurrentAnalysis()">
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="save-dialog-footer">
+      <p-button
+        [label]="t(1591, 'Annulla')"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="closeSaveDialog()">
+      </p-button>
+      <p-button
+        icon="pi pi-save"
+        [label]="t(1592, 'Salva')"
+        (onClick)="saveCurrentAnalysis()"
+        [disabled]="!saveAnalysisName.trim()">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>

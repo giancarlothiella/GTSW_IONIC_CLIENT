@@ -35,4 +35,5 @@ export interface MenuResponse {
 export interface MenuRequest {
   prjId: string;
   languageId: string;
+  connCode?: string;
 }

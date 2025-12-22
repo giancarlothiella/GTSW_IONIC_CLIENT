@@ -196,6 +196,24 @@ export class AiReportsService {
   }
 
   /**
+   * Aggiorna solo i metadati del template (senza creare nuova versione)
+   */
+  updateTemplateInfo(data: {
+    prjId: string;
+    connCode: string;
+    reportCode: string;
+    reportName?: string;
+    description?: string;
+    status?: string;
+    pdfFormat?: string;
+    pdfOrientation?: string;
+    userInstructions?: string;
+  }): Observable<any> {
+    const { prjId, connCode, reportCode, ...updateFields } = data;
+    return this.http.patch<any>(`${this.apiUrl}/templates/${prjId}/${connCode}/${reportCode}/info`, updateFields);
+  }
+
+  /**
    * Lista tutti i template
    */
   listTemplates(filters?: {
@@ -229,6 +247,18 @@ export class AiReportsService {
   }
 
   /**
+   * Ottiene l'elenco delle connessioni che hanno già questo template
+   * Usato per filtrare le connessioni disponibili nel dialog di duplicazione
+   */
+  getTemplateConnections(prjId: string, reportCode: string): Observable<{
+    prjId: string;
+    reportCode: string;
+    connections: Array<{ connCode: string; status: string }>;
+  }> {
+    return this.http.get<any>(`${this.apiUrl}/templates/${prjId}/${reportCode}/connections`);
+  }
+
+  /**
    * Duplica template su una nuova connessione
    *
    * Crea una copia del template con:
@@ -241,7 +271,8 @@ export class AiReportsService {
     prjId: string,
     connCode: string,
     reportCode: string,
-    targetConnCode: string
+    targetConnCode: string,
+    author?: string
   ): Observable<{
     success: boolean;
     message: string;
@@ -256,7 +287,7 @@ export class AiReportsService {
   }> {
     return this.http.post<any>(
       `${this.apiUrl}/templates/${prjId}/${connCode}/${reportCode}/duplicate`,
-      { targetConnCode }
+      { targetConnCode, author }
     );
   }
 
@@ -456,6 +487,39 @@ export class AiReportsService {
   }
 
   /**
+   * AI Collaboration - Chat multi-turno con supporto vision per screenshot
+   * Permette conversazioni iterative per raffinare il template
+   *
+   * @param payload - Configurazione per la collaborazione
+   * @param payload.templateHtml - HTML del template corrente
+   * @param payload.message - Messaggio dell'utente
+   * @param payload.screenshot - Screenshot in base64 (opzionale)
+   * @param payload.mockData - Dati mock per contesto
+   * @param payload.aggregationRules - Regole aggregazione correnti
+   * @param payload.conversationHistory - Cronologia messaggi precedenti
+   */
+  aiCollaborate(payload: {
+    templateHtml: string;
+    message: string;
+    screenshot?: string;
+    mockData?: any;
+    aggregationRules?: any;
+    conversationHistory?: Array<{
+      role: 'user' | 'assistant';
+      content: string;
+      screenshot?: string;
+    }>;
+  }): Observable<{
+    html: string;
+    aggregationRules?: any;
+    response: string;
+    changes: string[];
+    suggestions: string[];
+  }> {
+    return this.http.post<any>(`${this.apiUrl}/collaborate`, payload);
+  }
+
+  /**
    * Richiede a Claude di generare CSS migliorato per il template
    *
    * @param payload - Configurazione per il miglioramento CSS
@@ -480,5 +544,236 @@ export class AiReportsService {
     suggestions: string[];
   }> {
     return this.http.post<any>(`${this.apiUrl}/enhance-css`, payload);
+  }
+
+  // ============================================
+  // AI DATA ANALYZER
+  // ============================================
+
+  /**
+   * Genera regole di aggregazione dati basate su richiesta in linguaggio naturale
+   *
+   * IMPORTANTE: Invia SOLO lo schema dei dati (campi e tipi), NON i dati sensibili.
+   * L'aggregazione vera e propria avviene lato client.
+   *
+   * @param payload - Configurazione per l'analisi
+   * @param payload.userRequest - Richiesta in linguaggio naturale (es. "mostrami le vendite per regione")
+   * @param payload.dataSchema - Schema dei dati disponibili { fields: [{ name, type, sample }] }
+   * @param payload.chartType - Tipo di grafico: 'bar', 'line', 'pie', 'doughnut', 'area'
+   * @param payload.maxResults - Numero massimo di risultati (default 10)
+   */
+  generateDataAnalysisRules(payload: {
+    userRequest: string;
+    dataSchema: {
+      fields: Array<{
+        name: string;
+        type: 'string' | 'number' | 'date' | 'boolean';
+        sample?: any;
+        description?: string;
+      }>;
+    };
+    chartType?: 'bar' | 'line' | 'pie' | 'doughnut' | 'area';
+    maxResults?: number;
+  }): Observable<{
+    aggregationRule: {
+      groupBy: string[];
+      aggregations: Array<{
+        field: string;
+        operation: 'sum' | 'avg' | 'count' | 'min' | 'max' | 'first' | 'last' | 'concat';
+        alias: string;
+        separator?: string;
+      }>;
+      sortBy: {
+        field: string;
+        order: 'asc' | 'desc';
+      } | null;
+      filters: Array<{
+        field: string;
+        operator: 'eq' | 'ne' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains' | 'startsWith' | 'endsWith' | 'in' | 'between';
+        value: any;
+      }>;
+      limit: number;
+    };
+    chartConfig: {
+      type: string;
+      xAxis: { field: string; label: string };
+      yAxis: { field: string; label: string };
+      title: string;
+      colors?: string[];
+    };
+    gridConfig: {
+      columns: Array<{
+        field: string;
+        header: string;
+        type: 'string' | 'number' | 'currency' | 'date';
+      }>;
+      showTotals: boolean;
+      pageSize: number;
+    };
+    explanation: string;
+  }> {
+    return this.http.post<any>(`${this.apiUrl}/data-analyzer/generate`, payload);
+  }
+
+  /**
+   * Salva un'analisi dati su MongoDB per riutilizzo futuro
+   */
+  saveDataAnalysis(analysis: {
+    prjId: string;
+    analysisName: string;
+    description?: string;
+    dataContext: {
+      datasetName: string;
+      availableFields: Array<{ name: string; type: string }>;
+    };
+    userRequest: string;
+    aggregationRule: any;
+    chartConfig: any;
+    gridConfig: any;
+    createdBy?: string;
+    tags?: string[];
+  }): Observable<{
+    success: boolean;
+    analysisId: string;
+    message: string;
+  }> {
+    return this.http.post<any>(`${this.apiUrl}/data-analyzer/save`, analysis);
+  }
+
+  /**
+   * Lista analisi salvate per un progetto
+   */
+  listDataAnalyses(prjId: string, options?: {
+    tags?: string[];
+    search?: string;
+    limit?: number;
+    skip?: number;
+  }): Observable<{
+    analyses: Array<{
+      _id: string;
+      prjId: string;
+      analysisName: string;
+      description: string;
+      userRequest: string;
+      chartConfig: { type: string; title: string };
+      tags: string[];
+      createdAt: Date;
+      createdBy: string;
+      usageCount: number;
+    }>;
+    total: number;
+  }> {
+    const params: any = { ...options };
+    if (params.tags) {
+      params.tags = params.tags.join(',');
+    }
+    return this.http.get<any>(`${this.apiUrl}/data-analyzer/list/${prjId}`, { params });
+  }
+
+  /**
+   * Carica un'analisi salvata
+   */
+  getDataAnalysis(analysisId: string): Observable<{
+    _id: string;
+    prjId: string;
+    analysisName: string;
+    description: string;
+    dataContext: any;
+    userRequest: string;
+    aggregationRule: any;
+    chartConfig: any;
+    gridConfig: any;
+    tags: string[];
+    createdAt: Date;
+    createdBy: string;
+    usageCount: number;
+  }> {
+    return this.http.get<any>(`${this.apiUrl}/data-analyzer/${analysisId}`);
+  }
+
+  /**
+   * Elimina un'analisi salvata
+   */
+  deleteDataAnalysis(analysisId: string): Observable<{ success: boolean; message: string }> {
+    return this.http.delete<any>(`${this.apiUrl}/data-analyzer/${analysisId}`);
+  }
+
+  /**
+   * Archivia un'analisi (soft delete)
+   */
+  archiveDataAnalysis(analysisId: string): Observable<{ success: boolean; message: string }> {
+    return this.http.patch<any>(`${this.apiUrl}/data-analyzer/${analysisId}/archive`, {});
+  }
+
+  // ============================================
+  // AI PROMPTS (Dynamic Examples)
+  // ============================================
+
+  /**
+   * Genera regole di aggregazione con supporto per retry
+   * Se retryContext è fornito, il sistema userà il contesto dell'errore precedente
+   */
+  generateDataAnalysisRulesWithRetry(payload: {
+    userRequest: string;
+    dataSchema: {
+      fields: Array<{
+        name: string;
+        type: 'string' | 'number' | 'date' | 'boolean';
+        sample?: any;
+        description?: string;
+      }>;
+    };
+    chartType?: 'bar' | 'line' | 'pie' | 'doughnut' | 'area';
+    maxResults?: number;
+    prjId?: string;
+    retryContext?: {
+      errorType: string;
+      errorMessage: string;
+      previousRules: any;
+    };
+  }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/data-analyzer/generate`, payload);
+  }
+
+  /**
+   * Segnala che un'analisi ha funzionato correttamente
+   * Il sistema salverà l'esempio per migliorare le risposte future
+   */
+  learnFromSuccess(payload: {
+    userRequest: string;
+    aggregationRule: any;
+    chartConfig: any;
+    gridConfig: any;
+    explanation: string;
+    prjId?: string;
+  }): Observable<{
+    success: boolean;
+    id: string;
+    action: 'created' | 'updated';
+    message: string;
+  }> {
+    return this.http.post<any>(`${environment.apiUrl}/ai-prompts/learn`, {
+      promptType: 'dataAnalysis',
+      ...payload
+    });
+  }
+
+  /**
+   * Popola il database con gli esempi di sistema iniziali
+   * Chiamare una sola volta al setup iniziale
+   */
+  seedAiPrompts(): Observable<{
+    success: boolean;
+    message: string;
+    seeded: number;
+  }> {
+    return this.http.post<any>(`${environment.apiUrl}/ai-prompts/seed`, {});
+  }
+
+  /**
+   * Lista gli esempi AI disponibili
+   */
+  listAiPrompts(promptType: string = 'dataAnalysis'): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/ai-prompts/${promptType}`);
   }
 }

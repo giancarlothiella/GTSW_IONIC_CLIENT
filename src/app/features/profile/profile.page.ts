@@ -189,7 +189,7 @@ import { TranslationService } from '../../core/services/translation.service';
         <ng-template>
           <ion-header>
             <ion-toolbar color="primary">
-              <ion-title>Seleziona Lingua</ion-title>
+              <ion-title>{{ getText(133) }}</ion-title>
               <ion-buttons slot="end">
                 <ion-button (click)="languageModalOpen = false">
                   <ion-icon name="close-outline"></ion-icon>
@@ -342,14 +342,20 @@ export class ProfilePage implements OnInit {
       this.languageId = this.user.languageId || 'EN';
     }
 
-    // Load languages from localStorage
+    // Load languages from TranslationService
     this.loadLanguages();
   }
 
-  loadLanguages() {
-    const setupLanguages = JSON.parse(localStorage.getItem('languages') || '[]');
+  async loadLanguages() {
+    // First try to get from cache
+    let languages = this.translationService.getLanguages();
 
-    this.languages = setupLanguages.map((language: any) => ({
+    // If cache is empty, load from server
+    if (languages.length === 0) {
+      languages = await this.translationService.loadLanguages();
+    }
+
+    this.languages = languages.map((language: any) => ({
       languageId: language.languageId,
       description: language.description,
       stdImageId: language.stdImageId
@@ -397,30 +403,44 @@ export class ProfilePage implements OnInit {
       await this.showToast(this.getText(619), 'success');
       this.saveDisabled = true;
 
-      // If language was changed and user has an active project, reload it
-      if (this.languageChanged && this.user.prjId) {
+      // If language was changed, reload translations and project
+      if (this.languageChanged) {
         this.languageChanged = false;
+
+        // Update translation service with new language
+        await this.translationService.setLanguage(this.languageId);
 
         // Clear metadata cache to reload with new language
         this.gtsDataService.clearAllMetadata();
 
-        // Find current project connection
-        let connCode: string | undefined;
-        if (this.user.prjConnections && this.user.prjConnections.length > 0) {
-          const defaultConn = this.user.prjConnections.find(c => c.connDefault);
-          connCode = defaultConn?.connCode || this.user.prjConnections[0].connCode;
-        }
-
-        // Reload project with new language
-        this.menuService.changeProject(this.user.prjId, connCode).subscribe({
-          next: (response) => {
-            this.loading = false;
-          },
-          error: (error) => {
-            console.error('Error reloading project:', error);
-            this.loading = false;
+        // If user has an active project, reload it with new language
+        if (this.user.prjId) {
+          // Find current project connection
+          let connCode: string | undefined;
+          if (this.user.prjConnections && this.user.prjConnections.length > 0) {
+            const defaultConn = this.user.prjConnections.find(c => c.connDefault);
+            connCode = defaultConn?.connCode || this.user.prjConnections[0].connCode;
           }
-        });
+
+          // Reload project with new language
+          this.menuService.changeProject(this.user.prjId, connCode).subscribe({
+            next: (response) => {
+              this.loading = false;
+              // Navigate to home to show updated UI
+              this.router.navigate(['/home']);
+            },
+            error: (error) => {
+              console.error('Error reloading project:', error);
+              this.loading = false;
+              // Navigate to home anyway
+              this.router.navigate(['/home']);
+            }
+          });
+        } else {
+          this.loading = false;
+          // Navigate to home to show updated UI
+          this.router.navigate(['/home']);
+        }
       } else {
         this.loading = false;
       }

@@ -26,17 +26,57 @@ export class MenuService {
 
   /**
    * Carica il menu per il progetto corrente
+   * @param prjId - ID del progetto (opzionale, usa quello dell'utente se non specificato)
+   * @param languageId - ID della lingua (opzionale)
+   * @param requestedConnCode - Connessione specifica da usare nella richiesta (ha priorità su tutto)
    */
-  loadMenu(prjId?: string, languageId?: string, preserveConnectionState?: string): Observable<MenuResponse> {
+  loadMenu(prjId?: string, languageId?: string, requestedConnCode?: string): Observable<MenuResponse> {
     const user = this.authService.getCurrentUser();
 
     if (!user) {
       throw new Error('User not authenticated');
     }
 
+    // Determina il progetto target
+    const targetPrjId = prjId || user.prjId;
+
+    // Determina la connessione da usare nella richiesta:
+    // 1. Se è stata specificata una connessione esplicita (requestedConnCode), usa quella
+    // 2. Altrimenti cerca nel projectsSubject (stato corrente UI) SOLO per il progetto target
+    // 3. Se il progetto target non ha connessioni, NON inviare connCode
+    // 4. Come ultimo fallback (primo caricamento), usa authService solo se il progetto corrisponde
+    let connCode: string | undefined;
+
+    if (requestedConnCode) {
+      // Connessione esplicita richiesta (es. cambio connessione)
+      connCode = requestedConnCode;
+    } else {
+      const projects = this.projectsSubject.value;
+      const targetProject = projects.find(p => p.prjId === targetPrjId);
+
+      if (targetProject) {
+        // Progetto trovato nel projectsSubject
+        if (targetProject.dbConnections && targetProject.dbConnections.length > 0) {
+          // Il progetto HA connessioni - usa quella di default
+          const defaultConn = targetProject.dbConnections.find(c => c.connDefault) || targetProject.dbConnections[0];
+          connCode = defaultConn?.connCode;
+        }
+        // Se il progetto NON ha connessioni, connCode rimane undefined (corretto)
+      } else {
+        // Progetto non ancora caricato (primo caricamento dopo login)
+        // Usa authService solo se il progetto corrente dell'utente corrisponde
+        if (user.prjId === targetPrjId && user.prjConnections && user.prjConnections.length > 0) {
+          const authConn = this.authService.getDefaultConnection();
+          connCode = authConn?.connCode;
+        }
+        // Se è un progetto diverso o l'utente non ha connessioni, connCode rimane undefined
+      }
+    }
+
     const request: MenuRequest = {
-      prjId: prjId || user.prjId,
-      languageId: languageId || user.languageId
+      prjId: targetPrjId,
+      languageId: languageId || user.languageId,
+      connCode: connCode
     };
 
     return new Observable<MenuResponse>(observer => {
@@ -46,7 +86,8 @@ export class MenuService {
       ).subscribe({
         next: async (response) => {
           try {
-            const result = await this.processMenuResponse(response, request.prjId, user, preserveConnectionState);
+            // Passa requestedConnCode per preservare lo stato della connessione selezionata
+            const result = await this.processMenuResponse(response, request.prjId, user, requestedConnCode);
             observer.next(result);
             observer.complete();
           } catch (err) {

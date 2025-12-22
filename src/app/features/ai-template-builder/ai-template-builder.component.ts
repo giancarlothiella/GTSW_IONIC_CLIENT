@@ -6,7 +6,7 @@
  */
 
 import { Component, OnInit, inject, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
@@ -27,6 +27,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { RadioButton } from 'primeng/radiobutton';
+import { Checkbox } from 'primeng/checkbox';
 
 // Monaco Editor (opzionale - solo se lo usi)
 // import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
@@ -35,6 +36,7 @@ import { RadioButton } from 'primeng/radiobutton';
 import { AiReportsService } from '../../core/services/ai-reports.service';
 import { TranslationService } from '../../core/services/translation.service';
 import { AuthService, ProjectConnection } from '../../core/services/auth.service';
+import { MenuService } from '../../core/services/menu.service';
 
 // ============================================
 // INTERFACES
@@ -135,6 +137,7 @@ interface SaveConfig {
   status: 'draft' | 'active' | 'archived';
   pdfFormat: 'A4' | 'A3' | 'Letter';
   pdfOrientation: 'portrait' | 'landscape';
+  showPageNumbers: boolean;
 }
 
 interface EditorOptions {
@@ -184,6 +187,7 @@ interface ExistingTemplate {
       left: string;
     };
     printBackground?: boolean;
+    showPageNumbers?: boolean;
   };
   status: 'draft' | 'active' | 'archived';
   // Campi aggiuntivi dalla lista
@@ -212,14 +216,20 @@ interface ExistingTemplate {
   };
   versions?: Array<{
     version: number;
-    savedAt: Date;
-    savedBy: string;
+    savedAt?: Date;
+    savedBy?: string;
+    createdAt?: Date;
+    createdBy?: string;
     template?: {
       html: string;
       description?: string;
     };
+    aggregationRules?: AggregationRules;
+    notes?: string;
   }>;
   userInstructions?: string;
+  currentVersion?: number;
+  version?: number;  // Versione corrente del template dal documento MongoDB
 }
 
 // ============================================
@@ -249,7 +259,8 @@ interface ExistingTemplate {
     ProgressSpinnerModule,
     ToastModule,
     TooltipModule,
-    RadioButton
+    RadioButton,
+    Checkbox
   ],
   providers: [MessageService],
   templateUrl: './ai-template-builder.component.html',
@@ -291,10 +302,21 @@ export class AiTemplateBuilderComponent implements OnInit {
   showSaveDialog = false;
   showConfirmExitDialog = false;
   showConfirmRegenerateDialog = false;
+  showCssEditorDialog = false;
+  cssEditorContent = '';  // Contenuto CSS nell'editor
+  regeneratePrompt = '';  // Prompt per la rigenerazione (pre-popolato da userInstructions)
   private pendingExitAction: (() => void) | null = null;
 
   /** Indica se la modalità è già stata selezionata (per saltare step 0) */
   modeSelected = false;
+
+  /** Info per tornare alla pagina chiamante con lo stato corretto */
+  private returnTo: { route: string; project: string } | null = null;
+
+  /** Indica se siamo arrivati da una pagina esterna (per nascondere opzione "Load Existing") */
+  get hasReturnTo(): boolean {
+    return this.returnTo !== null;
+  }
 
   // ============================================
   // TIMER (per mostrare tempo trascorso durante analisi)
@@ -406,7 +428,8 @@ export class AiTemplateBuilderComponent implements OnInit {
     notes: '',
     status: 'draft',
     pdfFormat: 'A4',
-    pdfOrientation: 'portrait'
+    pdfOrientation: 'portrait',
+    showPageNumbers: false
   };
 
   // ============================================
@@ -483,7 +506,7 @@ export class AiTemplateBuilderComponent implements OnInit {
   } | null = null;
 
   // ============================================
-  // AI QUICK EDIT DIALOG
+  // AI QUICK EDIT DIALOG (Chat Collaborativa)
   // ============================================
   showQuickEditDialog = false;
   quickEditProcessing = false;
@@ -494,6 +517,21 @@ export class AiTemplateBuilderComponent implements OnInit {
     changes: string[];
     suggestions: string[];
   } | null = null;
+
+  // Chat collaborativa con cronologia
+  chatMessages: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    screenshot?: string;
+    changes?: string[];
+    suggestions?: string[];
+    timestamp: Date;
+  }> = [];
+
+  // Screenshot per la chat
+  currentScreenshot: string | null = null;
+  currentScreenshotName: string | null = null;
+  isDraggingOver = false;
 
   // Rigenera Template AI
   regeneratingTemplate = false;
@@ -537,16 +575,30 @@ export class AiTemplateBuilderComponent implements OnInit {
   duplicateTargetConnCode = '';
   /** Lista connessioni disponibili per il progetto corrente */
   availableConnections: ProjectConnection[] = [];
-  /** Connessioni filtrate (escludendo quella corrente) */
+  /** Connessioni che hanno già questo template (prjId + reportCode) */
+  connectionsWithTemplate: string[] = [];
+  /** Connessioni filtrate (escludendo quelle che hanno già il template) */
   get availableConnectionsFiltered(): { label: string; value: string }[] {
-    const currentConnCode = this.existingTemplate?.connCode || '';
     return this.availableConnections
-      .filter(conn => conn.connCode !== currentConnCode)
+      .filter(conn => !this.connectionsWithTemplate.includes(conn.connCode))
       .map(conn => ({
         label: conn.connCode + (conn.connDefault ? ' (default)' : ''),
         value: conn.connCode
       }));
   }
+
+  // ============================================
+  // VERSIONS HISTORY DIALOG
+  // ============================================
+  showVersionsDialog = false;
+  selectedVersionForPreview: any = null;
+  selectedVersionForRestore: any = null;
+  showRestoreConfirmDialog = false;
+  showVersionPreviewDialog = false;
+  restoringVersion = false;
+  versionPreviewHtml = '';
+  /** Safe HTML per preview versione (bypassa sanitizzazione Angular che rimuove <style>) */
+  safeVersionPreviewHtml: SafeHtml = '';
 
   // ============================================
   // CLEAN VERSIONS DIALOG
@@ -572,18 +624,32 @@ export class AiTemplateBuilderComponent implements OnInit {
   isEditingHtml = false;
   isEditingRules = false;
   isEditingMockData = false;
+  isEditingInfo = false;
+
+  // Mock Data View Mode (json | table)
+  mockDataViewMode: 'json' | 'table' = 'table';  // Default: vista tabellare
+  // Stato espansione nodi tree view mock data
+  mockDataExpandedNodes: Set<string> = new Set(['main']); // 'main' espanso di default
 
   // Backup dei dati originali per ripristino su Annulla
   private originalTemplateHtml = '';
   private originalAggregationRulesJson = '';
   private originalMockDataJson = '';
+  private originalInfoData: {
+    reportName: string;
+    description: string;
+    status: string;
+    pdfFormat: string;
+    pdfOrientation: string;
+    userInstructions: string;
+  } | null = null;
 
   // Mock data come JSON string per editing
   mockDataJson = '';
 
   /** Indica se qualsiasi tab è in modalità editing */
   get isAnyEditing(): boolean {
-    return this.isEditingHtml || this.isEditingRules || this.isEditingMockData;
+    return this.isEditingHtml || this.isEditingRules || this.isEditingMockData || this.isEditingInfo;
   }
 
   // ============================================
@@ -607,11 +673,13 @@ export class AiTemplateBuilderComponent implements OnInit {
   // ============================================
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private location = inject(Location);
   private aiReportsService = inject(AiReportsService);
   private messageService = inject(MessageService);
   private cdr = inject(ChangeDetectorRef);
   public ts = inject(TranslationService);
   private authService = inject(AuthService);
+  private menuService = inject(MenuService);
 
   /**
    * Helper method for translations - shorthand for ts.getText()
@@ -632,15 +700,40 @@ export class AiTemplateBuilderComponent implements OnInit {
   }
 
   /**
+   * Reset di tutti gli stati di editing
+   */
+  private resetEditingStates(): void {
+    this.isEditingHtml = false;
+    this.isEditingRules = false;
+    this.isEditingMockData = false;
+    this.isEditingInfo = false;
+    this.cdr.detectChanges();
+  }
+
+  /**
    * Inizializza il builder in base alla modalità
    */
   private initializeBuilder(): void {
+    // PRIMA controlla se ci sono dati passati via route state
+    // Questo ha priorità sugli Input perché la navigazione da altre pagine usa lo state
+    const stateHandled = this.checkRouteState();
+    if (stateHandled) {
+      return; // Lo state ha gestito l'inizializzazione
+    }
+
+    // Se non c'è state, usa la modalità specificata via @Input
     switch (this.mode) {
       case 'fromReport':
-        // Chiamato dai log report - ha già tutti i dati
-        this.modeSelected = true;
-        this.currentStep = 'upload';
-        this.loadSessionData();
+        // Chiamato dai log report - ha già tutti i dati via @Input
+        if (this.sessionData) {
+          this.modeSelected = true;
+          this.currentStep = 'upload';
+          this.loadSessionData();
+        } else {
+          // Nessun dato - mostra selezione modalità
+          this.modeSelected = false;
+          this.currentStep = 'mode';
+        }
         break;
 
       case 'edit':
@@ -661,24 +754,151 @@ export class AiTemplateBuilderComponent implements OnInit {
         // Nessuna modalità specificata - mostra step 0 per selezione
         this.modeSelected = false;
         this.currentStep = 'mode';
-        // Controlla comunque se ci sono dati da route state
-        this.checkRouteState();
         break;
     }
   }
 
   /**
    * Controlla se ci sono dati passati via route state
+   * @returns true se lo state è stato gestito, false altrimenti
    */
-  private checkRouteState(): void {
+  private checkRouteState(): boolean {
     const state = window.history.state;
+
+    // Salva returnTo se presente (per tornare alla pagina chiamante con stato)
+    if (state && state.returnTo) {
+      this.returnTo = state.returnTo;
+      console.log('[checkRouteState] Saved returnTo:', this.returnTo);
+    }
+
+    // Caso 1: Dati da log report/sessions - modalità fromReport
     if (state && state.sessionData) {
-      // Dati da log report - imposta automaticamente modalità fromReport
       this.mode = 'fromReport';
       this.modeSelected = true;
       this.currentStep = 'upload';
       this.loadSessionData();
+      return true;
     }
+
+    // Caso 2: Carica template esistente direttamente (GET_TEMPLATE)
+    if (state && state.loadTemplate) {
+      const { prjId, connCode, reportCode } = state.loadTemplate;
+      console.log('[checkRouteState] Loading template directly:', prjId, connCode, reportCode);
+      this.loadTemplateByKey(prjId, connCode, reportCode);
+      return true;
+    }
+
+    // Caso 3: Mostra dialog di ricerca template (SEARCH_TEMPLATE)
+    if (state && state.showLoadDialog) {
+      console.log('[checkRouteState] Opening load template dialog');
+      this.modeSelected = false;
+      this.currentStep = 'mode';
+      // Apri dialog dopo un breve delay per permettere il rendering
+      setTimeout(() => {
+        this.openLoadTemplateDialog();
+      }, 100);
+      return true;
+    }
+
+    // Nessuno state rilevante
+    return false;
+  }
+
+  /**
+   * Carica un template direttamente tramite la sua chiave
+   */
+  private loadTemplateByKey(prjId: string, connCode: string, reportCode: string): void {
+    this.loading = true;
+    this.loadingMessage = 'Caricamento template...';
+
+    this.aiReportsService.getTemplate(prjId, connCode, reportCode).subscribe({
+      next: (fullTemplate) => {
+        // Default per campi mancanti (template vecchi)
+        const defaultAggregationRules = {
+          main: { groupBy: [], aggregations: {}, sortBy: null },
+          subreports: {}
+        };
+        const defaultPdfConfig = {
+          format: 'A4' as const,
+          orientation: 'portrait' as const,
+          margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
+          printBackground: true,
+          showPageNumbers: false
+        };
+
+        // Applica default se mancanti
+        if (!fullTemplate.aggregationRules) {
+          fullTemplate.aggregationRules = defaultAggregationRules;
+        }
+        if (!fullTemplate.mockData) {
+          fullTemplate.mockData = { main: [] };
+        }
+        if (!fullTemplate.pdfConfig) {
+          fullTemplate.pdfConfig = defaultPdfConfig;
+        }
+
+        // Imposta i dati nel builder
+        this.existingTemplate = fullTemplate;
+        this.mode = 'edit';
+        this.modeSelected = true;
+
+        // Popola gli editor
+        this.templateHtml = fullTemplate.template?.html || '';
+        this.aggregationRulesJson = JSON.stringify(fullTemplate.aggregationRules || {}, null, 2);
+
+        // Popola oracleData con i mockData del template
+        this.oracleData = fullTemplate.mockData;
+        this.mockDataJson = JSON.stringify(fullTemplate.mockData || { main: [] }, null, 2);
+
+        // Popola aiResult per la preview
+        this.aiResult = {
+          template: {
+            html: fullTemplate.template?.html || '',
+            description: fullTemplate.template?.description || ''
+          },
+          aggregationRules: fullTemplate.aggregationRules,
+          mockData: fullTemplate.mockData,
+          analysis: ''
+        };
+
+        // Carica userInstructions se presenti
+        this.userInstructions = fullTemplate.userInstructions || '';
+
+        // Popola saveConfig
+        this.saveConfig = {
+          prjId: fullTemplate.prjId,
+          connCode: fullTemplate.connCode,
+          reportCode: fullTemplate.reportCode,
+          reportName: fullTemplate.reportName,
+          description: fullTemplate.template?.description || '',
+          notes: fullTemplate.template?.notes || '',
+          status: fullTemplate.status || 'draft',
+          pdfFormat: fullTemplate.pdfConfig?.format || 'A4',
+          pdfOrientation: fullTemplate.pdfConfig?.orientation || 'portrait',
+          showPageNumbers: fullTemplate.pdfConfig?.showPageNumbers || false
+        };
+
+        // Vai direttamente alla preview/editing
+        this.currentStep = 'preview';
+        this.loading = false;
+
+        // Marca come salvato
+        this.markAsSaved();
+
+        // Genera preview
+        this.updatePreview();
+
+        this.showSuccess(`Template "${reportCode}" caricato con successo`);
+      },
+      error: (err) => {
+        console.error('[loadTemplateByKey] Error loading template:', err);
+        this.showError('Errore caricamento template: ' + err.message);
+        this.loading = false;
+        // In caso di errore, mostra la selezione modalità
+        this.modeSelected = false;
+        this.currentStep = 'mode';
+      }
+    });
   }
 
   /**
@@ -689,6 +909,9 @@ export class AiTemplateBuilderComponent implements OnInit {
       this.showError('Template non trovato');
       return;
     }
+
+    // Reset stati di editing
+    this.resetEditingStates();
 
     // Popola i campi con i dati del template esistente
     this.templateHtml = this.existingTemplate.template.html;
@@ -709,6 +932,7 @@ export class AiTemplateBuilderComponent implements OnInit {
     if (this.existingTemplate.pdfConfig) {
       this.saveConfig.pdfFormat = this.existingTemplate.pdfConfig.format || 'A4';
       this.saveConfig.pdfOrientation = this.existingTemplate.pdfConfig.orientation || 'portrait';
+      this.saveConfig.showPageNumbers = this.existingTemplate.pdfConfig.showPageNumbers || false;
     }
 
     // Costruisci aiResult per compatibilità
@@ -813,6 +1037,30 @@ export class AiTemplateBuilderComponent implements OnInit {
     // Carica il template completo (con HTML, mockData, etc.)
     this.aiReportsService.getTemplate(prjId, connCode, reportCode).subscribe({
       next: (fullTemplate) => {
+        // Default per campi mancanti (template vecchi)
+        const defaultAggregationRules = {
+          main: { groupBy: [], aggregations: {}, sortBy: null },
+          subreports: {}
+        };
+        const defaultPdfConfig = {
+          format: 'A4' as const,
+          orientation: 'portrait' as const,
+          margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
+          printBackground: true,
+          showPageNumbers: false
+        };
+
+        // Applica default se mancanti
+        if (!fullTemplate.aggregationRules) {
+          fullTemplate.aggregationRules = defaultAggregationRules;
+        }
+        if (!fullTemplate.mockData) {
+          fullTemplate.mockData = { main: [] };
+        }
+        if (!fullTemplate.pdfConfig) {
+          fullTemplate.pdfConfig = defaultPdfConfig;
+        }
+
         // Imposta i dati nel builder
         this.existingTemplate = fullTemplate;
         this.mode = 'edit';
@@ -825,7 +1073,7 @@ export class AiTemplateBuilderComponent implements OnInit {
         // Popola oracleData con i mockData del template
         // IMPORTANTE: Questo è necessario per il salvataggio corretto
         this.oracleData = fullTemplate.mockData;
-        this.mockDataJson = JSON.stringify(fullTemplate.mockData || {}, null, 2);
+        this.mockDataJson = JSON.stringify(fullTemplate.mockData || { main: [] }, null, 2);
 
         // Popola aiResult per la preview
         this.aiResult = {
@@ -838,6 +1086,9 @@ export class AiTemplateBuilderComponent implements OnInit {
           analysis: ''
         };
 
+        // Carica userInstructions se presenti
+        this.userInstructions = fullTemplate.userInstructions || '';
+
         // Popola saveConfig
         this.saveConfig = {
           prjId: fullTemplate.prjId,
@@ -848,7 +1099,8 @@ export class AiTemplateBuilderComponent implements OnInit {
           notes: fullTemplate.template?.notes || '',
           status: fullTemplate.status || 'draft',
           pdfFormat: fullTemplate.pdfConfig?.format || 'A4',
-          pdfOrientation: fullTemplate.pdfConfig?.orientation || 'portrait'
+          pdfOrientation: fullTemplate.pdfConfig?.orientation || 'portrait',
+          showPageNumbers: fullTemplate.pdfConfig?.showPageNumbers || false
         };
 
         // Vai direttamente alla preview/editing
@@ -1831,10 +2083,11 @@ ${html}
         margin: {
           top: '10mm',
           right: '10mm',
-          bottom: '10mm',
+          bottom: this.saveConfig.showPageNumbers ? '15mm' : '10mm',
           left: '10mm'
         },
-        printBackground: true
+        printBackground: true,
+        showPageNumbers: this.saveConfig.showPageNumbers || false
       }
     };
 
@@ -2040,6 +2293,9 @@ ${html}
       return;
     }
 
+    // Pre-popola il prompt con userInstructions esistenti (modificabili dall'utente)
+    this.regeneratePrompt = this.userInstructions || '';
+
     // Mostra sempre la dialog di conferma prima di rigenerare
     this.showConfirmRegenerateDialog = true;
   }
@@ -2069,6 +2325,9 @@ ${html}
     this.loadingMessage = 'Rigenerazione template con AI...';
     this.startTimer();
 
+    // Aggiorna userInstructions con il prompt della dialog (per salvarlo nel template)
+    this.userInstructions = this.regeneratePrompt;
+
     // Determina quale dato usare
     const dataToUse = this.oracleData || this.aiResult?.mockData || this.parsedMockData;
 
@@ -2087,7 +2346,7 @@ ${html}
         pdfBase64: pdfToSend,
         oracleData: dataToUse,
         oracleMetadata: this.oracleMetadata,
-        userInstructions: this.userInstructions || undefined
+        userInstructions: this.regeneratePrompt || undefined
       };
 
       this.aiReportsService.analyzeReport(payload).subscribe({
@@ -2104,7 +2363,7 @@ ${html}
         reportCode: this.saveConfig.reportCode || this.sessionData?.reportCode || 'REGEN',
         oracleData: dataToUse,
         oracleMetadata: this.oracleMetadata || this.inferMetadataFromMockData(dataToUse),
-        userInstructions: this.userInstructions || undefined
+        userInstructions: this.regeneratePrompt || undefined
       };
 
       this.aiReportsService.analyzeReportSimple(payload).subscribe({
@@ -2184,8 +2443,216 @@ ${html}
    * Apre dialog per gestione storico versioni
    */
   openVersionsDialog(): void {
-    // TODO: Implementare dialog versioni
-    this.showInfo('Funzionalità in sviluppo - Gestione Versioni');
+    if (!this.existingTemplate) {
+      this.showError(this.t(1490, 'Nessun template caricato'));
+      return;
+    }
+
+    // Verifica che ci siano versioni
+    if (!this.existingTemplate.versions || this.existingTemplate.versions.length === 0) {
+      this.showInfo(this.t(1491, 'Nessuna versione precedente disponibile'));
+      return;
+    }
+
+    // Reset state
+    this.selectedVersionForPreview = null;
+    this.selectedVersionForRestore = null;
+    this.versionPreviewHtml = '';
+    this.showRestoreConfirmDialog = false;
+    this.restoringVersion = false;
+
+    this.showVersionsDialog = true;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Mostra preview di una versione specifica in un popup
+   * Renderizza il template della versione con i dati mock attuali
+   */
+  previewVersion(version: any): void {
+    this.selectedVersionForPreview = version;
+
+    // Se la versione ha il template HTML, renderizzalo con i dati mock
+    if (version.template?.html) {
+      // Mostra loading
+      const loadingHtml = `<div style="padding: 40px; text-align: center; color: #666;">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem; margin-bottom: 10px;"></i>
+        <p>${this.t(1516, 'Generazione anteprima...')}</p>
+      </div>`;
+      this.versionPreviewHtml = loadingHtml;
+      this.safeVersionPreviewHtml = this.sanitizer.bypassSecurityTrustHtml(loadingHtml);
+      this.showVersionPreviewDialog = true;
+      this.cdr.detectChanges();
+
+      // Usa i dati mock del template corrente per renderizzare
+      const mockData = this.existingTemplate?.mockData || this.oracleData || {};
+      const aggregationRules = version.aggregationRules || this.existingTemplate?.aggregationRules || {};
+
+      this.aiReportsService.previewTemplate({
+        template: version.template.html,
+        aggregationRules: aggregationRules,
+        mockData: mockData
+      }).subscribe({
+        next: (result: any) => {
+          this.versionPreviewHtml = result.html || version.template.html;
+          // Bypass sanitizzazione Angular per preservare <style> tag
+          this.safeVersionPreviewHtml = this.sanitizer.bypassSecurityTrustHtml(this.versionPreviewHtml);
+          this.cdr.detectChanges();
+        },
+        error: (error: any) => {
+          console.error('Error rendering version preview:', error);
+          // In caso di errore, mostra il template non renderizzato
+          this.versionPreviewHtml = version.template.html;
+          this.safeVersionPreviewHtml = this.sanitizer.bypassSecurityTrustHtml(this.versionPreviewHtml);
+          this.cdr.detectChanges();
+        }
+      });
+    } else {
+      const noDataHtml = `<div style="padding: 20px; text-align: center; color: #666;">
+        <i class="pi pi-info-circle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+        <p>${this.t(1492, 'Template HTML non disponibile per questa versione')}</p>
+      </div>`;
+      this.versionPreviewHtml = noDataHtml;
+      this.safeVersionPreviewHtml = this.sanitizer.bypassSecurityTrustHtml(noDataHtml);
+      this.showVersionPreviewDialog = true;
+      this.cdr.detectChanges();
+    }
+  }
+
+  /**
+   * Chiude il preview della versione
+   */
+  closeVersionPreview(): void {
+    this.showVersionPreviewDialog = false;
+    this.selectedVersionForPreview = null;
+    this.versionPreviewHtml = '';
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Apre dialog conferma per ripristino versione
+   */
+  confirmRestoreVersion(version: any): void {
+    this.selectedVersionForRestore = version;
+    this.showRestoreConfirmDialog = true;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Annulla ripristino versione
+   */
+  cancelRestoreVersion(): void {
+    this.selectedVersionForRestore = null;
+    this.showRestoreConfirmDialog = false;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Ripristina la versione selezionata
+   */
+  restoreVersion(): void {
+    if (!this.existingTemplate || !this.selectedVersionForRestore) {
+      this.showError(this.t(1493, 'Errore: dati mancanti per il ripristino'));
+      return;
+    }
+
+    const version = this.selectedVersionForRestore;
+
+    // Verifica che la versione abbia il template
+    if (!version.template?.html) {
+      this.showError(this.t(1494, 'Questa versione non contiene dati ripristinabili'));
+      return;
+    }
+
+    this.restoringVersion = true;
+
+    // Chiama il backend per ripristinare la versione
+    this.aiReportsService.restoreTemplateVersion(
+      this.existingTemplate.prjId,
+      this.existingTemplate.connCode,
+      this.existingTemplate.reportCode,
+      version.version
+    ).subscribe({
+      next: (result: any) => {
+        this.restoringVersion = false;
+        this.showRestoreConfirmDialog = false;
+        this.showVersionsDialog = false;
+
+        // Aggiorna i dati locali con la versione ripristinata
+        if (result.template) {
+          this.templateHtml = result.template.template?.html || this.templateHtml;
+          this.aggregationRulesJson = JSON.stringify(result.template.aggregationRules || {}, null, 2);
+
+          // Aggiorna anche existingTemplate
+          if (this.existingTemplate) {
+            this.existingTemplate.template = result.template.template;
+            this.existingTemplate.aggregationRules = result.template.aggregationRules;
+            this.existingTemplate.version = result.template.version;
+            this.existingTemplate.versions = result.template.versions;
+          }
+
+          // Rigenera aiResult per consistenza
+          this.aiResult = {
+            template: result.template.template,
+            aggregationRules: result.template.aggregationRules,
+            mockData: this.existingTemplate?.mockData || {},
+            analysis: 'Versione ripristinata'
+          };
+        }
+
+        // Aggiorna preview
+        this.updatePreview();
+
+        // Marca come modificato
+        this.hasUnsavedChanges = false; // Il salvataggio è già fatto dal backend
+
+        this.showSuccess(
+          this.t(1495, 'Versione') + ` v${version.version} ` + this.t(1496, 'ripristinata con successo')
+        );
+        this.cdr.detectChanges();
+      },
+      error: (error: any) => {
+        this.restoringVersion = false;
+        console.error('Error restoring version:', error);
+        const errorMsg = error.error?.error || error.message || 'Errore durante il ripristino';
+        this.showError(errorMsg);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /**
+   * Chiude il dialog delle versioni
+   */
+  closeVersionsDialog(): void {
+    this.showVersionsDialog = false;
+    this.selectedVersionForPreview = null;
+    this.selectedVersionForRestore = null;
+    this.versionPreviewHtml = '';
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Formatta la data per visualizzazione nelle versioni
+   */
+  formatVersionDate(date: Date | string | undefined | null): string {
+    if (!date) return '-';
+    const d = new Date(date);
+    return d.toLocaleDateString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  /**
+   * Ritorna le versioni ordinate per numero decrescente (più recenti prima)
+   */
+  get sortedVersions(): any[] {
+    if (!this.existingTemplate?.versions) return [];
+    return [...this.existingTemplate.versions].sort((a, b) => b.version - a.version);
   }
 
   /**
@@ -2197,26 +2664,52 @@ ${html}
       return;
     }
 
-    // Carica le connessioni disponibili dall'utente corrente
-    const user = this.authService.getCurrentUser();
-    if (user && user.prjConnections) {
-      this.availableConnections = user.prjConnections;
-    } else {
-      this.availableConnections = [];
-    }
+    // Carica le connessioni dal progetto corrente (MenuService ha i dati aggiornati)
+    const currentProject = this.menuService.getCurrentProjectInfo();
+    const projectConnections = currentProject?.dbConnections || [];
 
-    // Se non ci sono altre connessioni disponibili
-    if (this.availableConnectionsFiltered.length === 0) {
-      this.showWarning(this.t(1420, 'Non ci sono altre connessioni disponibili per questo progetto'));
+    // Mappa le connessioni nel formato ProjectConnection (stesso formato di DbConnection)
+    this.availableConnections = projectConnections.map(conn => ({
+      connCode: conn.connCode,
+      connDefault: conn.connDefault || false,
+      dataKey: conn.dataKey || ''
+    }));
+
+    // Se non ci sono connessioni nel progetto
+    if (this.availableConnections.length <= 1) {
+      this.showInfo(this.t(1420, 'Hai solo una connessione disponibile. Per duplicare il template su altre connessioni, aggiungi prima nuove connessioni al tuo profilo.'));
       return;
     }
 
-    // Reset selection
-    this.duplicateTargetConnCode = '';
-    this.duplicateProcessing = false;
+    // Chiama backend per ottenere le connessioni che hanno già questo template
+    this.loading = true;
+    this.aiReportsService.getTemplateConnections(
+      this.existingTemplate.prjId,
+      this.existingTemplate.reportCode
+    ).subscribe({
+      next: (result) => {
+        this.loading = false;
+        // Salva le connessioni che hanno già il template
+        this.connectionsWithTemplate = result.connections.map(c => c.connCode);
 
-    this.showDuplicateDialog = true;
-    this.cdr.detectChanges();
+        // Verifica se ci sono connessioni disponibili dopo il filtro
+        if (this.availableConnectionsFiltered.length === 0) {
+          this.showInfo(this.t(1421, 'Il template è già presente su tutte le connessioni disponibili. Non ci sono altre connessioni su cui duplicarlo.'));
+          return;
+        }
+
+        // Reset selection e apri dialog
+        this.duplicateTargetConnCode = '';
+        this.duplicateProcessing = false;
+        this.showDuplicateDialog = true;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        this.loading = false;
+        console.error('Error loading template connections:', error);
+        this.showError('Errore nel caricamento delle connessioni');
+      }
+    });
   }
 
   /**
@@ -2229,7 +2722,7 @@ ${html}
     }
 
     if (!this.duplicateTargetConnCode) {
-      this.showWarning(this.t(1421, 'Seleziona una connessione di destinazione'));
+      this.showWarning(this.t(1423, 'Seleziona una connessione di destinazione'));
       return;
     }
 
@@ -2239,7 +2732,8 @@ ${html}
       this.existingTemplate.prjId,
       this.existingTemplate.connCode,
       this.existingTemplate.reportCode,
-      this.duplicateTargetConnCode
+      this.duplicateTargetConnCode,
+      this.authService.getUserEmail() || undefined
     ).subscribe({
       next: (result) => {
         this.duplicateProcessing = false;
@@ -2359,6 +2853,14 @@ ${html}
     return Math.max(0, this.totalVersionsCount - this.keepLastVersions);
   }
 
+  /**
+   * Restituisce il numero di versione corrente del template
+   * Usa il campo 'version' del documento MongoDB (versione attuale)
+   */
+  getLatestVersion(): number {
+    return this.existingTemplate?.version || 0;
+  }
+
   // ============================================
 
   saveTemplate(): void {
@@ -2394,6 +2896,9 @@ ${html}
     this.loading = true;
     this.loadingMessage = 'Salvataggio template in corso...';
 
+    // DEBUG: Log userInstructions al momento del salvataggio
+    console.log('[saveTemplate] userInstructions:', this.userInstructions);
+
     // Determina createdFrom in base alla modalità
     let createdFrom: string;
     switch (this.mode) {
@@ -2426,7 +2931,7 @@ ${html}
       reportName: this.saveConfig.reportName || this.saveConfig.reportCode,
       reportType: 'htmlReport',
       status: this.saveConfig.status,
-      author: this.sessionData?.sessionUserMail || 'unknown',
+      author: this.authService.getUserEmail() || 'unknown',
 
       template: {
         html: this.templateHtml,
@@ -2446,10 +2951,11 @@ ${html}
         margin: {
           top: '10mm',
           right: '10mm',
-          bottom: '10mm',
+          bottom: this.saveConfig.showPageNumbers ? '15mm' : '10mm',
           left: '10mm'
         },
-        printBackground: true
+        printBackground: true,
+        showPageNumbers: this.saveConfig.showPageNumbers || false
       },
 
       // Istruzioni utente per Claude (salvate per riferimento futuro)
@@ -2647,10 +3153,21 @@ ${html}
   // ============================================
 
   /**
-   * Torna alla pagina dei log report
+   * Torna alla pagina chiamante (logs o report-templates) ripristinando lo stato
    */
   goBackToLogs(): void {
-    this.router.navigate(['/GTSW/logs'], { queryParams: { param: 'reports' } });
+    if (this.returnTo) {
+      // Naviga alla pagina chiamante passando lo stato da ripristinare
+      console.log('[goBackToLogs] Navigating to:', this.returnTo.route, 'with project:', this.returnTo.project);
+      this.router.navigate([this.returnTo.route], {
+        state: {
+          restoreProject: this.returnTo.project
+        }
+      });
+    } else {
+      // Fallback: torna indietro nella history
+      this.location.back();
+    }
   }
 
   goBack(): void {
@@ -2659,7 +3176,10 @@ ${html}
       // Salva l'azione da eseguire dopo la conferma
       this.pendingExitAction = () => {
         if (this.currentStep === 'preview' || this.currentStep === 'editing') {
-          if (this.mode === 'edit') {
+          // Se abbiamo returnTo, torniamo direttamente alla pagina chiamante
+          if (this.returnTo) {
+            this.goBackToLogs();
+          } else if (this.mode === 'edit') {
             this.resetToModeSelection();
           } else {
             this.currentStep = 'upload';
@@ -2673,8 +3193,11 @@ ${html}
     }
 
     if (this.currentStep === 'preview' || this.currentStep === 'editing') {
-      // Se siamo in mode 'edit' (caricato da template esistente), torna alla selezione modalità
-      if (this.mode === 'edit') {
+      // Se abbiamo returnTo, torniamo direttamente alla pagina chiamante
+      if (this.returnTo) {
+        this.goBackToLogs();
+      } else if (this.mode === 'edit') {
+        // Se siamo in mode 'edit' (caricato da template esistente), torna alla selezione modalità
         this.resetToModeSelection();
       } else {
         this.currentStep = 'upload';
@@ -2699,6 +3222,9 @@ ${html}
    * Reset completo e torna alla selezione modalità iniziale
    */
   private resetToModeSelection(): void {
+    // Reset stati di editing
+    this.resetEditingStates();
+
     // Reset mode
     this.mode = 'fromReport'; // Reset al default
     this.modeSelected = false;
@@ -2732,7 +3258,8 @@ ${html}
       notes: '',
       status: 'draft',
       pdfFormat: 'A4',
-      pdfOrientation: 'portrait'
+      pdfOrientation: 'portrait',
+      showPageNumbers: false
     };
 
     // Reset dialogs
@@ -2833,25 +3360,25 @@ ${html}
       severity: 'success',
       summary: 'Successo',
       detail: message,
-      life: 3000
+      life: 2000
     });
   }
-  
+
   showError(message: string): void {
     this.messageService.add({
       severity: 'error',
       summary: 'Errore',
       detail: message,
-      life: 5000
+      life: 3500
     });
   }
-  
+
   showInfo(message: string): void {
     this.messageService.add({
       severity: 'info',
       summary: 'Info',
       detail: message,
-      life: 3000
+      life: 2000
     });
   }
   
@@ -2885,6 +3412,7 @@ ${html}
   /**
    * Formatta HTML con indentazione corretta per visualizzazione nell'editor
    * Trasforma HTML minificato/su una riga in formato leggibile
+   * Gestisce anche i blocchi Handlebars ({{#each}}, {{#if}}, etc.)
    * @param forceReformat Se true, riformatta anche HTML già formattato
    */
   private formatHtml(html: string, forceReformat = false): string {
@@ -2896,65 +3424,76 @@ ${html}
       return html;
     }
 
-    // Rimuovi formattazione esistente per riformattare da zero
-    let formatted = html.replace(/\n\s*/g, ' ').replace(/>\s+</g, '><').replace(/\s{2,}/g, ' ');
-    let indent = 0;
     const indentSize = 2;
+    const voidTags = ['br', 'hr', 'img', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr'];
+    const inlineTags = ['span', 'a', 'strong', 'em', 'b', 'i', 'small', 'code', 'label'];
 
-    // Tags che non richiedono newline dopo
-    const inlineTags = ['span', 'a', 'strong', 'em', 'b', 'i', 'small', 'code'];
+    // Step 1: Normalizza tutto su una riga
+    let formatted = html
+      .replace(/\r\n/g, '\n')
+      .replace(/\n/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
 
-    // Aggiungi newline prima di tag di apertura (escludendo inline)
-    formatted = formatted.replace(/(<[^/!][^>]*>)/g, (match) => {
-      const tagName = match.match(/<(\w+)/)?.[1]?.toLowerCase() || '';
-      if (inlineTags.includes(tagName)) {
-        return match;
-      }
+    // Step 2: Inserisci marker per newline
+    // Prima dei tag HTML di apertura (blocchi)
+    formatted = formatted.replace(/(<(?!\/)[a-zA-Z][^>]*>)/g, (match) => {
+      const tagName = (match.match(/<([a-zA-Z]+)/)?.[1] || '').toLowerCase();
+      if (inlineTags.includes(tagName)) return match;
       return '\n' + match;
     });
 
-    // Aggiungi newline dopo tag di chiusura (escludendo inline)
-    formatted = formatted.replace(/(<\/[^>]+>)/g, (match) => {
-      const tagName = match.match(/<\/(\w+)/)?.[1]?.toLowerCase() || '';
-      if (inlineTags.includes(tagName)) {
-        return match;
-      }
+    // Dopo i tag HTML di chiusura (blocchi)
+    formatted = formatted.replace(/(<\/[a-zA-Z]+>)/g, (match) => {
+      const tagName = (match.match(/<\/([a-zA-Z]+)/)?.[1] || '').toLowerCase();
+      if (inlineTags.includes(tagName)) return match;
       return match + '\n';
     });
 
-    // Aggiungi newline dopo tag self-closing
-    formatted = formatted.replace(/(<[^>]+\/>)/g, '$1\n');
+    // Prima dei blocchi Handlebars di apertura
+    formatted = formatted.replace(/(\{\{#(?:each|if|unless|with)[^}]*\}\})/g, '\n$1\n');
+    // Prima/dopo dei blocchi Handlebars di chiusura
+    formatted = formatted.replace(/(\{\{\/(?:each|if|unless|with)\}\})/g, '\n$1\n');
+    // else
+    formatted = formatted.replace(/(\{\{else\}\})/g, '\n$1\n');
 
-    // Rimuovi newline multiple
-    formatted = formatted.replace(/\n{3,}/g, '\n\n');
+    // Pulizia newline multiple
+    formatted = formatted.replace(/\n{2,}/g, '\n').replace(/^\n+|\n+$/g, '');
 
-    // Aggiungi indentazione
+    // Step 3: Calcola indentazione
     const lines = formatted.split('\n');
     const indentedLines: string[] = [];
+    let indent = 0;
 
     for (const line of lines) {
       const trimmedLine = line.trim();
       if (!trimmedLine) continue;
 
-      // Decrementa indent per tag di chiusura
-      if (trimmedLine.startsWith('</')) {
+      // Check se è chiusura HTML o Handlebars
+      const isHtmlClose = /^<\/[a-zA-Z]/.test(trimmedLine);
+      const isHbClose = /^\{\{\/(?:each|if|unless|with)\}\}/.test(trimmedLine);
+      const isElse = /^\{\{else\}\}/.test(trimmedLine);
+
+      // Decrementa per chiusure
+      if (isHtmlClose || isHbClose) {
+        indent = Math.max(0, indent - 1);
+      }
+      if (isElse) {
         indent = Math.max(0, indent - 1);
       }
 
-      // Aggiungi indentazione
-      const indentStr = ' '.repeat(indent * indentSize);
-      indentedLines.push(indentStr + trimmedLine);
+      // Applica indentazione
+      indentedLines.push(' '.repeat(indent * indentSize) + trimmedLine);
 
-      // Incrementa indent per tag di apertura (non self-closing e non void)
-      if (trimmedLine.match(/^<[^/!][^>]*>$/) &&
-          !trimmedLine.match(/\/>$/) &&
-          !trimmedLine.match(/<(br|hr|img|input|meta|link)[^>]*>/i)) {
+      // Check se è apertura HTML o Handlebars
+      const isHtmlOpen = /^<[a-zA-Z][^>]*>$/.test(trimmedLine) &&
+                         !/\/>$/.test(trimmedLine) &&
+                         !voidTags.some(t => trimmedLine.toLowerCase().startsWith(`<${t}`));
+      const isHbOpen = /^\{\{#(?:each|if|unless|with)/.test(trimmedLine);
+
+      // Incrementa per aperture
+      if (isHtmlOpen || isHbOpen || isElse) {
         indent++;
-      }
-
-      // Gestisci tag sulla stessa riga (es. <td>valore</td>)
-      if (trimmedLine.match(/<[^/][^>]*>[^<]*<\/[^>]+>/)) {
-        // Tag apertura e chiusura sulla stessa riga - nessun cambio indent
       }
     }
 
@@ -3147,7 +3686,7 @@ ${html}
   }
 
   // ============================================
-  // AI QUICK EDIT
+  // AI QUICK EDIT (Chat Collaborativa con Vision)
   // ============================================
 
   /**
@@ -3159,30 +3698,43 @@ ${html}
     this.lastQuickEditResult = null;
     this.quickEditTimeout = false;
     this.quickEditRequestProcessed = false;
+    // Reset chat se è una nuova sessione
+    if (this.chatMessages.length === 0) {
+      this.clearScreenshot();
+    }
   }
 
   /**
-   * Esegue il quick edit del template
+   * Esegue il quick edit del template (ora usa chat collaborativa)
    */
   executeQuickEdit(): void {
     if (!this.quickEditRequest.trim()) {
-      this.showError('Inserisci una descrizione della modifica richiesta');
+      this.showError(this.t(1400, 'Inserisci una descrizione della modifica richiesta'));
       return;
     }
 
     if (!this.templateHtml) {
-      this.showError('Nessun template HTML da modificare');
+      this.showError(this.t(1401, 'Nessun template HTML da modificare'));
       return;
     }
 
+    // Aggiungi messaggio utente alla chat
+    const userMessage = {
+      role: 'user' as const,
+      content: this.quickEditRequest,
+      screenshot: this.currentScreenshot || undefined,
+      timestamp: new Date()
+    };
+    this.chatMessages.push(userMessage);
+
     this.quickEditProcessing = true;
     this.quickEditTimeout = false;
-    this.startQuickEditTimer();  // Avvia timer
+    this.startQuickEditTimer();
 
     // Prepara mock data per context
     const mockData = this.aiResult?.mockData || this.oracleData;
 
-    // Prepara aggregation rules correnti per permettere aggiornamenti
+    // Prepara aggregation rules correnti
     let currentRules: any = null;
     try {
       currentRules = JSON.parse(this.aggregationRulesJson);
@@ -3190,69 +3742,131 @@ ${html}
       // Could not parse current aggregationRules
     }
 
-    this.aiReportsService.quickEditTemplate({
-      templateHtml: this.templateHtml,
-      editRequest: this.quickEditRequest,
-      mockData: mockData || undefined,
-      aggregationRules: currentRules || undefined
-    }).subscribe({
-      next: (result) => {
-        this.stopQuickEditTimer();  // Ferma timer
+    // Prepara cronologia conversazione per il backend
+    const conversationHistory = this.chatMessages.slice(0, -1).map(msg => ({
+      role: msg.role,
+      content: msg.content,
+      screenshot: msg.screenshot
+    }));
 
-        // Salva risultato per mostrare le modifiche effettuate
-        this.lastQuickEditResult = {
-          changes: result.changes || [],
-          suggestions: result.suggestions || []
-        };
+    // Usa il nuovo endpoint collaborate se c'è screenshot o cronologia
+    if (this.currentScreenshot || conversationHistory.length > 0) {
+      this.aiReportsService.aiCollaborate({
+        templateHtml: this.templateHtml,
+        message: this.quickEditRequest,
+        screenshot: this.currentScreenshot || undefined,
+        mockData: mockData || undefined,
+        aggregationRules: currentRules || undefined,
+        conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined
+      }).subscribe({
+        next: (result) => this.handleQuickEditResult(result),
+        error: (err) => this.handleQuickEditError(err)
+      });
+    } else {
+      // Usa quick edit classico per richieste semplici senza screenshot
+      this.aiReportsService.quickEditTemplate({
+        templateHtml: this.templateHtml,
+        editRequest: this.quickEditRequest,
+        mockData: mockData || undefined,
+        aggregationRules: currentRules || undefined
+      }).subscribe({
+        next: (result) => this.handleQuickEditResult({ ...result, response: '' }),
+        error: (err) => this.handleQuickEditError(err)
+      });
+    }
 
-        // Aggiorna il template HTML con il nuovo HTML
-        if (result.html) {
-          this.templateHtml = result.html;
+    // Clear screenshot dopo l'invio
+    this.clearScreenshot();
+    this.quickEditRequest = '';
+  }
 
-          // Aggiorna anche aiResult se presente
-          if (this.aiResult) {
-            this.aiResult.template.html = result.html;
-            this.aiResult.analysis = 'Template modificato tramite AI Quick Edit';
-          }
+  /**
+   * Gestisce il risultato del quick edit / collaborate
+   */
+  private handleQuickEditResult(result: {
+    html: string;
+    aggregationRules?: any;
+    response?: string;
+    changes: string[];
+    suggestions: string[];
+  }): void {
+    this.stopQuickEditTimer();
 
-          // Aggiorna aggregationRules se ricevute dall'AI
-          if (result.aggregationRules) {
-            this.aggregationRulesJson = JSON.stringify(result.aggregationRules, null, 2);
-            if (this.aiResult) {
-              this.aiResult.aggregationRules = result.aggregationRules;
-            }
-          }
+    // Aggiungi risposta AI alla chat
+    this.chatMessages.push({
+      role: 'assistant',
+      content: result.response || this.t(1402, 'Modifiche applicate con successo'),
+      changes: result.changes,
+      suggestions: result.suggestions,
+      timestamp: new Date()
+    });
 
-          // Invalida cache PDF perché il template è cambiato
-          this.invalidatePdfCache();
+    // Salva risultato per backward compatibility
+    this.lastQuickEditResult = {
+      changes: result.changes || [],
+      suggestions: result.suggestions || []
+    };
 
-          // Marca come modificato (modifiche non salvate)
-          this.markAsModified();
+    // Aggiorna il template HTML
+    if (result.html) {
+      this.templateHtml = result.html;
 
-          // Aggiorna preview immediatamente
-          this.updatePreview();
+      if (this.aiResult) {
+        this.aiResult.template.html = result.html;
+        this.aiResult.analysis = 'Template modificato tramite AI Collaboration';
+      }
 
-          this.showSuccess(`Template modificato in ${this.quickEditElapsedTimeFormatted}!`);
-        }
-
-        this.quickEditProcessing = false;
-        this.quickEditRequestProcessed = true; // Richiesta elaborata - disabilita bottone finché non cambia il testo
-      },
-      error: (err) => {
-        console.error('[QuickEdit] Error:', err);
-        this.stopQuickEditTimer();  // Ferma timer
-        this.quickEditProcessing = false;
-
-        // Controlla se è un timeout
-        const errorMessage = err.error?.error || err.message || '';
-        if (errorMessage.toLowerCase().includes('timeout')) {
-          this.quickEditTimeout = true;
-          // Non mostrare toast di errore - il messaggio viene mostrato nel dialog
-        } else {
-          this.showError('Errore modifica template: ' + errorMessage);
+      if (result.aggregationRules) {
+        this.aggregationRulesJson = JSON.stringify(result.aggregationRules, null, 2);
+        if (this.aiResult) {
+          this.aiResult.aggregationRules = result.aggregationRules;
         }
       }
-    });
+
+      this.invalidatePdfCache();
+      this.markAsModified();
+      this.updatePreview();
+      this.showSuccess(this.t(1403, 'Template modificato in') + ` ${this.quickEditElapsedTimeFormatted}!`);
+    }
+
+    this.quickEditProcessing = false;
+    this.quickEditRequestProcessed = true;
+
+    // Scroll alla fine della chat
+    setTimeout(() => this.scrollChatToBottom(), 100);
+  }
+
+  /**
+   * Gestisce errori del quick edit
+   */
+  private handleQuickEditError(err: any): void {
+    console.error('[QuickEdit] Error:', err);
+    this.stopQuickEditTimer();
+    this.quickEditProcessing = false;
+
+    // Rimuovi l'ultimo messaggio utente se c'è stato errore
+    if (this.chatMessages.length > 0 && this.chatMessages[this.chatMessages.length - 1].role === 'user') {
+      const lastUserMsg = this.chatMessages.pop();
+      this.quickEditRequest = lastUserMsg?.content || '';
+      this.currentScreenshot = lastUserMsg?.screenshot || null;
+    }
+
+    const errorMessage = err.error?.error || err.message || '';
+    if (errorMessage.toLowerCase().includes('timeout')) {
+      this.quickEditTimeout = true;
+    } else {
+      this.showError(this.t(1404, 'Errore modifica template:') + ' ' + errorMessage);
+    }
+  }
+
+  /**
+   * Scroll della chat alla fine
+   */
+  private scrollChatToBottom(): void {
+    const chatContainer = document.querySelector('.chat-messages-container');
+    if (chatContainer) {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
   }
 
   /**
@@ -3273,16 +3887,152 @@ ${html}
   }
 
   /**
+   * Pulisce la cronologia chat e chiude
+   */
+  clearChatAndClose(): void {
+    this.chatMessages = [];
+    this.clearScreenshot();
+    this.cancelQuickEditDialog();
+  }
+
+  /**
    * Chiamato quando l'utente modifica il testo della richiesta quick edit
-   * Resetta il flag "processed" per riabilitare il bottone "Applica Modifiche"
    */
   onQuickEditRequestChange(): void {
     this.quickEditRequestProcessed = false;
   }
 
   // ============================================
+  // SCREENSHOT HANDLING
+  // ============================================
+
+  /**
+   * Gestisce il paste di immagini nella chat
+   */
+  onPasteImage(event: ClipboardEvent): void {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          this.processImageFile(file);
+          event.preventDefault();
+          break;
+        }
+      }
+    }
+  }
+
+  /**
+   * Gestisce il drag over per il drop di screenshot nella chat
+   */
+  onScreenshotDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDraggingOver = true;
+  }
+
+  /**
+   * Gestisce il drag leave per screenshot
+   */
+  onScreenshotDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDraggingOver = false;
+  }
+
+  /**
+   * Gestisce il drop di screenshot
+   */
+  onScreenshotDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDraggingOver = false;
+
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        this.processImageFile(file);
+      }
+    }
+  }
+
+  /**
+   * Gestisce la selezione file da input
+   */
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      if (file.type.startsWith('image/')) {
+        this.processImageFile(file);
+      }
+      input.value = ''; // Reset per permettere di selezionare lo stesso file
+    }
+  }
+
+  /**
+   * Processa un file immagine e lo converte in base64
+   */
+  private processImageFile(file: File): void {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      // Rimuovi il prefisso data:image/...;base64,
+      this.currentScreenshot = base64.split(',')[1];
+      this.currentScreenshotName = file.name;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /**
+   * Rimuove lo screenshot corrente
+   */
+  clearScreenshot(): void {
+    this.currentScreenshot = null;
+    this.currentScreenshotName = null;
+  }
+
+  /**
+   * Cattura screenshot della preview corrente
+   */
+  async capturePreviewScreenshot(): Promise<void> {
+    const previewFrame = document.querySelector('.preview-frame iframe') as HTMLIFrameElement;
+    if (!previewFrame) {
+      this.showError(this.t(1405, 'Preview non disponibile'));
+      return;
+    }
+
+    try {
+      // Usa html2canvas se disponibile, altrimenti suggerisci di fare screenshot manuale
+      this.showInfo(this.t(1406, 'Usa Ctrl+V per incollare uno screenshot della preview'));
+    } catch (error) {
+      console.error('Capture error:', error);
+    }
+  }
+
+  // ============================================
   // PDF VIEWER (sorgente e cached)
   // ============================================
+
+  /**
+   * Apre il PDF FastReport (passato dalla sessione) in una nuova tab
+   */
+  openFastReportPdf(): void {
+    if (!this.fastReportPdf) {
+      this.showError('PDF FastReport non disponibile');
+      return;
+    }
+
+    const reportCode = this.sessionData?.reportCode || this.saveConfig.reportCode || 'report';
+    this.openPdfInNewTab(
+      this.fastReportPdf,
+      `source_${reportCode}.pdf`
+    );
+  }
 
   /**
    * Apre il PDF sorgente (quello usato per generare il template) in una nuova tab
@@ -3383,6 +4133,128 @@ ${html}
     this.showInfo('Modifiche HTML annullate');
   }
 
+  // ============================================
+  // CSS EDITOR
+  // ============================================
+
+  /**
+   * Apre il dialog per editare il CSS del template
+   */
+  openCssEditor(): void {
+    // Estrai il CSS dal template HTML (può essere null se non c'è tag <style>)
+    const css = this.extractCssFromHtml(this.templateHtml) || '';
+    // Formatta il CSS per renderlo leggibile
+    this.cssEditorContent = this.formatCss(css);
+    this.showCssEditorDialog = true;
+  }
+
+  /**
+   * Chiude il dialog CSS senza salvare
+   */
+  closeCssEditor(): void {
+    this.showCssEditorDialog = false;
+    this.cssEditorContent = '';
+  }
+
+  /**
+   * Formatta il CSS nell'editor
+   */
+  formatCssInEditor(): void {
+    this.cssEditorContent = this.formatCss(this.cssEditorContent);
+    this.showSuccess('CSS formattato');
+  }
+
+  /**
+   * Applica il CSS modificato al template HTML
+   */
+  applyCssFromEditor(): void {
+    // Reinserisci il CSS nel template usando la funzione esistente
+    this.templateHtml = this.injectCssIntoHtml(this.templateHtml, this.cssEditorContent);
+    this.showCssEditorDialog = false;
+    this.cssEditorContent = '';
+    // Aggiorna preview
+    this.updatePreview();
+    // Track modifiche non salvate
+    this.checkForUnsavedChanges();
+    this.showSuccess('CSS applicato al template');
+  }
+
+  /**
+   * Formatta il CSS con indentazione corretta (2 spazi)
+   */
+  private formatCss(css: string): string {
+    if (!css || !css.trim()) {
+      return '';
+    }
+
+    let formatted = '';
+    let indentLevel = 0;
+    const indent = '  '; // 2 spazi
+
+    // Rimuovi spazi extra e newline multiple
+    css = css.replace(/\s+/g, ' ').trim();
+
+    // Aggiungi newline dopo { e ;
+    // Aggiungi newline prima di }
+    let i = 0;
+    while (i < css.length) {
+      const char = css[i];
+
+      if (char === '{') {
+        formatted += ' {\n';
+        indentLevel++;
+        formatted += indent.repeat(indentLevel);
+        // Salta spazi dopo {
+        while (i + 1 < css.length && css[i + 1] === ' ') i++;
+      } else if (char === '}') {
+        indentLevel = Math.max(0, indentLevel - 1);
+        // Rimuovi l'indent extra se presente
+        if (formatted.endsWith(indent)) {
+          formatted = formatted.slice(0, -indent.length);
+        }
+        // Assicurati che ci sia newline prima di }
+        if (!formatted.endsWith('\n')) {
+          formatted += '\n';
+        }
+        formatted += indent.repeat(indentLevel) + '}\n';
+        // Aggiungi indent per la prossima riga se non è fine
+        if (i + 1 < css.length) {
+          // Salta spazi dopo }
+          while (i + 1 < css.length && css[i + 1] === ' ') i++;
+          if (i + 1 < css.length && css[i + 1] !== '}') {
+            formatted += '\n' + indent.repeat(indentLevel);
+          }
+        }
+      } else if (char === ';') {
+        formatted += ';\n';
+        // Aggiungi indent se non siamo alla fine
+        if (i + 1 < css.length) {
+          // Salta spazi dopo ;
+          while (i + 1 < css.length && css[i + 1] === ' ') i++;
+          if (i + 1 < css.length && css[i + 1] !== '}') {
+            formatted += indent.repeat(indentLevel);
+          }
+        }
+      } else if (char === ',' && css[i - 1] !== ')') {
+        // Virgola nei selettori (non nelle funzioni CSS come rgb())
+        formatted += ',\n' + indent.repeat(indentLevel);
+        // Salta spazi dopo ,
+        while (i + 1 < css.length && css[i + 1] === ' ') i++;
+      } else {
+        formatted += char;
+      }
+
+      i++;
+    }
+
+    // Pulisci linee vuote multiple
+    formatted = formatted.replace(/\n{3,}/g, '\n\n');
+    // Rimuovi spazi trailing
+    formatted = formatted.split('\n').map(line => line.trimEnd()).join('\n');
+
+    return formatted.trim();
+  }
+
   /**
    * Entra in modalità editing per Regole Aggregazione
    */
@@ -3477,6 +4349,163 @@ ${html}
     this.showInfo('Modifiche dati annullate');
   }
 
+  // ============================================
+  // MOCK DATA TREE VIEW HELPERS
+  // ============================================
+
+  /**
+   * Restituisce i mock data correnti per la visualizzazione
+   */
+  get currentMockData(): { main: any[]; subreports: Record<string, any[]> } | null {
+    return this.aiResult?.mockData || this.oracleData || null;
+  }
+
+  /**
+   * Restituisce le chiavi dei subreport ordinate
+   */
+  getSubreportKeys(): string[] {
+    const data = this.currentMockData;
+    if (!data?.subreports) return [];
+    return Object.keys(data.subreports).sort();
+  }
+
+  /**
+   * Restituisce le colonne (chiavi) di un array di record
+   */
+  getTableColumns(records: any[]): string[] {
+    if (!records || records.length === 0) return [];
+    return Object.keys(records[0]);
+  }
+
+  /**
+   * Toggle espansione di un nodo nel tree view
+   */
+  toggleMockDataNode(nodeKey: string): void {
+    if (this.mockDataExpandedNodes.has(nodeKey)) {
+      this.mockDataExpandedNodes.delete(nodeKey);
+    } else {
+      this.mockDataExpandedNodes.add(nodeKey);
+    }
+  }
+
+  /**
+   * Verifica se un nodo è espanso
+   */
+  isMockDataNodeExpanded(nodeKey: string): boolean {
+    return this.mockDataExpandedNodes.has(nodeKey);
+  }
+
+  /**
+   * Espande tutti i nodi del tree view
+   */
+  expandAllMockDataNodes(): void {
+    this.mockDataExpandedNodes.add('main');
+    this.mockDataExpandedNodes.add('subreports');
+    this.getSubreportKeys().forEach(key => {
+      this.mockDataExpandedNodes.add(`sr_${key}`);
+    });
+  }
+
+  /**
+   * Comprime tutti i nodi del tree view
+   */
+  collapseAllMockDataNodes(): void {
+    this.mockDataExpandedNodes.clear();
+  }
+
+  /**
+   * Entra in modalità editing per Info Template (metadata)
+   */
+  startEditingInfo(): void {
+    if (this.isAnyEditing) {
+      this.showWarning('Completa prima la modifica in corso');
+      return;
+    }
+    // Backup dei valori originali
+    this.originalInfoData = {
+      reportName: this.saveConfig.reportName,
+      description: this.saveConfig.description,
+      status: this.saveConfig.status,
+      pdfFormat: this.saveConfig.pdfFormat,
+      pdfOrientation: this.saveConfig.pdfOrientation,
+      userInstructions: this.userInstructions
+    };
+    this.isEditingInfo = true;
+    this.showInfo('Modalità modifica info attiva');
+  }
+
+  /**
+   * Salva modifiche Info Template (solo metadata, senza creare nuova versione)
+   */
+  saveEditingInfo(): void {
+    if (!this.saveConfig.reportName.trim()) {
+      this.showError('Il nome report è obbligatorio');
+      return;
+    }
+
+    this.loading = true;
+    this.loadingMessage = 'Salvataggio info in corso...';
+
+    // Prepara i dati da aggiornare (solo metadata)
+    const updateData = {
+      prjId: this.saveConfig.prjId,
+      connCode: this.saveConfig.connCode,
+      reportCode: this.saveConfig.reportCode,
+      // Campi modificabili
+      reportName: this.saveConfig.reportName,
+      description: this.saveConfig.description,
+      status: this.saveConfig.status,
+      pdfFormat: this.saveConfig.pdfFormat,
+      pdfOrientation: this.saveConfig.pdfOrientation,
+      userInstructions: this.userInstructions
+    };
+
+    this.aiReportsService.updateTemplateInfo(updateData).subscribe({
+      next: () => {
+        this.loading = false;
+        this.isEditingInfo = false;
+
+        // Aggiorna anche existingTemplate se presente
+        if (this.existingTemplate) {
+          this.existingTemplate.reportName = this.saveConfig.reportName;
+          this.existingTemplate.status = this.saveConfig.status as 'draft' | 'active' | 'archived';
+          this.existingTemplate.userInstructions = this.userInstructions;
+          if (this.existingTemplate.template) {
+            this.existingTemplate.template.description = this.saveConfig.description;
+          }
+          if (this.existingTemplate.pdfConfig) {
+            this.existingTemplate.pdfConfig.format = this.saveConfig.pdfFormat as 'A4' | 'A3' | 'Letter';
+            this.existingTemplate.pdfConfig.orientation = this.saveConfig.pdfOrientation as 'portrait' | 'landscape';
+            this.existingTemplate.pdfConfig.showPageNumbers = this.saveConfig.showPageNumbers;
+          }
+        }
+
+        this.showSuccess('Info template aggiornate con successo');
+      },
+      error: (error: any) => {
+        this.loading = false;
+        console.error('Errore salvataggio info:', error);
+        this.showError('Errore durante il salvataggio delle info');
+      }
+    });
+  }
+
+  /**
+   * Annulla modifiche Info Template
+   */
+  cancelEditingInfo(): void {
+    if (this.originalInfoData) {
+      this.saveConfig.reportName = this.originalInfoData.reportName;
+      this.saveConfig.description = this.originalInfoData.description;
+      this.saveConfig.status = this.originalInfoData.status as 'draft' | 'active' | 'archived';
+      this.saveConfig.pdfFormat = this.originalInfoData.pdfFormat as 'A4' | 'A3' | 'Letter';
+      this.saveConfig.pdfOrientation = this.originalInfoData.pdfOrientation as 'portrait' | 'landscape';
+      this.userInstructions = this.originalInfoData.userInstructions;
+    }
+    this.isEditingInfo = false;
+    this.showInfo('Modifiche info annullate');
+  }
+
   /**
    * Mostra warning toast
    */
@@ -3485,7 +4514,7 @@ ${html}
       severity: 'warn',
       summary: 'Attenzione',
       detail: message,
-      life: 3000
+      life: 2500
     });
   }
 }

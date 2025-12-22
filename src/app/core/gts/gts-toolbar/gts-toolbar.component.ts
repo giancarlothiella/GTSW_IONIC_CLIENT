@@ -304,7 +304,7 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
                   visible: item.visible,
                   disabled: item.disabled,
                   options: {
-                    width: item.text,
+                    width: item.text || 'auto',
                     valueExpr: dropDownData.field,
                     displayExpr: dropDownData.field,
                     stylingMode:  'outlined',
@@ -312,7 +312,7 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
                     value: dropDownData.value,
                     items: dropDownData.items,
                     labelMode: 'static',
-                    label: label,
+                    label: label || ' ',
 
                     onValueChanged: (args: any, ) => {
                       const value = args.value;

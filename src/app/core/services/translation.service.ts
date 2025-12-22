@@ -105,7 +105,7 @@ export class TranslationService {
         ).pipe(timeout(10000)) // 10 second timeout
       );
 
-      console.log('Translation service - texts response:', response);
+      // console.log('Translation service - texts response:', response);
 
       // Handle both response formats:
       // 1. Direct array: AuthText[]
@@ -121,7 +121,7 @@ export class TranslationService {
         texts = response.data;
       }
 
-      console.log('Translation service - parsed texts count:', texts.length);
+      // console.log('Translation service - parsed texts count:', texts.length);
 
       if (texts.length > 0) {
         const textsMap = new Map<number, string>();
@@ -133,7 +133,7 @@ export class TranslationService {
           }
         });
         this.textsCache.set(normalizedLang, textsMap);
-        console.log('Translation service - cache set for language:', normalizedLang, 'with', textsMap.size, 'texts');
+        // console.log('Translation service - cache set for language:', normalizedLang, 'with', textsMap.size, 'texts');
       }
     } catch (error) {
       console.error(`Error loading texts for language ${normalizedLang}:`, error);
@@ -147,11 +147,6 @@ export class TranslationService {
   getText(txtId: number, fallback: string = ''): string {
     const currentLang = this.currentLanguageSubject.value.toUpperCase();
     const langTexts = this.textsCache.get(currentLang);
-
-    // DEBUG: Log per txtIds 1230-1237 (Load Template dialog)
-    if (txtId >= 1230 && txtId <= 1237) {
-      console.log(`[Translation DEBUG] txtId=${txtId}, currentLang=${currentLang}, hasCache=${!!langTexts}, hasTxtId=${langTexts?.has(txtId)}, value=${langTexts?.get(txtId)}, fallback=${fallback}`);
-    }
 
     if (langTexts && langTexts.has(txtId)) {
       return langTexts.get(txtId)!;

@@ -25,7 +25,11 @@
       "Bash(ping:*)",
       "Bash(taskkill:*)",
       "Bash(cmd //c \"taskkill //PID 2624 //F\")",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(node -e:*)",
+      "Bash(dir \"c:\\GTSuite\\Server\\GTS\\routes\" /b)",
+      "Bash(npx ng build:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

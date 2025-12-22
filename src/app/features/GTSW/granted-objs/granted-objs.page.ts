@@ -1,5 +1,5 @@
 // src/app/features/GTSW/granted-objs/granted-objs.page.ts
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
@@ -117,7 +117,6 @@ import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.c
 })
 export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
   // Services
-  private cd = inject(ChangeDetectorRef);
   private authService = inject(AuthService);
   public gtsDataService = inject(GtsDataService);
 
@@ -142,6 +141,9 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
   toolbarSelectedValue = '';
 
   ngOnInit(): void {
+    // Reset viewStyle immediately to prevent NG0100 when navigating between pages
+    this.viewStyle = '';
+
     // ======= All pages should check token =======
     if (this.authService.autoAuthUser()) {
       this.authService.checkToken();
@@ -260,6 +262,8 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
           }
 
           this.gtsDataService.setPageDataSet(this.prjId, this.formId, 'daPrjData', 'qAllRoles', allRoles);
+
+          console.log('Custom Data after setCtxProject:', this.customData);
         }
 
         if (customCode === 'setCtxProject2') {
@@ -408,6 +412,8 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
       .getToolbarEventListener()
       .subscribe((data) => {
         //===== START CUSTOM_TOOLBAR_EVENT_CODE =====
+
+        console.log('Toolbar Event Received:', data);
 
         this.toolbarSelectedValue = data.selectedValue;
         this.customData[0].value = this.toolbarSelectedValue;

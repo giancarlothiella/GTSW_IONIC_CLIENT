@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GtsDataService } from '../../services/gts-data.service';
 import { DxTabsModule } from 'devextreme-angular';
@@ -19,26 +19,25 @@ export class GtsTabsComponent implements OnInit {
   formId: number = 0;
 
   @Input()
-  objectName: string = '';  
+  objectName: string = '';
 
-  
+  private gtsDataService = inject(GtsDataService);
+  private cd = inject(ChangeDetectorRef);
 
-  constructor(
-    private gtsDataService: GtsDataService
-  ) {}
+  constructor() {}
 
   ngOnInit(): void {
     this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'tabs', this.objectName);
     this.prepareTabs();
-    
+
     if (this.metaData.tabIndex === undefined) {
       this.tabsIndex = 0;
       this.metaData.tabIndex = this.tabsIndex;
     } else {
       this.tabsIndex = this.metaData.tabIndex;
     }
-    
-    if (this.tabsList[this.tabsIndex].actionName !== undefined && this.tabsList[this.tabsIndex].actionName !== null && this.tabsList[this.tabsIndex].actionName !== '') { 
+
+    if (this.tabsList[this.tabsIndex].actionName !== undefined && this.tabsList[this.tabsIndex].actionName !== null && this.tabsList[this.tabsIndex].actionName !== '') {
       this.gtsDataService.runAction(this.prjId, this.formId, this.tabsList[this.tabsIndex].actionName);
     }
   }

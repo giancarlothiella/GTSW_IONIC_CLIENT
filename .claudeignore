@@ -1,0 +1,9 @@
+# .claudeignore
+node_modules/
+dist/
+build/
+*.log
+.git/
+coverage/
+*.min.js
+package-lock.json

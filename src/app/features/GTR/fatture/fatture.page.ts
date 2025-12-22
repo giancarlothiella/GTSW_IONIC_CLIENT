@@ -17,6 +17,7 @@ import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component'
 import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component';
 import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.component';
 import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';
+import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts/gts-ai-analyzer/gts-ai-analyzer.component';
 
 @Component({
   selector: 'app-fatture',
@@ -32,7 +33,8 @@ import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.c
     GtsFormComponent,
     GtsFormPopupComponent,
     GtsReportsComponent,
-    GtsMessageComponent
+    GtsMessageComponent,
+    GtsAiAnalyzerComponent
   ],
   templateUrl: './fatture.page.html',
   styleUrls: ['./fatture.page.scss']
@@ -202,6 +204,12 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
     .subscribe(async (customCode) => {
       //===== START CUSTOM CODE =====
 
+      // Gestisci SHOW_AI_ANALYZER separatamente (non richiede filterCompany)
+      if (customCode === 'SHOW_AI_ANALYZER') {
+        await this.getCustomData(this.prjId, this.formId, customCode, this.actualView);
+        return;
+      }
+
       // Riattiva il loader per il custom code
       this.gtsDataService.sendAppLoaderListener(true);
 
@@ -250,6 +258,15 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
   viewStyle: string = '';
   customData: any[] = [];
   toolbarSelectedValue = '';
+
+  //========= AI ANALYZER =================
+  showAiAnalyzer: boolean = false;
+  aiAnalyzerData: any[] = [];
+  aiAnalyzerConfig: AiAnalyzerConfig = {
+    prjId: 'GTR',
+    datasetName: 'fatture',
+    dialogTitle: 'AI Analyzer - Fatture'
+  };
 
   //========= PAGE FUNCTIONS =================
   async getCustomData(prjId: string, formId: number, customCode: string, actualView: string) {
@@ -302,6 +319,28 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
       .filter((row: any) => row.INVH_ID === qInvHdr.selectedKeys[0].INVH_ID)[0];
 
       selectedDSRow.INVH_FLAG_INSERT_STATUS = 'P';
+    }
+
+    // SHOW AI ANALYZER
+    //==================================================================================================
+    if (customCode === 'SHOW_AI_ANALYZER') {
+      console.log('[AI Analyzer] SHOW_AI_ANALYZER triggered');
+      console.log('[AI Analyzer] pageData:', this.pageData);
+
+      // Estrai i dati dalla griglia principale (qInvHdr)
+      const daInv = this.pageData.filter((element: any) => element.dataAdapter === 'daInv')[0];
+      console.log('[AI Analyzer] daInv:', daInv);
+
+      const gridData = daInv?.data?.filter((dataSet: any) => dataSet.dataSetName === 'qInvHdr')[0]?.rows || [];
+      console.log('[AI Analyzer] gridData length:', gridData.length);
+
+      if (gridData.length > 0) {
+        this.aiAnalyzerData = gridData;
+        this.showAiAnalyzer = true;
+        console.log('[AI Analyzer] Dialog should open now, showAiAnalyzer:', this.showAiAnalyzer);
+      } else {
+        console.warn('[AI Analyzer] No data available for AI Analyzer');
+      }
     }
 
     this.gtsDataService.sendAppLoaderListener(false);

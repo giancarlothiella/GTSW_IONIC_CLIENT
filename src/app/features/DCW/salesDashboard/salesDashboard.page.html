@@ -1,0 +1,916 @@
+<div class="pageFormat">
+  <app-gts-loader></app-gts-loader>
+
+  <!-- PrimeNG Toast for notifications -->
+  <p-toast></p-toast>
+
+  <!-- Confirm Dialog -->
+  <p-dialog
+    [(visible)]="showConfirmDialog"
+    [header]="confirmDialogHeader"
+    [modal]="true"
+    [closable]="true"
+    [style]="{ width: '400px' }"
+    [draggable]="false"
+    [resizable]="false"
+    appendTo="body"
+    [baseZIndex]="10000">
+    <p class="confirm-message">{{ confirmDialogMessage }}</p>
+    <div class="confirm-dialog-footer">
+      <button
+        pButton
+        type="button"
+        class="p-button-secondary"
+        [label]="confirmDialogRejectLabel"
+        icon="pi pi-times"
+        (click)="onConfirmReject()">
+      </button>
+      <button
+        pButton
+        type="button"
+        class="p-button-danger"
+        [label]="confirmDialogAcceptLabel"
+        icon="pi pi-check"
+        (click)="onConfirmAccept()">
+      </button>
+    </div>
+  </p-dialog>
+
+  <!-- Hidden file input for LOAD_EXCEL custom code -->
+  <input type="file"
+         #excelFileInput
+         accept=".xlsx,.xls"
+         style="display: none"
+         (change)="onExcelFileSelected($event)">
+
+  <app-gts-toolbar
+    [prjId]="prjId"
+    [formId]="formId"
+    [objectName]="'mainToolbar'"
+    [customData]="customData"
+    (newValueEvent)="gtsDataService.toolbarSelectEvent($event)"
+  ></app-gts-toolbar>
+
+  <!-- STANDARD GTS PAGE CONTENT -->
+  @if (!showDashboard) {
+    <div [style]="viewStyle">
+      @for (element of metaData.tabs; track element) {
+        @if (element.visible) {
+          <app-gts-tabs
+            [style]="'grid-area: '+element.gridArea"
+            [prjId]="prjId"
+            [formId]="formId"
+            [objectName]="element.objectName"
+          ></app-gts-tabs>
+        }
+      }
+
+      @for (element of metaData.toolbars; track element) {
+        @if (element.visible && element.objectName != 'mainToolbar' && !element.toolbarFlagSubmit) {
+          <app-gts-toolbar
+            [style]="'grid-area: '+element.gridArea"
+            [prjId]="prjId"
+            [formId]="formId"
+            [objectName]="element.objectName"
+            [customCssClass]="element.customCssClass"
+            (newValueEvent)="gtsDataService.toolbarSelectEvent($event)"
+          ></app-gts-toolbar>
+        }
+      }
+
+      @for (element of metaData.grids; track element) {
+        @if (element.visible) {
+          <app-gts-grid
+            [style]="'grid-area: '+element.gridArea"
+            [prjId]="prjId"
+            [formId]="formId"
+            [objectName]="element.objectName"
+          ></app-gts-grid>
+        }
+      }
+
+      @for (element of metaData.forms; track element) {
+        @if (element.visible && !element.groupShowPopUp) {
+          <app-gts-form
+            [style]="'grid-area: '+element.gridArea"
+            [prjId]="prjId"
+            [formId]="formId"
+            [objectName]="element.objectName"
+          ></app-gts-form>
+        }
+        @if (element.visible && element.groupShowPopUp) {
+          <app-gts-form-popup
+            [prjId]="prjId"
+            [formId]="formId"
+            [objectName]="element.objectName"
+          ></app-gts-form-popup>
+        }
+      }
+    </div>
+  }
+
+  <!-- DASHBOARD VIEW -->
+  @if (showDashboard) {
+    <div class="sales-dashboard">
+
+      <!-- DASHBOARD HEADER -->
+      <div class="dashboard-header">
+        <div class="header-left">
+          <h1>{{ t(1531, 'Dashboard Vendite') }}</h1>
+          @if (dashboardData) {
+            <p class="period">
+              {{ t(1532, 'Periodo') }}: {{ dashboardData.metadata.period_start | date:'dd/MM/yyyy' }} -
+              {{ dashboardData.metadata.period_end | date:'dd/MM/yyyy' }}
+            </p>
+          }
+        </div>
+        <div class="header-right">
+          <!-- AI Analyzer Button -->
+          <p-button
+            icon="pi pi-sparkles"
+            label="AI Analyzer"
+            styleClass="ai-analyzer-btn"
+            (onClick)="openAiAnalyzer()"
+            [pTooltip]="t(1533, 'Analizza i dati con l\'intelligenza artificiale')"
+            tooltipPosition="bottom"
+            tooltipStyleClass="gts-tooltip"
+            [style]="{'margin-right': '1rem'}">
+          </p-button>
+
+          <p-select
+            [(ngModel)]="selectedYear"
+            [options]="yearOptions"
+            optionLabel="label"
+            optionValue="value"
+            (onChange)="onYearChange()"
+            [style]="{'width': '180px'}">
+          </p-select>
+
+          @if (showAdvancedFilters) {
+            <p-select
+              [(ngModel)]="selectedQuarter"
+              [options]="quarterOptions"
+              optionLabel="label"
+              optionValue="value"
+              (onChange)="onQuarterChange()"
+              [style]="{'width': '160px'}">
+            </p-select>
+
+            <p-select
+              [(ngModel)]="selectedMonth"
+              [options]="monthOptions"
+              optionLabel="label"
+              optionValue="value"
+              (onChange)="onMonthChange()"
+              [style]="{'width': '150px'}">
+            </p-select>
+          }
+        </div>
+      </div>
+
+      <!-- DASHBOARD LOADING -->
+      @if (dashboardLoading) {
+        <div class="loading-container">
+          <i class="pi pi-spin pi-spinner" style="font-size: 3rem;"></i>
+          <p>{{ t(1534, 'Caricamento dashboard...') }}</p>
+        </div>
+      }
+
+      <!-- DASHBOARD CONTENT -->
+      @if (!dashboardLoading && dashboardData) {
+
+        <!-- KPI CARDS -->
+        <div class="kpi-grid" *ngIf="kpi">
+
+          <p-card class="kpi-card kpi-primary">
+            <div class="kpi-content">
+              <div class="kpi-icon">💰</div>
+              <div class="kpi-details">
+                <div class="kpi-label">{{ t(1535, 'Fatturato Totale') }}</div>
+                <div class="kpi-value">{{ formatCurrency(kpi.totale_fatturato) }}</div>
+              </div>
+            </div>
+          </p-card>
+
+          <p-card class="kpi-card kpi-success">
+            <div class="kpi-content">
+              <div class="kpi-icon">💵</div>
+              <div class="kpi-details">
+                <div class="kpi-label">{{ t(1536, 'Margine Totale') }}</div>
+                <div class="kpi-value">{{ formatCurrency(kpi.margine_totale) }}</div>
+                <div class="kpi-sub">{{ formatPercent(kpi.margine_percentuale) }}</div>
+              </div>
+            </div>
+          </p-card>
+
+          <p-card class="kpi-card kpi-info">
+            <div class="kpi-content">
+              <div class="kpi-icon">📦</div>
+              <div class="kpi-details">
+                <div class="kpi-label">{{ t(1537, 'Quantità Totale') }}</div>
+                <div class="kpi-value">{{ formatNumber(kpi.totale_kg, 0) }} kg</div>
+              </div>
+            </div>
+          </p-card>
+
+          <p-card class="kpi-card kpi-warning">
+            <div class="kpi-content">
+              <div class="kpi-icon">📄</div>
+              <div class="kpi-details">
+                <div class="kpi-label">{{ t(1538, 'Ordini') }}</div>
+                <div class="kpi-value">{{ formatNumber(kpi.num_ordini, 0) }}</div>
+              </div>
+            </div>
+          </p-card>
+
+          <p-card class="kpi-card kpi-purple">
+            <div class="kpi-content">
+              <div class="kpi-icon">👥</div>
+              <div class="kpi-details">
+                <div class="kpi-label">{{ t(1539, 'Clienti') }}</div>
+                <div class="kpi-value">{{ formatNumber(kpi.num_clienti, 0) }}</div>
+              </div>
+            </div>
+          </p-card>
+
+          <p-card class="kpi-card kpi-teal">
+            <div class="kpi-content">
+              <div class="kpi-icon">🏷️</div>
+              <div class="kpi-details">
+                <div class="kpi-label">{{ t(1540, 'Prodotti') }}</div>
+                <div class="kpi-value">{{ formatNumber(kpi.num_prodotti, 0) }}</div>
+              </div>
+            </div>
+          </p-card>
+
+          <p-card class="kpi-card kpi-indigo">
+            <div class="kpi-content">
+              <div class="kpi-icon">⚖️</div>
+              <div class="kpi-details">
+                <div class="kpi-label">{{ t(1541, 'Prezzo Medio/kg') }}</div>
+                <div class="kpi-value">{{ formatCurrency(kpi.prezzo_medio_kg) }}</div>
+              </div>
+            </div>
+          </p-card>
+
+          <p-card class="kpi-card kpi-danger">
+            <div class="kpi-content">
+              <div class="kpi-icon">💸</div>
+              <div class="kpi-details">
+                <div class="kpi-label">{{ t(1542, 'Costi Totali') }}</div>
+                <div class="kpi-value">{{ formatCurrency(kpi.totale_costi) }}</div>
+              </div>
+            </div>
+          </p-card>
+
+        </div>
+
+        <!-- CHARTS ROW 1: TREND -->
+        <div class="charts-row">
+
+          <p-card [header]="t(1551, 'Trend Fatturato e Margine')" class="chart-card chart-large chart-trend">
+            <div class="chart-container" style="height: 350px;">
+              @if (trendFatturatoChart) {
+                <p-chart type="line"
+                         [data]="trendFatturatoChart"
+                         [options]="lineChartOptions"
+                         [style]="{'width': '100%', 'height': '100%'}">
+                </p-chart>
+              }
+            </div>
+          </p-card>
+
+          <p-card [header]="t(1552, 'Trend Margine %')" class="chart-card chart-medium chart-trend">
+            <div class="chart-container" style="height: 350px;">
+              @if (trendMargineChart) {
+                <p-chart type="line"
+                         [data]="trendMargineChart"
+                         [options]="lineChartOptions"
+                         [style]="{'width': '100%', 'height': '100%'}">
+                </p-chart>
+              }
+            </div>
+          </p-card>
+
+        </div>
+
+        <!-- CHARTS ROW 2: TOP CLIENTI E PRODOTTI -->
+        <div class="charts-row">
+
+          <!-- TOP CLIENTI con drill-down -->
+          <p-card class="chart-card chart-medium chart-clienti">
+            <ng-template pTemplate="header">
+              <div class="chart-header-with-back">
+                @if (clientiDrillDown.active) {
+                  <p-button
+                    icon="pi pi-arrow-left"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="secondary"
+                    (onClick)="backFromClientiDrillDown()"
+                    [pTooltip]="t(1680, 'Indietro')">
+                  </p-button>
+                  <span class="chart-title">{{ t(1681, 'Prodotti per') }}: {{ clientiDrillDown.clienteName }}</span>
+                } @else {
+                  <span class="chart-title">{{ t(1553, 'Top 10 Clienti') }}</span>
+                  <span class="chart-hint">{{ t(1682, 'Click per dettaglio') }}</span>
+                }
+              </div>
+            </ng-template>
+            <div class="chart-container" style="height: 500px;">
+              @if (clientiDrillDown.active && clientiDrillDown.chart) {
+                <p-chart type="pie"
+                         [data]="clientiDrillDown.chart"
+                         [options]="pieChartOptions"
+                         [style]="{'width': '100%', 'height': '100%'}">
+                </p-chart>
+              } @else if (topClientiChart) {
+                <p-chart type="bar"
+                         [data]="topClientiChart"
+                         [options]="barChartOptions"
+                         [style]="{'width': '100%', 'height': '100%'}"
+                         (onDataSelect)="onClienteClick($event)">
+                </p-chart>
+              }
+            </div>
+          </p-card>
+
+          <!-- TOP PRODOTTI con drill-down -->
+          <p-card class="chart-card chart-medium chart-prodotti">
+            <ng-template pTemplate="header">
+              <div class="chart-header-with-back">
+                @if (prodottiDrillDown.active) {
+                  <p-button
+                    icon="pi pi-arrow-left"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="secondary"
+                    (onClick)="backFromProdottiDrillDown()"
+                    [pTooltip]="t(1680, 'Indietro')">
+                  </p-button>
+                  <span class="chart-title">{{ t(1683, 'Clienti per') }}: {{ prodottiDrillDown.prodottoName }}</span>
+                } @else {
+                  <span class="chart-title">{{ t(1554, 'Top 10 Prodotti') }}</span>
+                  <span class="chart-hint">{{ t(1682, 'Click per dettaglio') }}</span>
+                }
+              </div>
+            </ng-template>
+            <div class="chart-container" style="height: 500px;">
+              @if (prodottiDrillDown.active && prodottiDrillDown.chart) {
+                <p-chart type="pie"
+                         [data]="prodottiDrillDown.chart"
+                         [options]="pieChartOptions"
+                         [style]="{'width': '100%', 'height': '100%'}">
+                </p-chart>
+              } @else if (topProdottiChart) {
+                <p-chart type="bar"
+                         [data]="topProdottiChart"
+                         [options]="barChartOptions"
+                         [style]="{'width': '100%', 'height': '100%'}"
+                         (onDataSelect)="onProdottoClick($event)">
+                </p-chart>
+              }
+            </div>
+          </p-card>
+
+        </div>
+
+        <!-- CHARTS ROW 3: CATEGORIE E FAMIGLIE -->
+        <div class="charts-row">
+
+          <!-- CATEGORIE con drill-down -->
+          <p-card class="chart-card chart-medium chart-categoria">
+            <ng-template pTemplate="header">
+              <div class="chart-header-with-back">
+                @if (categoriaDrillDown.active) {
+                  <p-button
+                    icon="pi pi-arrow-left"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="secondary"
+                    (onClick)="backFromCategoriaDrillDown()"
+                    [pTooltip]="t(1680, 'Indietro')">
+                  </p-button>
+                  <span class="chart-title">{{ t(1683, 'Clienti per') }}: {{ categoriaDrillDown.categoriaName }}</span>
+                } @else {
+                  <span class="chart-title">{{ t(1555, 'Fatturato per Categoria') }}</span>
+                  <span class="chart-hint">{{ t(1682, 'Click per dettaglio') }}</span>
+                }
+              </div>
+            </ng-template>
+            <div class="chart-container" [style.height]="categoriaDrillDown.active ? '450px' : '350px'">
+              @if (categoriaDrillDown.active && categoriaDrillDown.chart) {
+                <p-chart type="bar"
+                         [data]="categoriaDrillDown.chart"
+                         [options]="barChartOptions"
+                         [style]="{'width': '100%', 'height': '100%'}">
+                </p-chart>
+              } @else if (perCategoriaChart) {
+                <p-chart type="pie"
+                         [data]="perCategoriaChart"
+                         [options]="pieChartOptions"
+                         [style]="{'width': '100%', 'height': '100%'}"
+                         (onDataSelect)="onCategoriaClick($event)">
+                </p-chart>
+              }
+            </div>
+          </p-card>
+
+          <!-- FAMIGLIE con drill-down -->
+          <p-card class="chart-card chart-medium chart-famiglia">
+            <ng-template pTemplate="header">
+              <div class="chart-header-with-back">
+                @if (famigliaDrillDown.active) {
+                  <p-button
+                    icon="pi pi-arrow-left"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="secondary"
+                    (onClick)="backFromFamigliaDrillDown()"
+                    [pTooltip]="t(1680, 'Indietro')">
+                  </p-button>
+                  <span class="chart-title">{{ t(1683, 'Clienti per') }}: {{ famigliaDrillDown.famigliaName }}</span>
+                } @else {
+                  <span class="chart-title">{{ t(1556, 'Top Famiglie Prodotti') }}</span>
+                  <span class="chart-hint">{{ t(1682, 'Click per dettaglio') }}</span>
+                }
+              </div>
+            </ng-template>
+            <div class="chart-container" [style.height]="famigliaDrillDown.active ? '450px' : '350px'">
+              @if (famigliaDrillDown.active && famigliaDrillDown.chart) {
+                <p-chart type="bar"
+                         [data]="famigliaDrillDown.chart"
+                         [options]="barChartOptions"
+                         [style]="{'width': '100%', 'height': '100%'}">
+                </p-chart>
+              } @else if (perFamigliaChart) {
+                <p-chart type="doughnut"
+                         [data]="perFamigliaChart"
+                         [options]="pieChartOptions"
+                         [style]="{'width': '100%', 'height': '100%'}"
+                         (onDataSelect)="onFamigliaClick($event)">
+                </p-chart>
+              }
+            </div>
+          </p-card>
+
+        </div>
+
+        <!-- TABLES ROW -->
+        <div class="charts-row">
+
+          <!-- Top Clienti Table -->
+          <p-card [header]="t(1557, 'Dettaglio Top Clienti')" class="chart-card chart-large chart-clienti">
+            <p-table [value]="dashboardData.top_clienti"
+                     [paginator]="true"
+                     [rows]="5"
+                     [showCurrentPageReport]="true"
+                     responsiveLayout="scroll">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th>{{ t(1558, 'Cliente') }}</th>
+                  <th class="text-right">{{ t(1559, 'Fatturato') }}</th>
+                  <th class="text-right">{{ t(1560, 'Quantità (kg)') }}</th>
+                  <th class="text-right">{{ t(1561, 'Margine') }}</th>
+                  <th class="text-right">{{ t(1562, 'Margine %') }}</th>
+                  <th class="text-center">{{ t(1538, 'Ordini') }}</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-cliente>
+                <tr>
+                  <td>{{ cliente.cliente }}</td>
+                  <td class="text-right">{{ formatCurrency(cliente.fatturato) }}</td>
+                  <td class="text-right">{{ formatNumber(cliente.quantita, 2) }}</td>
+                  <td class="text-right">{{ formatCurrency(cliente.margine) }}</td>
+                  <td class="text-right">{{ formatPercent(cliente.margine_pct) }}</td>
+                  <td class="text-center">{{ cliente.num_ordini }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </p-card>
+
+          <!-- Top Prodotti Table -->
+          <p-card [header]="t(1563, 'Dettaglio Top Prodotti')" class="chart-card chart-large chart-prodotti">
+            <p-table [value]="dashboardData.top_prodotti"
+                     [paginator]="true"
+                     [rows]="5"
+                     [showCurrentPageReport]="true"
+                     responsiveLayout="scroll">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th>{{ t(1564, 'Prodotto') }}</th>
+                  <th class="text-right">{{ t(1559, 'Fatturato') }}</th>
+                  <th class="text-right">{{ t(1560, 'Quantità (kg)') }}</th>
+                  <th class="text-right">{{ t(1561, 'Margine') }}</th>
+                  <th class="text-right">{{ t(1562, 'Margine %') }}</th>
+                  <th class="text-center">{{ t(1538, 'Ordini') }}</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-prodotto>
+                <tr>
+                  <td>{{ prodotto.prodotto }}</td>
+                  <td class="text-right">{{ formatCurrency(prodotto.fatturato) }}</td>
+                  <td class="text-right">{{ formatNumber(prodotto.quantita, 2) }}</td>
+                  <td class="text-right">{{ formatCurrency(prodotto.margine) }}</td>
+                  <td class="text-right">{{ formatPercent(prodotto.margine_pct) }}</td>
+                  <td class="text-center">{{ prodotto.num_ordini }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </p-card>
+
+        </div>
+
+      }
+
+      <!-- NO DATA -->
+      @if (!dashboardLoading && !dashboardData) {
+        <div class="no-data-container">
+          <i class="pi pi-file-excel" style="font-size: 3rem; color: #217346;"></i>
+          <p>{{ t(1565, 'Nessun dato disponibile') }}</p>
+          <p class="no-data-hint">{{ t(1593, 'Carica un file Excel per visualizzare la dashboard') }}</p>
+
+          <!-- Pulsante per caricare dati dalla cache -->
+          @if (hasCachedData && cachedDataInfo) {
+            <div class="cache-info-box">
+              <i class="pi pi-database"></i>
+              <div class="cache-details">
+                <span class="cache-label">{{ t(1594, 'Dati precedenti disponibili:') }}</span>
+                <span class="cache-meta">
+                  {{ cachedDataInfo.recordCount }} {{ t(1595, 'record') }}
+                  @if (cachedDataInfo.fileName) {
+                    - {{ cachedDataInfo.fileName }}
+                  }
+                </span>
+                @if (cachedDataInfo.uploadedBy) {
+                  <span class="cache-upload-info">
+                    {{ t(1677, 'Uploaded by') }}: {{ cachedDataInfo.uploadedBy }}
+                  </span>
+                }
+                @if (cachedDataInfo.updatedAt) {
+                  <span class="cache-upload-info">
+                    {{ t(1678, 'Date') }}: {{ formatCacheDate(cachedDataInfo.updatedAt) }}
+                  </span>
+                }
+              </div>
+              <div class="cache-actions">
+                <p-button
+                  icon="pi pi-download"
+                  [label]="t(1596, 'Carica Ultimi Dati')"
+                  (onClick)="loadCachedData()"
+                  [loading]="cacheLoading">
+                </p-button>
+                <p-button
+                  icon="pi pi-trash"
+                  severity="danger"
+                  [text]="true"
+                  [pTooltip]="t(1597, 'Elimina cache')"
+                  tooltipPosition="bottom"
+                  tooltipStyleClass="cache-tooltip"
+                  (onClick)="clearCachedData()">
+                </p-button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+    </div>
+  }
+
+  <app-gts-message
+    [prjId]="prjId"
+    [formId]="formId"
+  ></app-gts-message>
+
+  <!-- GTS AI Analyzer Component (reusable) -->
+  <app-gts-ai-analyzer
+    [data]="gtsAiAnalyzerData"
+    [config]="gtsAiAnalyzerConfig"
+    [(visible)]="showGtsAiAnalyzer">
+  </app-gts-ai-analyzer>
+
+  <!-- ============================================ -->
+  <!-- AI DATA ANALYZER DIALOG -->
+  <!-- ============================================ -->
+  <p-dialog
+    [(visible)]="showAiAnalyzer"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [appendTo]="'body'"
+    [blockScroll]="true"
+    [style]="{ width: '90vw', maxWidth: '1400px', height: '90vh' }"
+    header="🤖 AI Data Analyzer"
+    [closable]="true"
+    (onHide)="closeAiAnalyzer()">
+
+    <div class="ai-analyzer-container" [class.panel-collapsed]="aiPanelCollapsed">
+      <!-- TOGGLE BUTTON -->
+      <button class="panel-toggle-btn" (click)="aiPanelCollapsed = !aiPanelCollapsed"
+              [pTooltip]="aiPanelCollapsed ? t(1587, 'Mostra pannello') : t(1588, 'Nascondi pannello')"
+              tooltipPosition="right">
+        <i class="pi" [class.pi-chevron-right]="aiPanelCollapsed" [class.pi-chevron-left]="!aiPanelCollapsed"></i>
+      </button>
+
+      <!-- LEFT PANEL: Input Form -->
+      <div class="ai-analyzer-input-panel" [class.collapsed]="aiPanelCollapsed">
+        <div class="panel-content">
+          <!-- Request Input -->
+          <div class="input-section">
+            <label for="aiRequest">{{ t(1566, 'Descrivi l\'analisi che vuoi effettuare:') }}</label>
+            <textarea
+              pTextarea
+              id="aiRequest"
+              [(ngModel)]="aiAnalyzerRequest"
+              [rows]="6"
+              [placeholder]="t(1567, 'Es: Mostrami le vendite per cliente ordinate per fatturato, oppure: Andamento mensile del margine per categoria...')"
+              class="request-textarea">
+            </textarea>
+          </div>
+
+          <!-- Chart Type Selection -->
+          <div class="chart-type-section">
+            <label>{{ t(1568, 'Tipo di grafico:') }}</label>
+            <div class="chart-type-grid">
+              @for (opt of chartTypeOptions; track opt.value) {
+                <div class="chart-type-option"
+                     [class.selected]="aiAnalyzerChartType === opt.value"
+                     (click)="aiAnalyzerChartType = opt.value">
+                  <i [class]="opt.icon"></i>
+                  <span>{{ opt.label }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Max Results -->
+          <div class="max-results-section">
+            <label>{{ t(1569, 'Max risultati:') }}</label>
+            <p-select
+              [(ngModel)]="aiAnalyzerMaxResults"
+              [options]="maxResultsOptions"
+              optionLabel="label"
+              optionValue="value"
+              [style]="{ width: '120px' }">
+            </p-select>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="actions-section">
+            <p-button
+              icon="pi pi-bolt"
+              [label]="t(1570, 'Genera Analisi')"
+              styleClass="generate-btn"
+              [loading]="aiAnalyzerLoading"
+              (onClick)="generateAiAnalysis()"
+              [disabled]="!aiAnalyzerRequest.trim()">
+            </p-button>
+
+            <p-button
+              icon="pi pi-folder-open"
+              [label]="t(1571, 'Carica Salvate')"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="loadSavedAnalyses()">
+            </p-button>
+
+            @if (aiAnalysisResult) {
+              <p-button
+                icon="pi pi-save"
+                [label]="t(1576, 'Salva Analisi')"
+                severity="secondary"
+                [outlined]="true"
+                (onClick)="openSaveDialog()">
+              </p-button>
+
+              <p-button
+                icon="pi pi-file-pdf"
+                [label]="t(1670, 'Esporta PDF')"
+                severity="secondary"
+                [outlined]="true"
+                (onClick)="exportAnalysisToPdf()">
+              </p-button>
+            }
+          </div>
+
+          <!-- Error Message -->
+          @if (aiAnalyzerError) {
+            <div class="error-message">
+              <i class="pi pi-exclamation-triangle"></i>
+              {{ aiAnalyzerError }}
+            </div>
+          }
+
+          <!-- Loading -->
+          @if (aiAnalyzerLoading) {
+            <div class="loading-section">
+              <p-progressSpinner [style]="{ width: '40px', height: '40px' }"></p-progressSpinner>
+              <span>{{ t(1572, 'Generazione analisi in corso...') }}</span>
+            </div>
+          }
+
+          <!-- Explanation -->
+          @if (aiAnalysisResult?.explanation) {
+            <div class="explanation-section">
+              <h4>{{ t(1573, '📊 Analisi') }}</h4>
+              <p>{{ aiAnalysisResult.explanation }}</p>
+            </div>
+          }
+
+          <!-- Feedback Buttons -->
+          @if (aiShowFeedbackButtons && aiAnalysisResult) {
+            <div class="feedback-section">
+              <h4>{{ t(1605, 'I dati sono corretti?') }}</h4>
+              <div class="feedback-buttons">
+                <p-button
+                  icon="pi pi-check"
+                  [label]="t(1606, 'Sì, corretti')"
+                  severity="success"
+                  [outlined]="true"
+                  (onClick)="confirmDataCorrect()"
+                  [pTooltip]="t(1607, 'Conferma che i dati sono corretti (l\'AI imparerà da questo esempio)')"
+                  tooltipPosition="top">
+                </p-button>
+                <p-button
+                  icon="pi pi-times"
+                  [label]="t(1608, 'No, riprova')"
+                  severity="danger"
+                  [outlined]="true"
+                  (onClick)="reportDataIncorrect()"
+                  [pTooltip]="t(1609, 'Segnala che i dati non sono corretti e riprova con AI')"
+                  tooltipPosition="top">
+                </p-button>
+              </div>
+              @if (aiRetryCount > 0) {
+                <p class="retry-info">
+                  <i class="pi pi-info-circle"></i>
+                  {{ t(1610, 'Tentativo') }} {{ aiRetryCount }} / {{ aiMaxRetries + 1 }}
+                </p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: Results -->
+      <div class="ai-analyzer-results-panel">
+        @if (aiAnalysisResult && aiAggregatedData.length > 0) {
+          <!-- Chart -->
+          <div class="result-chart">
+            <h4>{{ aiAnalysisResult.chartConfig?.title || 'Risultato Analisi' }}</h4>
+            <div class="chart-wrapper" [style]="{ height: '300px' }">
+              <p-chart
+                #aiChartRef
+                [type]="getAiChartType()"
+                [data]="aiResultChart"
+                [options]="getAiChartOptions()"
+                [style]="{ width: '100%', height: '100%' }">
+              </p-chart>
+            </div>
+          </div>
+
+          <!-- Data Grid -->
+          <div class="result-grid">
+            <div class="grid-header">
+              <h4>{{ t(1574, 'Dati Aggregati') }} ({{ aiAggregatedData.length }} {{ t(1575, 'righe') }})</h4>
+            </div>
+            <p-table
+              [value]="aiAggregatedData"
+              [paginator]="aiAggregatedData.length > 10"
+              [rows]="10"
+              [showCurrentPageReport]="true"
+              responsiveLayout="scroll"
+              [scrollable]="true"
+              scrollHeight="430px">
+              <ng-template pTemplate="header">
+                <tr>
+                  @for (col of aiAnalysisResult.gridConfig?.columns || []; track col.field) {
+                    <th [ngClass]="{ 'text-right': col.type === 'number' || col.type === 'currency' }">{{ col.header }}</th>
+                  }
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-row>
+                <tr>
+                  @for (col of aiAnalysisResult.gridConfig?.columns || []; track col.field) {
+                    <td [ngClass]="{ 'text-right': col.type === 'number' || col.type === 'currency' }">
+                      @if (col.type === 'currency') {
+                        {{ formatCurrency(row[col.field]) }}
+                      } @else if (col.type === 'number') {
+                        {{ formatNumber(row[col.field], 2) }}
+                      } @else {
+                        {{ row[col.field] }}
+                      }
+                    </td>
+                  }
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        } @else if (!aiAnalyzerLoading) {
+          <div class="no-results">
+            <i class="pi pi-chart-bar" style="font-size: 4rem; color: #ccc;"></i>
+            <p>{{ t(1577, 'Inserisci una richiesta e clicca "Genera Analisi" per vedere i risultati') }}</p>
+            <div class="examples">
+              <p><strong>{{ t(1578, 'Esempi di richieste:') }}</strong></p>
+              <ul>
+                <li>"{{ t(1579, 'Top 10 clienti per fatturato') }}"</li>
+                <li>"{{ t(1580, 'Vendite mensili del 2024') }}"</li>
+                <li>"{{ t(1581, 'Margine per categoria prodotto') }}"</li>
+                <li>"{{ t(1582, 'Andamento kg venduti per mese') }}"</li>
+                <li>"{{ t(1583, 'Confronto fatturato per famiglia prodotto') }}"</li>
+              </ul>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </p-dialog>
+
+  <!-- SAVED ANALYSES DIALOG -->
+  <p-dialog
+    [(visible)]="showSavedAnalyses"
+    [modal]="true"
+    [draggable]="false"
+    [appendTo]="'body'"
+    [blockScroll]="true"
+    [style]="{ width: '600px' }"
+    [header]="t(1584, '📁 Analisi Salvate')">
+
+    @if (savedAnalyses.length > 0) {
+      <div class="saved-analyses-list">
+        @for (analysis of savedAnalyses; track analysis._id) {
+          <div class="saved-analysis-item" (click)="applySavedAnalysis(analysis)">
+            <div class="analysis-info">
+              <div class="analysis-name">{{ analysis.analysisName }}</div>
+              <div class="analysis-request">{{ analysis.userRequest }}</div>
+              <div class="analysis-meta">
+                <span class="chart-type">
+                  <i class="pi pi-chart-bar"></i>
+                  {{ analysis.chartConfig?.type || 'bar' }}
+                </span>
+                <span class="created-at">
+                  {{ analysis.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                </span>
+              </div>
+            </div>
+            <div class="analysis-actions">
+              <p-button
+                icon="pi pi-trash"
+                severity="danger"
+                [text]="true"
+                size="small"
+                (onClick)="deleteSavedAnalysis(analysis, $event)"
+                [pTooltip]="t(1585, 'Elimina')">
+              </p-button>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="no-saved-analyses">
+        <i class="pi pi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+        <p>{{ t(1586, 'Nessuna analisi salvata') }}</p>
+      </div>
+    }
+  </p-dialog>
+
+  <!-- SAVE ANALYSIS DIALOG -->
+  <p-dialog
+    [(visible)]="showSaveDialog"
+    [modal]="true"
+    [draggable]="false"
+    [appendTo]="'body'"
+    [blockScroll]="true"
+    [style]="{ width: '450px' }"
+    [header]="t(1589, '💾 Salva Analisi')">
+
+    <div class="save-dialog-content">
+      <label for="analysisName">{{ t(1522, 'Nome per questa analisi:') }}</label>
+      <input
+        pInputText
+        id="analysisName"
+        [(ngModel)]="saveAnalysisName"
+        [placeholder]="t(1590, 'Es: Vendite Top Clienti 2024')"
+        class="save-name-input"
+        (keyup.enter)="saveCurrentAnalysis()">
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="save-dialog-footer">
+        <p-button
+          [label]="t(1591, 'Annulla')"
+          severity="secondary"
+          [outlined]="true"
+          (onClick)="closeSaveDialog()">
+        </p-button>
+        <p-button
+          icon="pi pi-save"
+          [label]="t(1592, 'Salva')"
+          (onClick)="saveCurrentAnalysis()"
+          [disabled]="!saveAnalysisName.trim()">
+        </p-button>
+      </div>
+    </ng-template>
+  </p-dialog>
+</div>

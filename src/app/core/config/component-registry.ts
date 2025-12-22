@@ -34,11 +34,12 @@ export const COMPONENT_REGISTRY: { [key: string]: () => Promise<any> } = {
   'GTSW/aiInstr': () => import('../../features/GTSW/ai-instr/ai-instr.page').then(m => m.GTSW_AiInstrComponent),
   'GTSW/templateBuilder': () => import('../../features/ai-template-builder/ai-template-builder.component').then(m => m.AiTemplateBuilderComponent),
 
-  'GTSW/reportTemplates': () => import('../../features/GTSW/report-templates/report-templates.page').then(m => m.GTSW_ReportTemplatesComponent),
+  'GTSW/reporttemplates': () => import('../../features/GTSW/report-templates/report-templates.page').then(m => m.GTSW_ReportTemplatesComponent),
   // DCW Components
   'DCW/schedeContabili': () => import('../../features/DCW/schede-contabili/schede-contabili.page').then(m => m.DCW_SchedeContabiliComponent),
 
   'DCW/bilancio': () => import('../../features/DCW/bilancio/bilancio.page').then(m => m.DCW_BilancioComponent),
+  'DCW/salesDashboard': () => import('../../features/DCW/salesDashboard/salesDashboard.page').then(m => m.DCW_SalesDashboardComponent),
   // Altri progetti qui...
 };
 

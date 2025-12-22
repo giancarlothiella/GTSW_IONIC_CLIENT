@@ -1,4 +1,5 @@
 <!-- AI Template Builder Component Template -->
+<p-toast position="bottom-right"></p-toast>
 
 <div class="ai-template-builder">
 
@@ -21,6 +22,7 @@
       </p>
       <p class="header-subtitle" *ngIf="mode === 'edit' && existingTemplate">
         {{t(1005, 'Edit')}}: {{existingTemplate.prjId}} / {{existingTemplate.connCode}} / {{existingTemplate.reportCode}} - {{existingTemplate.reportName}}
+        <span class="version-badge" *ngIf="existingTemplate.version">v{{existingTemplate.version}}</span>
       </p>
       <p class="header-subtitle" *ngIf="mode === 'newWithMock'">
         {{t(1006, 'Nuovo template da dati Mock JSON')}}
@@ -146,8 +148,8 @@
             </div>
           </div>
 
-          <!-- Opzione: Carica Template Esistente -->
-          <div class="mode-card load-existing" (click)="openLoadTemplateDialog()">
+          <!-- Opzione: Carica Template Esistente (nascosta se arriviamo da pagina esterna) -->
+          <div class="mode-card load-existing" *ngIf="!hasReturnTo" (click)="openLoadTemplateDialog()">
             <div class="mode-icon existing">
               <i class="pi pi-folder-open"></i>
             </div>
@@ -164,6 +166,16 @@
 
         </div>
       </p-card>
+
+      <!-- Footer con pulsante Back (solo se arriviamo da pagina esterna) -->
+      <div class="step-actions back-only" *ngIf="hasReturnTo">
+        <button pButton
+                type="button"
+                [label]="t(1004, 'Indietro')"
+                icon="pi pi-arrow-left"
+                class="p-button-secondary"
+                (click)="goBackToLogs()"></button>
+      </div>
     </div>
 
     <!-- ========================================== -->
@@ -709,6 +721,15 @@
             tooltipPosition="top"
             [style]="{'min-width': '110px'}">
             </p-select>
+            <div class="page-numbers-checkbox" [pTooltip]="t(1510, 'Mostra numero pagina nel footer del PDF')" tooltipPosition="top">
+              <p-checkbox
+                [(ngModel)]="saveConfig.showPageNumbers"
+                (ngModelChange)="onPdfConfigChange()"
+                [binary]="true"
+                inputId="showPageNumbers">
+              </p-checkbox>
+              <label for="showPageNumbers" class="checkbox-label">{{t(1509, 'N° Pagina')}}</label>
+            </div>
           </div>
           <button pButton
                   type="button"
@@ -728,13 +749,24 @@
                   [pTooltip]="t(1475, 'Apre il PDF in un popup con opzione download')"
                   tooltipPosition="top"
                   (click)="downloadPreviewPDF()"></button>
-          <!-- Bottoni per PDF salvati (visibili solo in modalità edit) -->
+          <!-- Bottone per PDF FastReport (sessione corrente) -->
           <button pButton
                   type="button"
                   [label]="t(1149, 'PDF Sorgente')"
                   icon="pi pi-file-pdf"
                   class="p-button-outlined p-button-help"
-                  *ngIf="mode === 'edit' && existingTemplate?.sourcePdf?.base64"
+                  *ngIf="fastReportPdf"
+                  [disabled]="isAnyEditing"
+                  [pTooltip]="t(1150, 'Visualizza il PDF originale usato per generare questo template')"
+                  tooltipPosition="bottom"
+                  (click)="openFastReportPdf()"></button>
+          <!-- Bottone per PDF salvato (template esistente in modalità edit) -->
+          <button pButton
+                  type="button"
+                  [label]="t(1149, 'PDF Sorgente')"
+                  icon="pi pi-file-pdf"
+                  class="p-button-outlined p-button-help"
+                  *ngIf="mode === 'edit' && existingTemplate?.sourcePdf?.base64 && !fastReportPdf"
                   [disabled]="isAnyEditing"
                   [pTooltip]="t(1150, 'Visualizza il PDF originale usato per generare questo template')"
                   tooltipPosition="bottom"
@@ -743,11 +775,11 @@
         <div class="toolbar-right">
           <button pButton
                   type="button"
-                  [label]="quickEditProcessing ? t(1155, 'AI in elaborazione...') : t(1153, 'Quick Edit AI')"
-                  [icon]="quickEditProcessing ? 'pi pi-spin pi-spinner' : 'pi pi-bolt'"
+                  [label]="quickEditProcessing ? t(1155, 'AI in elaborazione...') : t(1658, 'AI Collaboration')"
+                  [icon]="quickEditProcessing ? 'pi pi-spin pi-spinner' : 'pi pi-comments'"
                   class="btn-ai-quickedit"
                   [disabled]="quickEditProcessing || !templateHtml || isAnyEditing"
-                  [pTooltip]="t(1154, 'Richiedi modifiche puntuali al template senza rigenerarlo')"
+                  [pTooltip]="t(1659, 'Chat con AI per modificare il template - supporta screenshot')"
                   tooltipPosition="bottom"
                   tooltipStyleClass="ai-tooltip-bubble"
                   (click)="openQuickEditDialog()"></button>
@@ -790,7 +822,35 @@
         <p-tabpanels>
           <!-- TAB: Info Template -->
           <p-tabpanel value="info">
-            <div class="template-info-panel">
+            <div class="tab-edit-toolbar">
+              <!-- Bottoni quando NON in editing -->
+              <button pButton
+                      type="button"
+                      [label]="t(1540, 'Modifica Info')"
+                      icon="pi pi-pencil"
+                      class="p-button-warning"
+                      *ngIf="!isEditingInfo && mode === 'edit'"
+                      [disabled]="isAnyEditing"
+                      [pTooltip]="t(1541, 'Entra in modalità modifica per modificare le info')"
+                      (click)="startEditingInfo()"></button>
+              <!-- Bottoni quando IN editing -->
+              <div class="edit-actions" *ngIf="isEditingInfo">
+                <span class="edit-mode-label"><i class="pi pi-exclamation-triangle"></i> {{t(1177, 'Modalità Modifica Attiva')}}</span>
+                <button pButton
+                        type="button"
+                        [label]="t(1178, 'Salva')"
+                        icon="pi pi-check"
+                        class="p-button-success"
+                        (click)="saveEditingInfo()"></button>
+                <button pButton
+                        type="button"
+                        [label]="t(1001, 'Annulla')"
+                        icon="pi pi-times"
+                        class="p-button-secondary"
+                        (click)="cancelEditingInfo()"></button>
+              </div>
+            </div>
+            <div class="template-info-panel" [class.editing-active]="isEditingInfo">
               <!-- Riga 1: Identificativi -->
               <div class="info-grid">
                 <div class="info-field">
@@ -807,11 +867,11 @@
                 </div>
                 <div class="info-field">
                   <label>{{t(1456, 'Nome Report')}}</label>
-                  <input pInputText [(ngModel)]="saveConfig.reportName" />
+                  <input pInputText [(ngModel)]="saveConfig.reportName" [disabled]="mode === 'edit' && !isEditingInfo" />
                 </div>
                 <div class="info-field">
                   <label>{{t(1457, 'Stato')}}</label>
-                  <p-select [options]="statusOptions" [(ngModel)]="saveConfig.status" optionLabel="label" optionValue="value" [style]="{'width': '100%'}"></p-select>
+                  <p-select [options]="statusOptions" [(ngModel)]="saveConfig.status" optionLabel="label" optionValue="value" [style]="{'width': '100%'}" [disabled]="mode === 'edit' && !isEditingInfo"></p-select>
                 </div>
               </div>
 
@@ -819,18 +879,18 @@
               <div class="info-grid-row">
                 <div class="info-field">
                   <label>{{t(1461, 'Formato PDF')}}</label>
-                  <p-select [options]="pdfFormatOptions" [(ngModel)]="saveConfig.pdfFormat" optionLabel="label" optionValue="value" [style]="{'width': '100%'}"></p-select>
+                  <p-select [options]="pdfFormatOptions" [(ngModel)]="saveConfig.pdfFormat" optionLabel="label" optionValue="value" [style]="{'width': '100%'}" [disabled]="mode === 'edit' && !isEditingInfo"></p-select>
                 </div>
                 <div class="info-field">
                   <label>{{t(1462, 'Orientamento')}}</label>
-                  <p-select [options]="pdfOrientationOptions" [(ngModel)]="saveConfig.pdfOrientation" optionLabel="label" optionValue="value" [style]="{'width': '100%'}"></p-select>
+                  <p-select [options]="pdfOrientationOptions" [(ngModel)]="saveConfig.pdfOrientation" optionLabel="label" optionValue="value" [style]="{'width': '100%'}" [disabled]="mode === 'edit' && !isEditingInfo"></p-select>
                 </div>
               </div>
 
               <!-- Descrizione -->
               <div class="info-field-wide">
                 <label>{{t(1458, 'Descrizione')}}</label>
-                <textarea pInputTextarea [(ngModel)]="saveConfig.description" rows="2" autoResize="true"></textarea>
+                <textarea pInputTextarea [(ngModel)]="saveConfig.description" rows="2" autoResize="true" [disabled]="mode === 'edit' && !isEditingInfo"></textarea>
               </div>
 
               <!-- Istruzioni AI -->
@@ -840,6 +900,7 @@
                           [(ngModel)]="userInstructions"
                           rows="3"
                           autoResize="true"
+                          [disabled]="mode === 'edit' && !isEditingInfo"
                           [placeholder]="t(1402, 'Es: Il totale deve essere in grassetto. Raggruppa per CODICE_CLIENTE. I valori negativi in rosso...')">
                 </textarea>
                 <small class="field-hint">
@@ -862,6 +923,15 @@
                       [disabled]="isAnyEditing"
                       [pTooltip]="t(1176, 'Entra in modalità modifica per modificare HTML')"
                       (click)="startEditingHtml()"></button>
+              <button pButton
+                      type="button"
+                      [label]="t(1511, 'Edit CSS')"
+                      icon="pi pi-palette"
+                      class="p-button-info"
+                      *ngIf="!isEditingHtml"
+                      [disabled]="isAnyEditing"
+                      [pTooltip]="t(1512, 'Apri editor CSS per modificare gli stili del template')"
+                      (click)="openCssEditor()"></button>
               <!-- Bottoni quando IN editing -->
               <div class="edit-actions" *ngIf="isEditingHtml">
                 <span class="edit-mode-label"><i class="pi pi-exclamation-triangle"></i> {{t(1177, 'Modalità Modifica Attiva')}}</span>
@@ -932,6 +1002,28 @@
           <!-- TAB: Mock Data -->
           <p-tabpanel value="mockData">
             <div class="tab-edit-toolbar">
+              <!-- Toggle View Mode (solo quando NON in editing) -->
+              <div class="view-mode-toggle" *ngIf="!isEditingMockData">
+                <div class="toggle-button-group">
+                  <button pButton type="button"
+                          icon="pi pi-table"
+                          [class]="mockDataViewMode === 'table' ? 'toggle-btn active' : 'toggle-btn'"
+                          [pTooltip]="t(1505, 'Vista Tabella')"
+                          (click)="mockDataViewMode = 'table'"></button>
+                  <button pButton type="button"
+                          icon="pi pi-code"
+                          [class]="mockDataViewMode === 'json' ? 'toggle-btn active' : 'toggle-btn'"
+                          [pTooltip]="t(1506, 'Vista JSON')"
+                          (click)="mockDataViewMode = 'json'"></button>
+                </div>
+                <!-- Expand/Collapse All (solo in vista tabella) -->
+                <ng-container *ngIf="mockDataViewMode === 'table'">
+                  <button pButton type="button" icon="pi pi-plus" class="expand-collapse-btn"
+                          [pTooltip]="t(1507, 'Espandi tutto')" (click)="expandAllMockDataNodes()"></button>
+                  <button pButton type="button" icon="pi pi-minus" class="expand-collapse-btn"
+                          [pTooltip]="t(1508, 'Comprimi tutto')" (click)="collapseAllMockDataNodes()"></button>
+                </ng-container>
+              </div>
               <!-- Bottoni quando NON in editing -->
               <button pButton
                       type="button"
@@ -959,10 +1051,94 @@
                         (click)="cancelEditingMockData()"></button>
               </div>
             </div>
-            <!-- Vista sola lettura -->
-            <div class="mock-data-viewer" *ngIf="!isEditingMockData">
+
+            <!-- Vista sola lettura - JSON -->
+            <div class="mock-data-viewer" *ngIf="!isEditingMockData && mockDataViewMode === 'json'">
               <pre>{{aiResult?.mockData || oracleData | json}}</pre>
             </div>
+
+            <!-- Vista sola lettura - TABELLA (Tree View) -->
+            <div class="mock-data-tree-view" *ngIf="!isEditingMockData && mockDataViewMode === 'table' && currentMockData">
+              <!-- Nodo MAIN -->
+              <div class="tree-node">
+                <div class="tree-node-header" (click)="toggleMockDataNode('main')">
+                  <i class="pi" [ngClass]="isMockDataNodeExpanded('main') ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
+                  <i class="pi pi-table node-icon"></i>
+                  <span class="node-label">main</span>
+                  <span class="node-badge">{{currentMockData.main.length || 0}} {{t(1501, 'record')}}</span>
+                </div>
+                <div class="tree-node-content" *ngIf="isMockDataNodeExpanded('main') && currentMockData.main.length">
+                  <div class="data-table-wrapper">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th *ngFor="let col of getTableColumns(currentMockData.main)">{{col}}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let row of currentMockData.main">
+                          <td *ngFor="let col of getTableColumns(currentMockData.main)">
+                            <span class="cell-value" [title]="row[col]">{{row[col]}}</span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Nodo SUBREPORTS -->
+              <div class="tree-node" *ngIf="getSubreportKeys().length > 0">
+                <div class="tree-node-header" (click)="toggleMockDataNode('subreports')">
+                  <i class="pi" [ngClass]="isMockDataNodeExpanded('subreports') ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
+                  <i class="pi pi-folder node-icon"></i>
+                  <span class="node-label">subreports</span>
+                  <span class="node-badge">{{getSubreportKeys().length}} {{t(1502, 'datasets')}}</span>
+                </div>
+                <div class="tree-node-content subreports-container" *ngIf="isMockDataNodeExpanded('subreports')">
+                  <!-- Singoli subreport -->
+                  <div class="tree-node subreport-node" *ngFor="let srKey of getSubreportKeys()">
+                    <div class="tree-node-header" (click)="toggleMockDataNode('sr_' + srKey)">
+                      <i class="pi" [ngClass]="isMockDataNodeExpanded('sr_' + srKey) ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
+                      <i class="pi pi-list node-icon" [ngClass]="{'empty-icon': !currentMockData.subreports[srKey]?.length}"></i>
+                      <span class="node-label">{{srKey}}</span>
+                      <span class="node-badge" [ngClass]="{'empty-badge': !currentMockData.subreports[srKey]?.length}">
+                        {{currentMockData.subreports[srKey]?.length || 0}} {{t(1501, 'record')}}
+                      </span>
+                    </div>
+                    <div class="tree-node-content" *ngIf="isMockDataNodeExpanded('sr_' + srKey) && currentMockData.subreports[srKey]?.length">
+                      <div class="data-table-wrapper">
+                        <table class="data-table">
+                          <thead>
+                            <tr>
+                              <th *ngFor="let col of getTableColumns(currentMockData.subreports[srKey])">{{col}}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let row of currentMockData.subreports[srKey]">
+                              <td *ngFor="let col of getTableColumns(currentMockData.subreports[srKey])">
+                                <span class="cell-value" [title]="row[col]">{{row[col]}}</span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <!-- Messaggio per subreport vuoti -->
+                    <div class="tree-node-content empty-subreport" *ngIf="isMockDataNodeExpanded('sr_' + srKey) && !currentMockData.subreports[srKey]?.length">
+                      <i class="pi pi-info-circle"></i> {{t(1503, 'Nessun record in questo subreport')}}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Messaggio se non ci sono dati -->
+              <div class="no-data-message" *ngIf="!currentMockData.main.length && getSubreportKeys().length === 0">
+                <i class="pi pi-inbox"></i>
+                <p>{{t(1504, 'Nessun dato disponibile')}}</p>
+              </div>
+            </div>
+
             <!-- Editor quando in editing -->
             <div class="editor-container editing-active" *ngIf="isEditingMockData">
               <textarea pTextarea
@@ -998,6 +1174,7 @@
                   [label]="t(1212, 'Versioni')"
                   icon="pi pi-history"
                   class="p-button-outlined p-button-info"
+                  [disabled]="isAnyEditing"
                   [pTooltip]="t(1213, 'Gestisci storico versioni del template')"
                   tooltipPosition="top"
                   (click)="openVersionsDialog()"></button>
@@ -1006,6 +1183,7 @@
                   [label]="t(1218, 'Duplica')"
                   icon="pi pi-copy"
                   class="p-button-outlined p-button-help"
+                  [disabled]="isAnyEditing"
                   [pTooltip]="t(1219, 'Duplica template su altra connessione')"
                   tooltipPosition="top"
                   (click)="openDuplicateDialog()"></button>
@@ -1014,6 +1192,7 @@
                   [label]="t(1220, 'Pulisci Versioni')"
                   icon="pi pi-trash"
                   class="p-button-outlined p-button-warning"
+                  [disabled]="isAnyEditing"
                   [pTooltip]="t(1221, 'Elimina versioni vecchie per risparmiare spazio')"
                   tooltipPosition="top"
                   (click)="openCleanVersionsDialog()"></button>
@@ -1422,59 +1601,92 @@
 </p-dialog>
 
 <!-- ========================================== -->
-<!-- DIALOG: AI QUICK EDIT -->
+<!-- DIALOG: AI COLLABORATION (ex Quick Edit) -->
 <!-- ========================================== -->
-<p-dialog [header]="t(1270, 'AI Quick Edit')"
+<p-dialog [header]="t(1658, 'AI Collaboration')"
           [(visible)]="showQuickEditDialog"
           [modal]="true"
-          [style]="{width: '600px'}"
-          styleClass="quick-edit-dialog">
+          [style]="{width: '700px', height: '80vh'}"
+          styleClass="quick-edit-dialog ai-collaboration-dialog"
+          [draggable]="true"
+          [resizable]="true">
 
-  <div class="quick-edit-content">
-    <!-- Descrizione -->
-    <div class="quick-edit-intro">
-      <i class="pi pi-bolt"></i>
-      <p>{{t(1271, 'Descrivi le modifiche che vuoi apportare al template. Claude AI applicherà solo i cambiamenti richiesti senza riscrivere tutto.')}}</p>
+  <div class="ai-collaboration-content"
+       (dragover)="onScreenshotDragOver($event)"
+       (dragleave)="onScreenshotDragLeave($event)"
+       (drop)="onScreenshotDrop($event)"
+       [class.dragging-over]="isDraggingOver">
+
+    <!-- Intro (solo se chat vuota) -->
+    <div class="quick-edit-intro" *ngIf="chatMessages.length === 0">
+      <i class="pi pi-comments"></i>
+      <p>{{t(1650, 'Collabora con Claude AI per modificare il template. Puoi allegare screenshot della preview per mostrare problemi visivi.')}}</p>
+      <div class="quick-edit-examples">
+        <label>{{t(1272, 'Esempi di richieste')}}:</label>
+        <ul>
+          <li><code>{{t(1273, 'Metti i totali in colonna invece che tutti al centro')}}</code></li>
+          <li><code>{{t(1651, 'Vedi lo screenshot: le righe IVA sono duplicate, dovrebbero essere 3')}}</code></li>
+          <li><code>{{t(1275, 'Aggiungi bordi alle celle della tabella')}}</code></li>
+        </ul>
+      </div>
     </div>
 
-    <!-- Esempi -->
-    <div class="quick-edit-examples">
-      <label>{{t(1272, 'Esempi di richieste')}}:</label>
-      <ul>
-        <li><code>{{t(1273, 'Metti i totali in colonna invece che tutti al centro')}}</code></li>
-        <li><code>{{t(1274, 'Cambia il colore del testo da bianco a nero (bianco su bianco non si vede)')}}</code></li>
-        <li><code>{{t(1275, 'Aggiungi bordi alle celle della tabella')}}</code></li>
-        <li><code>{{t(1276, 'Aumenta la dimensione del font delle intestazioni')}}</code></li>
-        <li><code>{{t(1277, 'Centra il logo e il titolo del report')}}</code></li>
-      </ul>
-    </div>
+    <!-- Chat Messages -->
+    <div class="chat-messages-container" *ngIf="chatMessages.length > 0">
+      <div class="chat-message" *ngFor="let msg of chatMessages" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+        <div class="message-avatar">
+          <i class="pi" [ngClass]="msg.role === 'user' ? 'pi-user' : 'pi-bolt'"></i>
+        </div>
+        <div class="message-content">
+          <div class="message-header">
+            <span class="message-role">{{msg.role === 'user' ? t(1652, 'Tu') : 'Claude AI'}}</span>
+            <span class="message-time">{{msg.timestamp | date:'HH:mm'}}</span>
+          </div>
+          <div class="message-text">{{msg.content}}</div>
 
-    <!-- Campo richiesta -->
-    <div class="field">
-      <label>{{t(1278, 'Descrivi la modifica')}}:</label>
-      <textarea pTextarea
-                [(ngModel)]="quickEditRequest"
-                (input)="onQuickEditRequestChange()"
-                rows="5"
-                [placeholder]="t(1287, 'Es: I totali sono tutti buttati al centro, vorrei che fossero disposti in colonne. Inoltre il testo dei totali è bianco su sfondo bianco, rendilo leggibile...')"
-                [style]="{width: '100%'}"
-                [disabled]="quickEditProcessing"></textarea>
-    </div>
+          <!-- Screenshot allegato -->
+          <div class="message-screenshot" *ngIf="msg.screenshot">
+            <img [src]="'data:image/png;base64,' + msg.screenshot" alt="Screenshot" />
+          </div>
 
-    <!-- Loading con Timer -->
-    <div class="quick-edit-loading" *ngIf="quickEditProcessing">
-      <div class="ai-loader-mini">
-        <div class="ai-brain-mini">
+          <!-- Modifiche effettuate (solo per AI) -->
+          <div class="message-changes" *ngIf="msg.role === 'assistant' && msg.changes && msg.changes.length > 0">
+            <label>{{t(1283, 'Modifiche effettuate')}}:</label>
+            <ul>
+              <li *ngFor="let change of msg.changes">
+                <i class="pi pi-check"></i> {{change}}
+              </li>
+            </ul>
+          </div>
+
+          <!-- Suggerimenti (solo per AI) -->
+          <div class="message-suggestions" *ngIf="msg.role === 'assistant' && msg.suggestions && msg.suggestions.length > 0">
+            <label>{{t(1253, 'Suggerimenti')}}:</label>
+            <ul>
+              <li *ngFor="let suggestion of msg.suggestions">{{suggestion}}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading indicator -->
+      <div class="chat-message assistant loading" *ngIf="quickEditProcessing">
+        <div class="message-avatar">
           <i class="pi pi-bolt"></i>
         </div>
-        <div class="ai-pulse-mini"></div>
+        <div class="message-content">
+          <div class="ai-thinking">
+            <div class="ai-loader-mini">
+              <div class="ai-brain-mini">
+                <i class="pi pi-bolt"></i>
+              </div>
+              <div class="ai-pulse-mini"></div>
+            </div>
+            <span>{{t(1279, 'Claude sta modificando il template...')}}</span>
+            <span class="elapsed-time">{{quickEditElapsedTimeFormatted}}</span>
+          </div>
+        </div>
       </div>
-      <span class="loading-text">{{t(1279, 'Claude sta modificando il template...')}}</span>
-      <div class="elapsed-time-mini">
-        <i class="pi pi-clock"></i>
-        <span class="time-value">{{quickEditElapsedTimeFormatted}}</span>
-      </div>
-      <small class="loading-hint">{{t(1280, 'Quick edit richiede tipicamente 30-60 secondi')}}</small>
     </div>
 
     <!-- Timeout Message -->
@@ -1483,67 +1695,80 @@
         <i class="pi pi-clock"></i>
         <span>{{t(1248, 'Timeout - La richiesta ha impiegato troppo tempo')}}</span>
       </div>
-      <p>
-        {{t(1281, 'Claude sta impiegando più tempo del previsto. Prova a semplificare la richiesta o riprova.')}}
-      </p>
-      <div class="timeout-actions">
-        <button pButton
-                type="button"
-                [label]="t(1250, 'Riprova')"
-                icon="pi pi-refresh"
-                class="btn-ai-primary"
-                (click)="executeQuickEdit()"></button>
-      </div>
+      <p>{{t(1281, 'Claude sta impiegando più tempo del previsto. Prova a semplificare la richiesta o riprova.')}}</p>
     </div>
 
-    <!-- Result (dopo modifica) -->
-    <div class="quick-edit-result" *ngIf="lastQuickEditResult && !quickEditProcessing && !quickEditTimeout">
-      <div class="result-header">
-        <i class="pi pi-check-circle"></i>
-        <span>{{t(1282, 'Modifiche applicate!')}}</span>
-      </div>
-
-      <!-- Lista modifiche -->
-      <div class="changes-list" *ngIf="lastQuickEditResult.changes && lastQuickEditResult.changes.length > 0">
-        <label>{{t(1283, 'Modifiche effettuate')}}:</label>
-        <ul>
-          <li *ngFor="let change of lastQuickEditResult.changes">
-            <i class="pi pi-check"></i> {{change}}
-          </li>
-        </ul>
-      </div>
-
-      <!-- Suggerimenti -->
-      <div class="suggestions" *ngIf="lastQuickEditResult.suggestions && lastQuickEditResult.suggestions.length > 0">
-        <label>{{t(1253, 'Suggerimenti')}}:</label>
-        <ul>
-          <li *ngFor="let suggestion of lastQuickEditResult.suggestions">{{suggestion}}</li>
-        </ul>
-      </div>
-
-      <!-- Hint per altre modifiche -->
-      <div class="another-edit-hint">
-        <i class="pi pi-info-circle"></i>
-        <span>{{t(1284, 'Vuoi altre modifiche? Scrivi una nuova richiesta e clicca "Applica Modifiche".')}}</span>
-      </div>
+    <!-- Drop zone overlay -->
+    <div class="drop-overlay" *ngIf="isDraggingOver">
+      <i class="pi pi-image"></i>
+      <span>{{t(1653, 'Rilascia l\'immagine qui')}}</span>
     </div>
   </div>
 
+  <!-- Input Area (sempre visibile in basso) -->
+  <div class="chat-input-area">
+    <!-- Screenshot preview -->
+    <div class="screenshot-preview" *ngIf="currentScreenshot">
+      <img [src]="'data:image/png;base64,' + currentScreenshot" alt="Screenshot" />
+      <button pButton type="button" icon="pi pi-times" class="p-button-rounded p-button-text p-button-danger remove-screenshot" (click)="clearScreenshot()"></button>
+      <span class="screenshot-name">{{currentScreenshotName || 'screenshot.png'}}</span>
+    </div>
+
+    <!-- Input row -->
+    <div class="input-row">
+      <!-- Upload button -->
+      <button pButton
+              type="button"
+              icon="pi pi-image"
+              class="p-button-text upload-btn"
+              [pTooltip]="t(1654, 'Allega screenshot')"
+              tooltipPosition="top"
+              [disabled]="quickEditProcessing"
+              (click)="screenshotInput.click()"></button>
+      <input #screenshotInput type="file" accept="image/*" style="display: none" (change)="onFileSelected($event)" />
+
+      <!-- Text input -->
+      <textarea pTextarea
+                [(ngModel)]="quickEditRequest"
+                (input)="onQuickEditRequestChange()"
+                (paste)="onPasteImage($event)"
+                (keydown.control.enter)="executeQuickEdit()"
+                rows="2"
+                [placeholder]="t(1655, 'Descrivi la modifica... (Ctrl+V per incollare screenshot)')"
+                [disabled]="quickEditProcessing"
+                class="chat-input"></textarea>
+
+      <!-- Send button -->
+      <button pButton
+              type="button"
+              icon="pi pi-send"
+              class="btn-ai-primary send-btn"
+              [disabled]="quickEditProcessing || !quickEditRequest.trim()"
+              (click)="executeQuickEdit()"></button>
+    </div>
+
+    <small class="input-hint">{{t(1656, 'Ctrl+Invio per inviare • Trascina o incolla screenshot')}}</small>
+  </div>
+
   <ng-template pTemplate="footer">
-    <button pButton
-            type="button"
-            [label]="t(1285, 'Chiudi')"
-            icon="pi pi-times"
-            class="p-button-secondary"
-            [disabled]="quickEditProcessing"
-            (click)="cancelQuickEditDialog()"></button>
-    <button pButton
-            type="button"
-            [label]="t(1286, 'Applica Modifiche')"
-            icon="pi pi-bolt"
-            class="btn-ai-primary"
-            [disabled]="quickEditProcessing || !quickEditRequest.trim() || quickEditRequestProcessed"
-            (click)="executeQuickEdit()"></button>
+    <div class="footer-left">
+      <button pButton
+              type="button"
+              [label]="t(1657, 'Nuova Chat')"
+              icon="pi pi-refresh"
+              class="p-button-secondary"
+              [disabled]="quickEditProcessing || chatMessages.length === 0"
+              (click)="chatMessages = []; clearScreenshot()"></button>
+    </div>
+    <div class="footer-right">
+      <button pButton
+              type="button"
+              [label]="t(1285, 'Chiudi')"
+              icon="pi pi-times"
+              class="p-button-secondary"
+              [disabled]="quickEditProcessing"
+              (click)="cancelQuickEditDialog()"></button>
+    </div>
   </ng-template>
 
 </p-dialog>
@@ -1585,13 +1810,28 @@
           [(visible)]="showConfirmRegenerateDialog"
           [modal]="true"
           [closable]="true"
-          [style]="{width: '450px'}"
+          [style]="{width: '650px'}"
           styleClass="confirm-regenerate-dialog">
 
   <div class="confirm-regenerate-content">
-    <i class="pi pi-exclamation-triangle confirm-regenerate-icon"></i>
-    <p class="confirm-regenerate-message">{{t(1481, 'Sei sicuro di voler rigenerare il template?')}}</p>
-    <p class="confirm-regenerate-warning">{{t(1482, 'Questa operazione sovrascriverà completamente il template HTML e le regole di aggregazione attuali con una nuova generazione AI.')}}</p>
+    <div class="regenerate-warning-section">
+      <i class="pi pi-exclamation-triangle confirm-regenerate-icon"></i>
+      <div>
+        <p class="confirm-regenerate-message">{{t(1481, 'Sei sicuro di voler rigenerare il template?')}}</p>
+        <p class="confirm-regenerate-warning">{{t(1482, 'Questa operazione sovrascriverà completamente il template HTML e le regole di aggregazione attuali con una nuova generazione AI.')}}</p>
+      </div>
+    </div>
+
+    <!-- Campo istruzioni per AI -->
+    <div class="regenerate-prompt-section">
+      <label>{{t(1484, 'Istruzioni per AI (opzionale)')}}:</label>
+      <textarea pTextarea
+                [(ngModel)]="regeneratePrompt"
+                rows="5"
+                [placeholder]="t(1485, 'Es: Genera una fattura professionale con logo in alto a sinistra, dati cliente a destra. Usa tabelle con bordi per i dettagli. Le note vanno in fondo...')"
+                [style]="{width: '100%'}"></textarea>
+      <small class="regenerate-prompt-hint">{{t(1486, 'Queste istruzioni guideranno Claude AI nella generazione del nuovo template')}}</small>
+    </div>
   </div>
 
   <ng-template pTemplate="footer">
@@ -1828,6 +2068,210 @@
             class="p-button-warning"
             [disabled]="cleanVersionsProcessing || versionsToDeleteCount === 0"
             (click)="cleanOldVersions()"></button>
+  </ng-template>
+
+</p-dialog>
+
+<!-- ========================================== -->
+<!-- DIALOG: STORICO VERSIONI -->
+<!-- ========================================== -->
+<p-dialog [header]="t(1520, 'Storico Versioni')"
+          [(visible)]="showVersionsDialog"
+          [modal]="true"
+          [style]="{width: '800px', maxHeight: '80vh'}"
+          styleClass="versions-history-dialog"
+          (onHide)="closeVersionsDialog()">
+
+  <div class="versions-dialog-content">
+    <!-- Info versione attuale -->
+    <div class="current-version-info" *ngIf="existingTemplate">
+      <i class="pi pi-info-circle"></i>
+      <span>{{t(1521, 'Versione attuale')}}: <strong>v{{existingTemplate.version}}</strong></span>
+    </div>
+
+    <!-- Tabella versioni -->
+    <div class="versions-table-container">
+      <table class="versions-table">
+        <thead>
+          <tr>
+            <th class="col-version">{{t(1522, 'Versione')}}</th>
+            <th class="col-date">{{t(1523, 'Data')}}</th>
+            <th class="col-author">{{t(1524, 'Autore')}}</th>
+            <th class="col-actions">{{t(1525, 'Azioni')}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let version of sortedVersions"
+              [class.current-version]="version.version === existingTemplate?.version">
+            <td class="col-version">
+              <span class="version-number">v{{version.version}}</span>
+              <span class="current-badge" *ngIf="version.version === existingTemplate?.version">
+                {{t(1526, 'attuale')}}
+              </span>
+            </td>
+            <td class="col-date">{{formatVersionDate(version.savedAt || version.createdAt)}}</td>
+            <td class="col-author">{{version.savedBy || version.createdBy || '-'}}</td>
+            <td class="col-actions">
+              <div class="action-buttons">
+                <button pButton
+                        type="button"
+                        class="version-action-btn version-preview-btn"
+                        [pTooltip]="t(1527, 'Anteprima')"
+                        tooltipPosition="top"
+                        (click)="previewVersion(version)">
+                  <i class="pi pi-eye"></i>
+                </button>
+                <button pButton
+                        type="button"
+                        class="version-action-btn version-restore-btn"
+                        [pTooltip]="t(1528, 'Ripristina')"
+                        tooltipPosition="top"
+                        (click)="confirmRestoreVersion(version)">
+                  <i class="pi pi-replay"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Empty state -->
+      <div class="versions-empty" *ngIf="sortedVersions.length === 0">
+        <i class="pi pi-inbox"></i>
+        <p>{{t(1529, 'Nessuna versione precedente disponibile')}}</p>
+      </div>
+    </div>
+
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton
+            type="button"
+            [label]="t(1285, 'Chiudi')"
+            icon="pi pi-times"
+            class="p-button-secondary"
+            (click)="closeVersionsDialog()"></button>
+  </ng-template>
+
+</p-dialog>
+
+<!-- ========================================== -->
+<!-- DIALOG: CONFERMA RIPRISTINO VERSIONE -->
+<!-- ========================================== -->
+<p-dialog [header]="t(1531, 'Conferma Ripristino')"
+          [(visible)]="showRestoreConfirmDialog"
+          [modal]="true"
+          [closable]="!restoringVersion"
+          [style]="{width: '450px'}"
+          styleClass="restore-confirm-dialog">
+
+  <div class="restore-confirm-content">
+    <i class="pi pi-exclamation-triangle restore-confirm-icon"></i>
+    <p class="restore-confirm-message">
+      {{t(1532, 'Sei sicuro di voler ripristinare la versione')}}
+      <strong>v{{selectedVersionForRestore?.version}}</strong>?
+    </p>
+    <p class="restore-confirm-warning">
+      {{t(1533, 'La versione corrente verrà salvata nello storico prima del ripristino.')}}
+    </p>
+
+    <!-- Loading -->
+    <div class="restore-loading" *ngIf="restoringVersion">
+      <p-progressSpinner [style]="{width: '30px', height: '30px'}"></p-progressSpinner>
+      <span>{{t(1534, 'Ripristino in corso...')}}</span>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton
+            type="button"
+            [label]="t(1001, 'Annulla')"
+            icon="pi pi-times"
+            class="p-button-secondary"
+            [disabled]="restoringVersion"
+            (click)="cancelRestoreVersion()"></button>
+    <button pButton
+            type="button"
+            [label]="t(1535, 'Ripristina')"
+            icon="pi pi-replay"
+            class="p-button-warning"
+            [disabled]="restoringVersion"
+            (click)="restoreVersion()"></button>
+  </ng-template>
+
+</p-dialog>
+
+<!-- ========================================== -->
+<!-- DIALOG: PREVIEW VERSIONE HTML -->
+<!-- ========================================== -->
+<p-dialog [header]="t(1530, 'Anteprima versione') + ' v' + (selectedVersionForPreview?.version || '')"
+          [(visible)]="showVersionPreviewDialog"
+          [modal]="true"
+          [style]="{width: '90vw', height: '85vh'}"
+          [maximizable]="true"
+          [draggable]="false"
+          [resizable]="false"
+          styleClass="version-preview-dialog"
+          (onHide)="closeVersionPreview()">
+
+  <div class="version-preview-dialog-content">
+    <iframe [srcdoc]="safeVersionPreviewHtml" class="version-preview-full-iframe"></iframe>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton
+            type="button"
+            [label]="t(1285, 'Chiudi')"
+            icon="pi pi-times"
+            class="p-button-secondary"
+            (click)="closeVersionPreview()"></button>
+  </ng-template>
+
+</p-dialog>
+
+<!-- ==================== CSS EDITOR DIALOG ==================== -->
+<p-dialog [header]="t(1513, 'Editor CSS')"
+          [(visible)]="showCssEditorDialog"
+          [modal]="true"
+          [closable]="true"
+          [draggable]="true"
+          [resizable]="true"
+          [style]="{width: '80vw', height: '80vh'}"
+          [contentStyle]="{'overflow': 'hidden', 'display': 'flex', 'flex-direction': 'column'}"
+          styleClass="css-editor-dialog">
+
+  <div class="css-editor-container">
+    <div class="css-editor-info">
+      <i class="pi pi-info-circle"></i>
+      <span>{{t(1514, 'Modifica il CSS del template. Le modifiche verranno applicate al tag &lt;style&gt; nel template HTML.')}}</span>
+    </div>
+    <textarea pTextarea
+              [(ngModel)]="cssEditorContent"
+              class="css-code-editor"
+              [placeholder]="t(1515, 'Inserisci qui il CSS...')"></textarea>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer-buttons">
+      <button pButton
+              type="button"
+              [label]="t(1516, 'Formatta CSS')"
+              icon="pi pi-align-left"
+              class="p-button-secondary"
+              (click)="formatCssInEditor()"></button>
+      <button pButton
+              type="button"
+              [label]="t(1001, 'Annulla')"
+              icon="pi pi-times"
+              class="p-button-secondary"
+              (click)="closeCssEditor()"></button>
+      <button pButton
+              type="button"
+              [label]="t(1517, 'Applica CSS')"
+              icon="pi pi-check"
+              class="p-button-success"
+              (click)="applyCssFromEditor()"></button>
+    </div>
   </ng-template>
 
 </p-dialog>

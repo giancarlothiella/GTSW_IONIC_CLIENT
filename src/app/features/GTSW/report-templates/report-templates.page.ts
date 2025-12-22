@@ -1,10 +1,16 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline } from 'ionicons/icons';
 import { AuthService } from '../../../core/services/auth.service';
 import { GtsDataService } from '../../../core/services/gts-data.service';
 import { Subscription } from 'rxjs';
+import {
+  mapOracleDataForTemplateBuilder,
+  mapOracleMetadataForTemplateBuilder,
+  extractSessionData
+} from '../logs/helpers/oracle-data-mapper.helper';
 
 // Import GTS Components
 import { GtsLoaderComponent } from '../../../core/gts/gts-loader/gts-loader.component';
@@ -40,6 +46,7 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
 
   private authService = inject(AuthService);
   public gtsDataService = inject(GtsDataService);
+  private router = inject(Router);
 
   constructor() {
     addIcons({ arrowBackOutline });
@@ -52,6 +59,9 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
   toolbarListenerSubs: Subscription | undefined;
 
   ngOnInit(): void {
+    // Controlla se siamo tornati dal template builder con stato da ripristinare
+    this.checkReturnState();
+
     // Loader Listener
     this.appLoaderListenerSubs = this.gtsDataService
     .getAppLoaderListener()
@@ -109,10 +119,24 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
     this.toolbarListenerSubs = this.gtsDataService
     .getToolbarEventListener()
     .subscribe((data) => {
-      //===== START CUSTOM TOOLBAR EVENT CODE =====
+      //===== START CUSTOM_TOOLBAR_EVENT_CODE =====
 
-      //===== END CUSTOM TOOLBAR EVENT CODE =====
+      this.toolbarSelectedValue = data.selectedValue;
+      this.customData[0].value = this.toolbarSelectedValue;
+      this.gtsDataService.runAction(this.prjId, this.formId, 'projectDS');
+
+      //===== END CUSTOM_TOOLBAR_EVENT_CODE =====
     });
+
+
+    // CUSTOM DATA
+    this.customData = [{
+      type: 'select',
+      label: 'Project: ',
+      items: null,
+      value: null,
+      field: 'prjId',
+    }];
 
     // Run Page with hardcoded formId
     this.gtsDataService.runPage(this.prjId, this.formId);
@@ -134,12 +158,257 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
   viewStyle: string = '';
   customData: any[] = [];
   toolbarSelectedValue = '';
+  pendingRestoreProject: string | null = null;  // Progetto da ripristinare al ritorno dal template builder
 
   //========= PAGE FUNCTIONS =================
   async getCustomData(prjId: string, formId: number, customCode: string, actualView: string) {
     //===== START CUSTOM CODE =====
 
+    if (customCode === 'setCtxProject') {
+      // Se abbiamo un progetto pendente da ripristinare (ritorno dal template builder), usalo
+      // Altrimenti usa il primo progetto dalla lista
+      if (this.pendingRestoreProject) {
+        this.toolbarSelectedValue = this.pendingRestoreProject;
+        this.pendingRestoreProject = null; // Reset dopo l'uso
+        console.log('[setCtxProject] Restored project from pendingRestoreProject:', this.toolbarSelectedValue);
+      } else {
+        this.toolbarSelectedValue = this.pageData
+          .filter((element: any) => element.dataAdapter === 'daProjects')[0]
+          .data[0]
+          .rows[0].prjId;
+      }
+
+      this.metaData.pageFields
+        .filter((field: any) => field.pageFieldName === 'gtsFldqProjects_prjId')[0].value = this.toolbarSelectedValue;
+
+      const qProjects = this.pageData
+        .filter((element: any) => element.dataAdapter === 'daProjects')[0]
+        .data[0]
+        .rows;
+      this.customData[0].value = this.toolbarSelectedValue;
+      this.customData[0].items = qProjects;
+
+      this.metaData.pageFields.filter((field: any) => field.pageFieldName === 'gtsFldqProjects_prjId')[0].value = this.toolbarSelectedValue;
+      this.filterProject('gtsGridTemplates', this.toolbarSelectedValue, 'qTemplates');
+      this.filterProject('gtsGridSessions', this.toolbarSelectedValue, 'qSessions');
+    }
+
+    if (customCode === 'setCtxProject2') {
+      this.toolbarSelectedValue = this.metaData.pageFields
+        .filter((field: any) => field.pageFieldName === 'gtsFldqProjects_prjId')[0].value;
+
+      this.customData[0].value = this.toolbarSelectedValue;
+      this.filterProject('gtsGridTemplates', this.toolbarSelectedValue, 'qTemplates');
+      this.filterProject('gtsGridSessions', this.toolbarSelectedValue, 'qSessions');
+    }
+
+    if (customCode === 'REFRESH_GRID_OBJS') {
+      this.gtsDataService.sendGridReload('qTemplates');
+      this.gtsDataService.sendGridReload('qSessions');
+    }
+
+    if (customCode === 'SHOW_AI_BUILDER') {
+      console.log('[SHOW_AI_BUILDER] Starting...');
+      const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daTemplates', 'qSessions');
+      console.log('[SHOW_AI_BUILDER] Selected row:', row);
+
+      if (!row) {
+        alert('Seleziona una sessione dalla griglia');
+        return;
+      }
+
+      this.gtsDataService.sendAppLoaderListener(true);
+
+      // Carica i dati del report per passarli al builder
+      const report = {
+        sessionId: row.sessionId,
+        fieldGrpId: row.fieldGrpId,
+        reportCode: row.reportCode,
+        reportName: row.reportName,
+        sqlId: row.sqlId,
+      };
+      console.log('[SHOW_AI_BUILDER] Report object:', report);
+
+      await this.gtsDataService.getOtherPageData(row.prjId, row.formId);
+      console.log('[SHOW_AI_BUILDER] Calling getReportData with prjId:', row.prjId, 'formId:', row.formId, 'params:', row.params, 'connCode:', row.connCode);
+      const reportData = await this.gtsDataService.getReportData(row.prjId, row.formId, report, row.params, row.connCode, false, true);
+      console.log('[SHOW_AI_BUILDER] getReportData response:', reportData);
+
+      if (reportData && reportData.valid) {
+        console.log('[SHOW_AI_BUILDER] Report data is valid, calling mappers...');
+        // Usa helper per mappare i dati
+        const oracleData = mapOracleDataForTemplateBuilder(reportData);
+        const oracleMetadata = mapOracleMetadataForTemplateBuilder(reportData);
+        const sessionData = extractSessionData(row);
+
+        console.log('[SHOW_AI_BUILDER] Final mapped data:');
+        console.log('[SHOW_AI_BUILDER] - sessionData:', sessionData);
+        console.log('[SHOW_AI_BUILDER] - oracleData:', oracleData);
+        console.log('[SHOW_AI_BUILDER] - oracleMetadata:', oracleMetadata);
+
+        this.gtsDataService.sendAppLoaderListener(false);
+
+        // Naviga alla pagina Template Builder
+        // Estrai il PDF dalla risposta (se presente)
+        const reportPdf = reportData.reportPdf || null;
+        console.log('[SHOW_AI_BUILDER] reportPdf available:', !!reportPdf, reportPdf ? `(${reportPdf.length} chars)` : '');
+
+        console.log('[SHOW_AI_BUILDER] Navigating to /GTSW/templateBuilder with state...');
+        this.router.navigate(['/GTSW/templateBuilder'], {
+          state: {
+            sessionData: sessionData,
+            oracleData: oracleData,
+            oracleMetadata: oracleMetadata,
+            fastReportPdf: reportPdf
+          }
+        });
+      } else {
+        console.log('[SHOW_AI_BUILDER] Report data invalid or null:', reportData);
+        this.gtsDataService.sendAppLoaderListener(false);
+        alert('Errore caricamento dati report: ' + (reportData?.message || 'Errore sconosciuto'));
+      }
+    }
+
+    // AI_BUILD_NOPDF: Come SHOW_AI_BUILDER ma senza PDF automatico
+    // L'utente dovrà caricare manualmente il PDF nel template builder
+    // Usato quando la sessione ha i metadati ma il PDF viene generato esternamente
+    if (customCode === 'AI_BUILD_NOPDF') {
+      console.log('[AI_BUILD_NOPDF] Starting...');
+      const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daTemplates', 'qSessions');
+      console.log('[AI_BUILD_NOPDF] Selected row:', row);
+
+      if (!row) {
+        alert('Seleziona una sessione dalla griglia');
+        return;
+      }
+
+      this.gtsDataService.sendAppLoaderListener(true);
+
+      // Carica i dati del report per passarli al builder (senza generare PDF)
+      const report = {
+        sessionId: row.sessionId,
+        fieldGrpId: row.fieldGrpId,
+        reportCode: row.reportCode,
+        reportName: row.reportName,
+        sqlId: row.sqlId,
+      };
+
+      await this.gtsDataService.getOtherPageData(row.prjId, row.formId);
+      // Passa false per skipPdf per ottenere solo i dati senza generare PDF
+      const reportData = await this.gtsDataService.getReportData(row.prjId, row.formId, report, row.params, row.connCode, false, false);
+      console.log('[AI_BUILD_NOPDF] getReportData response:', reportData);
+
+      if (reportData && reportData.valid) {
+        // Usa helper per mappare i dati
+        const oracleData = mapOracleDataForTemplateBuilder(reportData);
+        const oracleMetadata = mapOracleMetadataForTemplateBuilder(reportData);
+        const sessionData = extractSessionData(row);
+
+        console.log('[AI_BUILD_NOPDF] Mapped data ready, navigating without PDF...');
+
+        this.gtsDataService.sendAppLoaderListener(false);
+
+        // Naviga alla pagina Template Builder SENZA PDF
+        // L'utente dovrà caricare il PDF manualmente
+        this.router.navigate(['/GTSW/templateBuilder'], {
+          state: {
+            sessionData: sessionData,
+            oracleData: oracleData,
+            oracleMetadata: oracleMetadata,
+            fastReportPdf: null,  // Nessun PDF automatico
+            requireManualPdf: true  // Flag per indicare che serve upload manuale
+          }
+        });
+      } else {
+        console.log('[AI_BUILD_NOPDF] Report data invalid or null:', reportData);
+        this.gtsDataService.sendAppLoaderListener(false);
+        alert('Errore caricamento dati report: ' + (reportData?.message || 'Errore sconosciuto'));
+      }
+    }
+
+    // NEW_TEMPLATE: Apre il template builder mostrando le card di selezione modalità
+    if (customCode === 'NEW_TEMPLATE') {
+      console.log('[NEW_TEMPLATE] Navigating to template builder (mode selection)...');
+      this.router.navigate(['/GTSW/templateBuilder'], {
+        state: {
+          returnTo: this.getReturnToState()
+        }
+      });
+    }
+
+    // GET_TEMPLATE: Apre direttamente il template selezionato dalla grid qTemplates
+    if (customCode === 'GET_TEMPLATE') {
+      console.log('[GET_TEMPLATE] Starting...');
+      const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daTemplates', 'qTemplates');
+      console.log('[GET_TEMPLATE] Selected row:', row);
+
+      if (row && row.reportCode && row.prjId && row.connCode) {
+        // Naviga al template builder con i dati per caricare il template esistente
+        this.router.navigate(['/GTSW/templateBuilder'], {
+          state: {
+            loadTemplate: {
+              prjId: row.prjId,
+              connCode: row.connCode,
+              reportCode: row.reportCode
+            },
+            returnTo: this.getReturnToState()
+          }
+        });
+      } else {
+        alert('Seleziona un template dalla griglia');
+      }
+    }
+
+    // SEARCH_TEMPLATE: Apre il template builder mostrando la dialog di ricerca
+    if (customCode === 'SEARCH_TEMPLATE') {
+      console.log('[SEARCH_TEMPLATE] Navigating to template builder (load dialog)...');
+      this.router.navigate(['/GTSW/templateBuilder'], {
+        state: {
+          showLoadDialog: true,
+          returnTo: this.getReturnToState()
+        }
+      });
+    }
+
     //===== END CUSTOM CODE =====
   }
 
+  // METHODS
+  filterProject(objectName: string, selectedValue: any, dataSetName: string) {
+    if (this.metaData.grids
+        .filter((element: any) => element.objectName === objectName)[0]
+        .data !== undefined) {
+
+      this.metaData.grids
+        .filter((element: any) => element.objectName === objectName)[0]
+        .data.dataSource.load();
+    }
+
+    this.metaData.dataSets.forEach((dataSet: any) => {
+      if (dataSet.dataSetName === dataSetName) {
+        dataSet.filterObject = { 'prjId': selectedValue };
+      }
+    });
+  }
+
+  /**
+   * Controlla se siamo tornati dal template builder e ripristina lo stato
+   */
+  private checkReturnState(): void {
+    const state = window.history.state;
+    if (state && state.restoreProject) {
+      console.log('[checkReturnState] Restoring project:', state.restoreProject);
+      this.pendingRestoreProject = state.restoreProject;
+    }
+  }
+
+  /**
+   * Crea l'oggetto returnTo con lo stato corrente da passare al template builder
+   */
+  private getReturnToState(): { route: string; project: string } {
+    return {
+      route: '/GTSW/reporttemplates',
+      project: this.toolbarSelectedValue
+    };
+  }
 }

@@ -55,7 +55,12 @@
               "jszip",
               "devextreme-quill",
               "devexpress-diagram",
-              "devexpress-gantt"
+              "devexpress-gantt",
+              "html2canvas",
+              "canvg",
+              "rgbcolor",
+              "raf",
+              "core-js"
             ]
           },
           "configurations": {
@@ -68,8 +73,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "130kb",
-                  "maximumError": "150kb"
+                  "maximumWarning": "160kb",
+                  "maximumError": "200kb"
                 }
               ],
               "fileReplacements": [
