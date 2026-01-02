@@ -16,6 +16,7 @@ export * from './gts-actions-debug/gts-actions-debug.component';
 export * from './gts-file-uploader/gts-file-uploader.component';
 export * from './gts-ai/gts-ai.component';
 export * from './gts-ai-analyzer/gts-ai-analyzer.component';
+export * from './gts-dashboard/gts-dashboard.component';
 
 // GTS Services
 export * from './gts-grid/gts-grid.service';

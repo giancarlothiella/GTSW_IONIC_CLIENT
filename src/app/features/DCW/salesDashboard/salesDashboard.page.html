@@ -125,6 +125,17 @@
           }
         </div>
         <div class="header-right">
+          <!-- Toggle Dashboard Mode Button -->
+          <p-button
+            [icon]="showGtsDashboard ? 'pi pi-th-large' : 'pi pi-database'"
+            [label]="showGtsDashboard ? 'Classic View' : 'Metadata View'"
+            styleClass="p-button-outlined"
+            (onClick)="toggleDashboardMode()"
+            [pTooltip]="showGtsDashboard ? t(1604, 'Passa alla dashboard classica') : t(1605, 'Passa alla dashboard da metadati')"
+            tooltipPosition="bottom"
+            [style]="{'margin-right': '0.5rem'}">
+          </p-button>
+
           <!-- AI Analyzer Button -->
           <p-button
             icon="pi pi-sparkles"
@@ -168,16 +179,27 @@
         </div>
       </div>
 
-      <!-- DASHBOARD LOADING -->
-      @if (dashboardLoading) {
+      <!-- GTS DASHBOARD (Metadata-driven) -->
+      @if (showGtsDashboard) {
+        <app-gts-dashboard
+          [config]="gtsDashboardConfig"
+          [rawData]="rawExcelData"
+          [visible]="true"
+          (onRefresh)="onGtsDashboardRefresh()"
+          (onDataRequest)="onDashboardDataRequest($event)">
+        </app-gts-dashboard>
+      }
+
+      <!-- CLASSIC DASHBOARD LOADING -->
+      @if (!showGtsDashboard && dashboardLoading) {
         <div class="loading-container">
           <i class="pi pi-spin pi-spinner" style="font-size: 3rem;"></i>
           <p>{{ t(1534, 'Caricamento dashboard...') }}</p>
         </div>
       }
 
-      <!-- DASHBOARD CONTENT -->
-      @if (!dashboardLoading && dashboardData) {
+      <!-- CLASSIC DASHBOARD CONTENT -->
+      @if (!showGtsDashboard && !dashboardLoading && dashboardData) {
 
         <!-- KPI CARDS -->
         <div class="kpi-grid" *ngIf="kpi">

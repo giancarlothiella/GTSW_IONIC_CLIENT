@@ -1,0 +1,133 @@
+<!-- GTS Dashboard Component Template -->
+
+<div class="gts-dashboard" *ngIf="visible && dashboard">
+
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="dashboard-title-section">
+      <!-- Back button quando in drill-down -->
+      <button
+        *ngIf="isInDrillDown()"
+        pButton
+        type="button"
+        icon="pi pi-arrow-left"
+        class="p-button-text p-button-sm back-button"
+        (click)="goBack()"
+        [pTooltip]="t(1600, 'Torna indietro')"
+        tooltipPosition="right">
+      </button>
+
+      <h2 class="dashboard-title">{{ config.title || dashboard.title }}</h2>
+
+      <!-- Drill-down breadcrumb -->
+      <span *ngIf="isInDrillDown()" class="drill-breadcrumb">
+        <span class="breadcrumb-separator">›</span>
+        <span class="breadcrumb-filter" *ngIf="getActiveDrillDownInfo() as drillInfo">
+          {{ drillInfo.field }}: {{ drillInfo.value }}
+        </span>
+      </span>
+    </div>
+
+    <!-- Tools -->
+    <div class="dashboard-tools" *ngIf="dashboard.tools">
+      <button
+        *ngIf="dashboard.tools.refresh"
+        pButton
+        type="button"
+        icon="pi pi-refresh"
+        class="p-button-text p-button-sm"
+        (click)="refresh()"
+        [pTooltip]="t(1601, 'Aggiorna dati')"
+        tooltipPosition="left">
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="dashboard-loading">
+    <p-progress-spinner strokeWidth="3" [style]="{width: '50px', height: '50px'}"></p-progress-spinner>
+    <span>{{ t(1602, 'Caricamento dashboard...') }}</span>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="dashboard-error">
+    <i class="pi pi-exclamation-triangle"></i>
+    <span>{{ error }}</span>
+    <button pButton type="button" label="Riprova" class="p-button-text" (click)="loadDashboard()"></button>
+  </div>
+
+  <!-- Dashboard Sections -->
+  <div *ngIf="!loading && !error" class="dashboard-content">
+
+    <ng-container *ngFor="let section of getSections()">
+      <!-- Section container -->
+      <div
+        class="dashboard-section"
+        [ngStyle]="getSectionStyle(section)"
+        [attr.data-section]="section.sectionId">
+
+        <!-- Items in section -->
+        <ng-container *ngFor="let item of getItemsForSection(section); let i = index">
+          <div
+            class="dashboard-item"
+            [ngStyle]="getItemStyle(item)"
+            [class.clickable]="item.drillDownFilter"
+            [class.item-card]="item.type === 'card'"
+            [class.item-chart]="item.type === 'chart'"
+            [class.item-grid]="item.type === 'grid'"
+            [class.in-drill-down]="isPositionInDrillDown(section.sectionId, $any(item)._positionIndex ?? i)">
+
+            <!-- Back button per posizione in drill-down -->
+            @if (isPositionInDrillDown(section.sectionId, $any(item)._positionIndex ?? i)) {
+              <button
+                pButton
+                type="button"
+                icon="pi pi-arrow-left"
+                class="p-button-text p-button-sm position-back-button"
+                (click)="goBackPosition(section.sectionId, $any(item)._positionIndex ?? i); $event.stopPropagation()">
+              </button>
+            }
+
+            <!-- Card -->
+            <app-gts-dash-card
+              *ngIf="item.type === 'card'"
+              [item]="item"
+              [data]="getItemData(item.itemId)"
+              (onClick)="onDrillDown(item, $event, section.sectionId, $any(item)._positionIndex ?? i)">
+            </app-gts-dash-card>
+
+            <!-- Chart -->
+            <app-gts-dash-chart
+              *ngIf="item.type === 'chart'"
+              [item]="item"
+              [data]="getItemData(item.itemId)"
+              [drillDownLabel]="getDrillDownLabel(section.sectionId, $any(item)._positionIndex ?? i)"
+              (onElementClick)="onDrillDown(item, $event, section.sectionId, $any(item)._positionIndex ?? i)">
+            </app-gts-dash-chart>
+
+            <!-- Grid -->
+            <app-gts-dash-grid
+              *ngIf="item.type === 'grid'"
+              [item]="item"
+              [data]="getItemData(item.itemId)"
+              (onRowClick)="onDrillDown(item, $event, section.sectionId, $any(item)._positionIndex ?? i)">
+            </app-gts-dash-grid>
+
+          </div>
+        </ng-container>
+
+      </div>
+    </ng-container>
+
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && getVisibleItems().length === 0" class="dashboard-empty">
+    <i class="pi pi-inbox"></i>
+    <span>{{ t(1603, 'Nessun elemento da visualizzare') }}</span>
+  </div>
+
+</div>
+
+<!-- Toast per messaggi -->
+<p-toast position="top-right"></p-toast>

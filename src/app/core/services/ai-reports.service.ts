@@ -617,9 +617,12 @@ export class AiReportsService {
 
   /**
    * Salva un'analisi dati su MongoDB per riutilizzo futuro
+   * Se esiste già (stessa chiave prjId+connCode+analysisName), aggiorna
    */
   saveDataAnalysis(analysis: {
     prjId: string;
+    connCode?: string;   // Codice connessione (società)
+    pageCode?: string;   // Codice pagina per filtro (es. sitPagamenti_11)
     analysisName: string;
     description?: string;
     dataContext: {
@@ -630,39 +633,38 @@ export class AiReportsService {
     aggregationRule: any;
     chartConfig: any;
     gridConfig: any;
+    cachedResult?: {      // Dati aggregati pre-calcolati
+      data: string;       // JSON compresso base64
+      recordCount: number;
+      compressed: boolean;
+    };
     createdBy?: string;
     tags?: string[];
   }): Observable<{
     success: boolean;
     analysisId: string;
     message: string;
+    updated?: boolean;
+    created?: boolean;
   }> {
     return this.http.post<any>(`${this.apiUrl}/data-analyzer/save`, analysis);
   }
 
   /**
    * Lista analisi salvate per un progetto
+   * @param prjId - Project ID
+   * @param options - Opzioni di filtro
+   * @param options.connCode - Codice connessione (società)
+   * @param options.pageCode - Codice pagina per filtro
    */
   listDataAnalyses(prjId: string, options?: {
+    connCode?: string;
+    pageCode?: string;
     tags?: string[];
     search?: string;
     limit?: number;
     skip?: number;
-  }): Observable<{
-    analyses: Array<{
-      _id: string;
-      prjId: string;
-      analysisName: string;
-      description: string;
-      userRequest: string;
-      chartConfig: { type: string; title: string };
-      tags: string[];
-      createdAt: Date;
-      createdBy: string;
-      usageCount: number;
-    }>;
-    total: number;
-  }> {
+  }): Observable<any[]> {
     const params: any = { ...options };
     if (params.tags) {
       params.tags = params.tags.join(',');
@@ -671,11 +673,12 @@ export class AiReportsService {
   }
 
   /**
-   * Carica un'analisi salvata
+   * Carica un'analisi salvata (include cachedResult se presente)
    */
   getDataAnalysis(analysisId: string): Observable<{
     _id: string;
     prjId: string;
+    connCode?: string;
     analysisName: string;
     description: string;
     dataContext: any;
@@ -683,6 +686,12 @@ export class AiReportsService {
     aggregationRule: any;
     chartConfig: any;
     gridConfig: any;
+    cachedResult?: {
+      data: string;
+      recordCount: number;
+      generatedAt: Date;
+      compressed: boolean;
+    };
     tags: string[];
     createdAt: Date;
     createdBy: string;
@@ -775,5 +784,38 @@ export class AiReportsService {
    */
   listAiPrompts(promptType: string = 'dataAnalysis'): Observable<any[]> {
     return this.http.get<any[]>(`${environment.apiUrl}/ai-prompts/${promptType}`);
+  }
+
+  /**
+   * Applica le regole di aggregazione lato server
+   *
+   * Questo metodo invia i dati raw e le regole al server che esegue:
+   * - Data transformations (trim, replace, normalize, etc.)
+   * - Filtri
+   * - Grouping e aggregazioni
+   * - Sorting e limit
+   *
+   * Vantaggi rispetto all'aggregazione client-side:
+   * - Supporta dataTransformations (normalizzazione nomi, trim, etc.)
+   * - Meno dati trasferiti (ritorna solo dati aggregati)
+   * - Logica centralizzata sul server
+   *
+   * @param payload - Dati e regole per l'aggregazione
+   * @param payload.data - Array di dati raw da aggregare
+   * @param payload.rules - Regole generate dall'AI (aggregationRule, chartConfig, gridConfig)
+   */
+  applyDataAnalysis(payload: {
+    data: any[];
+    rules: {
+      aggregationRule: any;
+      chartConfig?: any;
+      gridConfig?: any;
+    };
+  }): Observable<{
+    aggregatedData: any[];
+    totalRows: number;
+    aggregatedRows: number;
+  }> {
+    return this.http.post<any>(`${this.apiUrl}/data-analyzer/apply`, payload);
   }
 }

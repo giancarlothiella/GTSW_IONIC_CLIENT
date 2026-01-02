@@ -52,7 +52,9 @@ export interface AiAnalyzerDataSchema {
 
 export interface AiAnalyzerConfig {
   prjId: string;
+  connCode?: string;   // Codice connessione (società) - importante per filtrare analisi
   datasetName?: string;
+  pageCode?: string;   // Identificatore unico della pagina (es. formId o nome pagina)
   dialogTitle?: string;
   dialogWidth?: string;
   dialogHeight?: string;
@@ -355,10 +357,10 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
         // Normalizza la gridConfig
         this.normalizeGridConfig(result);
 
-        // Applica le regole di aggregazione
+        // Applica le regole di aggregazione LATO CLIENT (include pivot!)
         this.aggregatedData = this.applyAggregationRules(this.data, result);
 
-        // Se pivotByYear con anni definiti
+        // Se pivotByYear con anni definiti, adatta la gridConfig
         const pivotYears = result.aggregationRule?.pivotByYear?.years;
         if (pivotYears && pivotYears.length >= 2) {
           this.adaptGridConfigForPivot(result);
@@ -500,205 +502,6 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
       this.error = this.t(1604, 'Numero massimo di tentativi raggiunto. Prova a riformulare la richiesta.');
       this.showFeedbackButtons = false;
     }
-  }
-
-  // ============================================
-  // AGGREGATION RULES
-  // ============================================
-
-  private applyAggregationRules(data: any[], rules: any): any[] {
-    if (!Array.isArray(data) || data.length === 0 || !rules?.aggregationRule) {
-      return [];
-    }
-
-    const { groupBy, aggregations, sortBy, filters, limit, pivotByYear } = rules.aggregationRule;
-
-    let result = [...data] as any[];
-
-    // 1. Applica filtri
-    if (filters && filters.length > 0) {
-      result = result.filter(row => {
-        return filters.every((filter: any) => {
-          const value = row[filter.field];
-          const filterValue = filter.value;
-
-          switch (filter.operator) {
-            case 'eq': return value == filterValue;
-            case 'ne': return value != filterValue;
-            case 'gt': return value > filterValue;
-            case 'lt': return value < filterValue;
-            case 'gte': return value >= filterValue;
-            case 'lte': return value <= filterValue;
-            case 'contains':
-              return String(value).toLowerCase().includes(String(filterValue).toLowerCase());
-            case 'startsWith':
-              return String(value).toLowerCase().startsWith(String(filterValue).toLowerCase());
-            case 'in':
-              return Array.isArray(filterValue) && filterValue.includes(value);
-            case 'between':
-              return Array.isArray(filterValue) && value >= filterValue[0] && value <= filterValue[1];
-            default:
-              return true;
-          }
-        });
-      });
-    }
-
-    // 2. Raggruppa
-    if (groupBy && groupBy.length > 0) {
-      const groups = new Map<string, { groupData: any; rows: any[] }>();
-
-      result.forEach(row => {
-        const key = groupBy.map((field: string) => row[field]).join('|||');
-
-        if (!groups.has(key)) {
-          const groupData: any = {};
-          groupBy.forEach((field: string) => {
-            groupData[field] = row[field];
-          });
-          groups.set(key, { groupData, rows: [] });
-        }
-
-        groups.get(key)!.rows.push(row);
-      });
-
-      // 3. Applica aggregazioni
-      result = Array.from(groups.values()).map(group => {
-        const aggregated = { ...group.groupData };
-
-        if (aggregations && aggregations.length > 0) {
-          aggregations.forEach((agg: any) => {
-            const alias = agg.alias || agg.field;
-            const values = group.rows
-              .map(r => r[agg.field])
-              .filter(v => v !== undefined && v !== null);
-
-            switch (agg.operation) {
-              case 'sum':
-                aggregated[alias] = values.reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
-                break;
-              case 'avg':
-                aggregated[alias] = values.length > 0
-                  ? values.reduce((sum, v) => sum + (parseFloat(v) || 0), 0) / values.length
-                  : 0;
-                break;
-              case 'count':
-                aggregated[alias] = group.rows.length;
-                break;
-              case 'min':
-                aggregated[alias] = Math.min(...values.map(v => parseFloat(v) || 0));
-                break;
-              case 'max':
-                aggregated[alias] = Math.max(...values.map(v => parseFloat(v) || 0));
-                break;
-              case 'first':
-                aggregated[alias] = values[0];
-                break;
-              case 'last':
-                aggregated[alias] = values[values.length - 1];
-                break;
-              case 'concat':
-                aggregated[alias] = values.join(agg.separator || ', ');
-                break;
-            }
-          });
-        }
-
-        return aggregated;
-      });
-    }
-
-    // 4. Ordina
-    if (sortBy && sortBy.field) {
-      const field = sortBy.field;
-      const order = sortBy.order === 'desc' ? -1 : 1;
-
-      result.sort((a, b) => {
-        const valA = a[field];
-        const valB = b[field];
-
-        if (valA === valB) return 0;
-        if (valA === undefined || valA === null) return 1;
-        if (valB === undefined || valB === null) return -1;
-
-        if (typeof valA === 'number' && typeof valB === 'number') {
-          return (valA - valB) * order;
-        }
-
-        return String(valA).localeCompare(String(valB)) * order;
-      });
-    }
-
-    // 5. Pivot by Year
-    if (pivotByYear && pivotByYear.yearField && pivotByYear.years && pivotByYear.years.length > 0) {
-      const { yearField, years, baseYear } = pivotByYear;
-
-      let metrics = pivotByYear.metrics || [];
-      if ((!metrics || metrics.length === 0) && aggregations && aggregations.length > 0) {
-        metrics = aggregations.map((agg: any) => agg.alias || agg.field);
-      }
-
-      const pivotedMap = new Map<string, any>();
-
-      result.forEach(row => {
-        const keyFields = groupBy.filter((f: string) => f !== yearField);
-        const key = keyFields.map((f: string) => row[f]).join('|||');
-        const year = typeof row[yearField] === 'string' ? parseInt(row[yearField], 10) : row[yearField];
-
-        if (!pivotedMap.has(key)) {
-          const pivotedRow: any = {};
-          keyFields.forEach((f: string) => {
-            pivotedRow[f] = row[f];
-          });
-          pivotedMap.set(key, pivotedRow);
-        }
-
-        const pivotedRow = pivotedMap.get(key);
-
-        (metrics || []).forEach((metric: string) => {
-          const fieldName = `${metric}_${year}`;
-          pivotedRow[fieldName] = row[metric] || 0;
-        });
-      });
-
-      result = Array.from(pivotedMap.values()).map(row => {
-        (metrics || []).forEach((metric: string) => {
-          const currentYear = baseYear || years[0];
-          const previousYear = years.find((y: number) => y !== currentYear) || years[1];
-
-          const currentValue = row[`${metric}_${currentYear}`] || 0;
-          const previousValue = row[`${metric}_${previousYear}`] || 0;
-
-          if (previousValue !== 0) {
-            row[`${metric}_variazione`] = Math.round(((currentValue - previousValue) / previousValue) * 10000) / 100;
-          } else {
-            row[`${metric}_variazione`] = currentValue > 0 ? 100 : 0;
-          }
-        });
-
-        return row;
-      });
-
-      if (sortBy && sortBy.field && metrics && metrics.length > 0) {
-        const baseSortField = sortBy.field;
-        const baseYearValue = baseYear || years[0];
-        const sortField = `${baseSortField}_${baseYearValue}`;
-        const order = sortBy.order === 'desc' ? -1 : 1;
-
-        result.sort((a, b) => {
-          const valA = a[sortField] || 0;
-          const valB = b[sortField] || 0;
-          return (valA - valB) * order;
-        });
-      }
-    }
-
-    // 6. Limita risultati
-    if (limit && limit > 0) {
-      result = result.slice(0, limit);
-    }
-
-    return result;
   }
 
   // ============================================
@@ -1030,8 +833,13 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
     if (!this.analysisResult || !this.saveAnalysisName.trim()) return;
 
     try {
+      // Prepara i dati aggregati per il caching (compressi in base64)
+      const cachedResult = this.prepareCachedResult(this.aggregatedData);
+
       const result = await this.aiReportsService.saveDataAnalysis({
         prjId: this.config.prjId,
+        connCode: this.config.connCode || '',
+        pageCode: this.config.pageCode || '',
         analysisName: this.saveAnalysisName.trim(),
         description: this.analysisResult.explanation,
         dataContext: {
@@ -1042,12 +850,16 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
         aggregationRule: this.analysisResult.aggregationRule,
         chartConfig: this.analysisResult.chartConfig,
         gridConfig: this.analysisResult.gridConfig,
+        cachedResult: cachedResult,
         createdBy: this.authService.getUserEmail() || 'unknown'
       }).toPromise();
 
       if (result?.success) {
         this.closeSaveDialog();
-        this.showSuccess(this.t(1557, 'Analisi salvata con successo'));
+        const msg = result.updated
+          ? this.t(1560, 'Analisi aggiornata con successo')
+          : this.t(1557, 'Analisi salvata con successo');
+        this.showSuccess(msg);
         this.analysisSaved.emit({ id: result.analysisId, name: this.saveAnalysisName.trim() });
       }
     } catch (err: any) {
@@ -1056,16 +868,50 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Prepara i dati aggregati per il caching (JSON -> base64)
+   */
+  private prepareCachedResult(data: any[]): { data: string; recordCount: number; compressed: boolean } | undefined {
+    if (!data || data.length === 0) return undefined;
+
+    try {
+      const jsonStr = JSON.stringify(data);
+      const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+      return {
+        data: base64,
+        recordCount: data.length,
+        compressed: false  // Semplice base64, non gzip
+      };
+    } catch (err) {
+      console.warn('Failed to prepare cached result:', err);
+      return undefined;
+    }
+  }
+
+  /**
+   * Decodifica i dati cached (base64 -> JSON)
+   */
+  private decodeCachedResult(cachedResult: { data: string; compressed: boolean }): any[] | null {
+    if (!cachedResult?.data) return null;
+
+    try {
+      const jsonStr = decodeURIComponent(escape(atob(cachedResult.data)));
+      return JSON.parse(jsonStr);
+    } catch (err) {
+      console.warn('Failed to decode cached result:', err);
+      return null;
+    }
+  }
+
   async loadSavedAnalyses(): Promise<void> {
     try {
-      const result = await this.aiReportsService.listDataAnalyses(this.config.prjId).toPromise();
-      if (Array.isArray(result)) {
-        this.savedAnalyses = result;
-      } else if (result?.analyses) {
-        this.savedAnalyses = result.analyses;
-      } else {
-        this.savedAnalyses = [];
-      }
+      // Carica analisi filtrate per prjId + connCode + pageCode (lato server)
+      const result = await this.aiReportsService.listDataAnalyses(this.config.prjId, {
+        connCode: this.config.connCode || '',
+        pageCode: this.config.pageCode
+      }).toPromise();
+
+      this.savedAnalyses = Array.isArray(result) ? result : [];
       this.showSavedAnalyses = true;
     } catch (err: any) {
       console.error('Load saved analyses error:', err);
@@ -1076,32 +922,84 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
   async applySavedAnalysis(analysis: any): Promise<void> {
     try {
       const fullAnalysis = await this.aiReportsService.getDataAnalysis(analysis._id).toPromise();
-      if (fullAnalysis) {
-        this.userRequest = fullAnalysis.userRequest;
-        this.analysisResult = {
-          aggregationRule: fullAnalysis.aggregationRule,
-          chartConfig: fullAnalysis.chartConfig,
-          gridConfig: fullAnalysis.gridConfig,
-          explanation: fullAnalysis.description
-        };
+      if (!fullAnalysis) return;
 
-        this.normalizeGridConfig(this.analysisResult);
+      this.userRequest = fullAnalysis.userRequest;
+      this.analysisResult = {
+        aggregationRule: fullAnalysis.aggregationRule,
+        chartConfig: fullAnalysis.chartConfig,
+        gridConfig: fullAnalysis.gridConfig,
+        explanation: fullAnalysis.description
+      };
+
+      this.normalizeGridConfig(this.analysisResult);
+
+      // Prova a usare i dati cached (istantaneo!)
+      let usedCache = false;
+      if (fullAnalysis.cachedResult?.data) {
+        const cachedData = this.decodeCachedResult(fullAnalysis.cachedResult);
+        if (cachedData && cachedData.length > 0) {
+          this.aggregatedData = cachedData;
+          usedCache = true;
+        }
+      }
+
+      // Fallback: riaggrega LATO CLIENT se non ci sono dati cached
+      if (!usedCache) {
         this.aggregatedData = this.applyAggregationRules(this.data, this.analysisResult);
 
-        const pivotYears = this.analysisResult.aggregationRule?.pivotByYear?.years;
-        if (pivotYears && pivotYears.length >= 2) {
-          this.adaptGridConfigForPivot(this.analysisResult);
-        }
-
-        this.prepareResultChart(this.analysisResult);
-
-        this.showSavedAnalyses = false;
-        this.cdr.detectChanges();
+        // Aggiorna la cache per le prossime volte (in background)
+        this.updateAnalysisCache(analysis._id, this.aggregatedData);
       }
+
+      const pivotYears = this.analysisResult.aggregationRule?.pivotByYear?.years;
+      if (pivotYears && pivotYears.length >= 2) {
+        this.adaptGridConfigForPivot(this.analysisResult);
+      }
+
+      this.prepareResultChart(this.analysisResult);
+
+      this.showSavedAnalyses = false;
+      this.cdr.detectChanges();
+
     } catch (err: any) {
       console.error('Apply saved analysis error:', err);
       this.showError(this.t(1528, 'Errore durante l\'applicazione:') + ' ' + (err.message || ''));
     }
+  }
+
+  /**
+   * Aggiorna la cache di un'analisi esistente (in background)
+   */
+  private updateAnalysisCache(analysisId: string, aggregatedData: any[]): void {
+    // Non blocca l'UI, aggiorna in background
+    const cachedResult = this.prepareCachedResult(aggregatedData);
+    if (!cachedResult) return;
+
+    // Ricarica l'analisi completa e risalvala con i dati cached
+    this.aiReportsService.getDataAnalysis(analysisId).subscribe({
+      next: (fullAnalysis: any) => {
+        if (fullAnalysis) {
+          this.aiReportsService.saveDataAnalysis({
+            prjId: fullAnalysis.prjId,
+            connCode: fullAnalysis.connCode || '',
+            pageCode: fullAnalysis.pageCode || '',
+            analysisName: fullAnalysis.analysisName,
+            description: fullAnalysis.description,
+            dataContext: fullAnalysis.dataContext,
+            userRequest: fullAnalysis.userRequest,
+            aggregationRule: fullAnalysis.aggregationRule,
+            chartConfig: fullAnalysis.chartConfig,
+            gridConfig: fullAnalysis.gridConfig,
+            cachedResult: cachedResult,
+            createdBy: fullAnalysis.createdBy
+          }).subscribe({
+            next: () => console.log('[AI Analyzer] Cache updated for:', fullAnalysis.analysisName),
+            error: (err) => console.warn('[AI Analyzer] Failed to update cache:', err)
+          });
+        }
+      }
+    });
   }
 
   deleteSavedAnalysis(analysis: any, event: Event): void {
@@ -1260,6 +1158,311 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
       .replace(/[^a-zA-Z0-9\s\-_]/g, '')
       .replace(/\s+/g, '_')
       .substring(0, 50);
+  }
+
+  // ============================================
+  // CLIENT-SIDE AGGREGATION (ripristinato per performance e pivot)
+  // ============================================
+
+  /**
+   * Applica le regole di aggregazione ai dati localmente (client-side)
+   * Include: trasformazioni, filtri, groupBy, aggregazioni, sort, limit, pivot
+   */
+  private applyAggregationRules(data: any[], rules: any): any[] {
+    if (!Array.isArray(data) || data.length === 0) return [];
+    if (!rules?.aggregationRule) return data;
+
+    const { groupBy, aggregations, sortBy, filters, limit, dataTransformations, pivotByYear } = rules.aggregationRule;
+    let result = [...data];
+
+    // 1. Data transformations
+    if (dataTransformations && dataTransformations.length > 0) {
+      result = this.applyTransformations(result, dataTransformations);
+    }
+
+    // 2. Filters
+    if (filters && filters.length > 0) {
+      result = this.applyFilters(result, filters);
+    }
+
+    // 3. GroupBy + Aggregations
+    if (groupBy && groupBy.length > 0) {
+      result = this.applyGroupBy(result, groupBy, aggregations || []);
+    }
+
+    // 4. Sort
+    if (sortBy && sortBy.field) {
+      result = this.applySort(result, sortBy);
+    }
+
+    // 5. Limit (prima del pivot per non perdere dati)
+    // NOTA: se c'è pivot, il limit va applicato DOPO il pivot
+    const shouldLimitBeforePivot = !(pivotByYear?.years?.length >= 2);
+    if (shouldLimitBeforePivot && limit && limit > 0) {
+      result = result.slice(0, limit);
+    }
+
+    // 6. PIVOT BY YEAR
+    if (pivotByYear?.years?.length >= 2) {
+      result = this.applyPivotByYear(result, groupBy || [], aggregations || [], pivotByYear);
+
+      // Applica limit dopo il pivot
+      if (limit && limit > 0) {
+        result = result.slice(0, limit);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Applica trasformazioni ai dati (trim, replace, normalize, etc.)
+   */
+  private applyTransformations(data: any[], transformations: any[]): any[] {
+    return data.map(row => {
+      const transformed = { ...row };
+
+      transformations.forEach(transform => {
+        const field = transform.field;
+        if (transformed[field] === undefined || transformed[field] === null) return;
+
+        let value = String(transformed[field]);
+
+        switch (transform.operation) {
+          case 'trim':
+            value = value.trim();
+            break;
+          case 'trimChars':
+            if (transform.chars) {
+              const chars = transform.chars;
+              while (value.length > 0 && chars.includes(value[0])) {
+                value = value.substring(1);
+              }
+              while (value.length > 0 && chars.includes(value[value.length - 1])) {
+                value = value.substring(0, value.length - 1);
+              }
+            }
+            break;
+          case 'replace':
+            if (transform.find !== undefined) {
+              const replaceWith = transform.replaceWith || '';
+              value = value.split(transform.find).join(replaceWith);
+            }
+            break;
+          case 'toUpperCase':
+            value = value.toUpperCase();
+            break;
+          case 'toLowerCase':
+            value = value.toLowerCase();
+            break;
+          case 'normalize':
+            value = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+            break;
+          case 'sortWords':
+            value = value.split(/\s+/).filter(w => w.length > 0)
+              .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+              .join(' ');
+            break;
+        }
+
+        transformed[field] = value;
+      });
+
+      return transformed;
+    });
+  }
+
+  /**
+   * Applica filtri ai dati
+   */
+  private applyFilters(data: any[], filters: any[]): any[] {
+    return data.filter(row => {
+      return filters.every(filter => {
+        const value = row[filter.field];
+        const filterValue = filter.value;
+
+        switch (filter.operator) {
+          case 'eq': return value == filterValue;
+          case 'ne': return value != filterValue;
+          case 'gt': return value > filterValue;
+          case 'lt': return value < filterValue;
+          case 'gte': return value >= filterValue;
+          case 'lte': return value <= filterValue;
+          case 'contains':
+            return String(value).toLowerCase().includes(String(filterValue).toLowerCase());
+          case 'startsWith':
+            return String(value).toLowerCase().startsWith(String(filterValue).toLowerCase());
+          case 'endsWith':
+            return String(value).toLowerCase().endsWith(String(filterValue).toLowerCase());
+          case 'in':
+            return Array.isArray(filterValue) && filterValue.includes(value);
+          case 'between':
+            return Array.isArray(filterValue) && value >= filterValue[0] && value <= filterValue[1];
+          default:
+            return true;
+        }
+      });
+    });
+  }
+
+  /**
+   * Applica groupBy e aggregazioni
+   */
+  private applyGroupBy(data: any[], groupBy: string[], aggregations: any[]): any[] {
+    const groups = new Map<string, any>();
+
+    data.forEach(row => {
+      const key = groupBy.map(field => row[field]).join('|||');
+
+      if (!groups.has(key)) {
+        const groupData: any = { _rows: [] };
+        groupBy.forEach(field => groupData[field] = row[field]);
+        groups.set(key, groupData);
+      }
+
+      groups.get(key)._rows.push(row);
+    });
+
+    return Array.from(groups.values()).map(group => {
+      const aggregated: any = {};
+
+      // Copia campi groupBy
+      Object.keys(group).forEach(k => {
+        if (k !== '_rows') aggregated[k] = group[k];
+      });
+
+      // Applica aggregazioni
+      aggregations.forEach(agg => {
+        const alias = agg.alias || agg.field;
+        const values = group._rows
+          .map((r: any) => r[agg.field])
+          .filter((v: any) => v !== undefined && v !== null);
+
+        switch (agg.operation) {
+          case 'sum':
+            aggregated[alias] = values.reduce((sum: number, v: any) => sum + (parseFloat(v) || 0), 0);
+            break;
+          case 'avg':
+            aggregated[alias] = values.length > 0
+              ? values.reduce((sum: number, v: any) => sum + (parseFloat(v) || 0), 0) / values.length
+              : 0;
+            break;
+          case 'count':
+            aggregated[alias] = group._rows.length;
+            break;
+          case 'min':
+            aggregated[alias] = Math.min(...values.map((v: any) => parseFloat(v) || 0));
+            break;
+          case 'max':
+            aggregated[alias] = Math.max(...values.map((v: any) => parseFloat(v) || 0));
+            break;
+          case 'first':
+            aggregated[alias] = values[0];
+            break;
+          case 'last':
+            aggregated[alias] = values[values.length - 1];
+            break;
+          case 'concat':
+            aggregated[alias] = values.join(agg.separator || ', ');
+            break;
+        }
+      });
+
+      return aggregated;
+    });
+  }
+
+  /**
+   * Applica ordinamento
+   */
+  private applySort(data: any[], sortBy: { field: string; order: string }): any[] {
+    const field = sortBy.field;
+    const order = sortBy.order === 'desc' ? -1 : 1;
+
+    return [...data].sort((a, b) => {
+      const valA = a[field];
+      const valB = b[field];
+
+      if (valA === valB) return 0;
+      if (valA === undefined || valA === null) return 1;
+      if (valB === undefined || valB === null) return -1;
+
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return (valA - valB) * order;
+      }
+
+      return String(valA).localeCompare(String(valB)) * order;
+    });
+  }
+
+  /**
+   * Applica pivot per anno - trasforma righe in colonne per confronto anno su anno
+   *
+   * Input: [{ Prodotto: 'A', Anno: 2025, totaleKg: 100 }, { Prodotto: 'A', Anno: 2024, totaleKg: 80 }]
+   * Output: [{ Prodotto: 'A', totaleKg_2025: 100, totaleKg_2024: 80, totaleKg_variazione: 25 }]
+   */
+  private applyPivotByYear(data: any[], groupBy: string[], aggregations: any[], pivotConfig: any): any[] {
+    const { yearField, years, baseYear, metrics } = pivotConfig;
+
+    if (!yearField || !years || years.length < 2) {
+      return data;
+    }
+
+    // Campi chiave (escluso l'anno)
+    const keyFields = groupBy.filter(f => f !== yearField);
+
+    // Metriche da pivotare (prende alias se definito)
+    const metricFields = metrics && metrics.length > 0
+      ? metrics
+      : aggregations.map(a => a.alias || a.field);
+
+    // Raggruppa per chiave (senza anno)
+    const pivotGroups = new Map<string, any>();
+
+    data.forEach(row => {
+      const key = keyFields.map(f => row[f]).join('|||');
+
+      if (!pivotGroups.has(key)) {
+        const newRow: any = {};
+        keyFields.forEach(f => newRow[f] = row[f]);
+        pivotGroups.set(key, newRow);
+      }
+
+      const pivotRow = pivotGroups.get(key);
+      const year = row[yearField];
+
+      // Assegna valori per anno (es. totaleKg_2025)
+      metricFields.forEach((metric: string) => {
+        if (row[metric] !== undefined) {
+          pivotRow[`${metric}_${year}`] = row[metric];
+        }
+      });
+    });
+
+    // Calcola variazioni %
+    const result = Array.from(pivotGroups.values());
+    const [year1, year2] = years; // es. [2025, 2024] - year1 è l'anno più recente
+
+    result.forEach(row => {
+      metricFields.forEach((metric: string) => {
+        const val1 = row[`${metric}_${year1}`] || 0;
+        const val2 = row[`${metric}_${year2}`] || 0;
+
+        if (val2 !== 0) {
+          row[`${metric}_variazione`] = ((val1 - val2) / val2) * 100;
+        } else {
+          row[`${metric}_variazione`] = val1 > 0 ? 100 : 0;
+        }
+      });
+    });
+
+    // Riordina per la prima metrica dell'anno più recente (desc)
+    if (metricFields.length > 0) {
+      const sortField = `${metricFields[0]}_${year1}`;
+      result.sort((a, b) => (b[sortField] || 0) - (a[sortField] || 0));
+    }
+
+    return result;
   }
 
   // ============================================

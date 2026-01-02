@@ -19,6 +19,7 @@ export const COMPONENT_REGISTRY: { [key: string]: () => Promise<any> } = {
   'GTR/stdTable': () => import('../../features/GTR/std-table/std-table.page').then(m => m.GTR_StdTableComponent),
   'GTR/webapp': () => import('../../features/GTR/web-app/web-app.page').then(m => m.GTR_WebAppComponent),
 
+  'GTR/sitpagam': () => import('../../features/GTR/sitPagamenti/sitPagamenti.page').then(m => m.GTR_SitPagamentiComponent),
   // GTSW Components
   'GTSW/users': () => import('../../features/GTSW/users/users.page').then(m => m.GTSW_UsersComponent),
   'GTSW/authrules': () => import('../../features/GTSW/authrules/authrules.page').then(m => m.GTSW_AuthrulesComponent),

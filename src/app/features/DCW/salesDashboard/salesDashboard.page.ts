@@ -26,6 +26,7 @@ import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form
 import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';
 import { GtsLoaderComponent } from '../../../core/gts/gts-loader/gts-loader.component';
 import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts/gts-ai-analyzer/gts-ai-analyzer.component';
+import { GtsDashboardComponent, DashboardConfig } from '../../../core/gts/gts-dashboard/gts-dashboard.component';
 
 // PrimeNG
 import { CardModule } from 'primeng/card';
@@ -144,6 +145,7 @@ interface ExcelRow {
     GtsMessageComponent,
     GtsLoaderComponent,
     GtsAiAnalyzerComponent,
+    GtsDashboardComponent,
 
     // PrimeNG
     CardModule,
@@ -262,6 +264,9 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
 
     // Run Page with hardcoded formId
     this.gtsDataService.runPage(this.prjId, this.formId);
+
+    // Imposta connCode dinamicamente per AI Analyzer
+    this.gtsAiAnalyzerConfig.connCode = this.gtsDataService.getActualConnCode();
 
     // Verifica se esistono dati cached per questa pagina
     this.checkCachedData();
@@ -537,7 +542,10 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
 
     if (customCode === 'SHOW_DASHBOARD') {
       this.showDashboard = true;
-      // Dashboard starts empty - user must upload Excel file
+      // Se ci sono dati in cache, caricali automaticamente
+      if (this.hasCachedData && this.rawExcelData.length === 0) {
+        this.loadCachedData();
+      }
     }
 
     if (customCode === 'HIDE_DASHBOARD') {
@@ -1868,7 +1876,81 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
   gtsAiAnalyzerConfig: AiAnalyzerConfig = {
     prjId: 'DCW',
     datasetName: 'salesData',
+    pageCode: 'salesDashboard_20',  // datasetName + formId per filtro analisi salvate
     dialogTitle: 'AI Analyzer - Sales Data'
   };
   pendingOpenAnalyzer: boolean = false; // Flag per aprire analyzer dopo caricamento dati
+
+  // ============================================
+  // GTS DASHBOARD (metadata-driven)
+  // ============================================
+  showGtsDashboard: boolean = false;
+  gtsDashboardConfig: DashboardConfig = {
+    prjId: 'DCW',
+    dashboardCode: 'salesDashboard',
+    connCode: '',
+    title: 'Sales Dashboard (Metadata)'
+  };
+
+  /**
+   * Toggle tra dashboard hardcoded e metadata-driven
+   */
+  toggleDashboardMode(): void {
+    this.showGtsDashboard = !this.showGtsDashboard;
+  }
+
+  /**
+   * Refresh handler per GTS Dashboard - ricarica i dati dalla cache
+   */
+  onGtsDashboardRefresh(): void {
+    if (this.hasCachedData) {
+      this.loadCachedData();
+    }
+  }
+
+  /**
+   * Handler per richiesta dati da GTS Dashboard
+   * Carica i dati dalla cache e li passa alla dashboard tramite callback
+   */
+  onDashboardDataRequest(event: { dataset: any; callback: (data: any[]) => void }): void {
+    const { dataset, callback } = event;
+    console.log('Dashboard requesting data for dataset:', dataset);
+
+    // Se abbiamo già i dati raw, usali direttamente
+    if (this.rawExcelData && this.rawExcelData.length > 0) {
+      console.log('Using existing rawExcelData:', this.rawExcelData.length, 'records');
+      callback(this.rawExcelData);
+      return;
+    }
+
+    // Altrimenti carica dalla cache
+    if (this.hasCachedData) {
+      const pageCode = `salesDashboard_${this.formId}`;
+      this.cacheLoading = true;
+      this.gtsDataService.sendAppLoaderListener(true);
+
+      this.userDataService.loadExcelCache<ExcelRow[]>(this.prjId, pageCode, 'shared').subscribe({
+        next: (response) => {
+          if (response.success && response.data) {
+            // Processa i dati
+            this.processExcelData(response.data);
+            // Passa i dati alla dashboard
+            callback(this.rawExcelData);
+          }
+        },
+        error: (err) => {
+          console.error('Error loading cached data for dashboard:', err);
+          this.showError(this.t(1551, 'Errore nel caricamento dei dati dalla cache'));
+        },
+        complete: () => {
+          this.cacheLoading = false;
+          this.gtsDataService.sendAppLoaderListener(false);
+        }
+      });
+    } else {
+      // Nessun dato disponibile
+      console.warn('No cached data available for dashboard');
+      callback([]);
+    }
+  }
 }
