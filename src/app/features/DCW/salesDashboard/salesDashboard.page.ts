@@ -1884,20 +1884,12 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
   // ============================================
   // GTS DASHBOARD (metadata-driven)
   // ============================================
-  showGtsDashboard: boolean = false;
   gtsDashboardConfig: DashboardConfig = {
     prjId: 'DCW',
     dashboardCode: 'salesDashboard',
     connCode: '',
-    title: 'Sales Dashboard (Metadata)'
+    title: 'Sales Dashboard'
   };
-
-  /**
-   * Toggle tra dashboard hardcoded e metadata-driven
-   */
-  toggleDashboardMode(): void {
-    this.showGtsDashboard = !this.showGtsDashboard;
-  }
 
   /**
    * Refresh handler per GTS Dashboard - ricarica i dati dalla cache
