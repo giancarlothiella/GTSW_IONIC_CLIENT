@@ -195,6 +195,31 @@ export interface DashboardTools {
   fullscreen?: boolean;
 }
 
+/**
+ * Opzione filtro con supporto traduzioni
+ */
+export interface DashboardFilterOption {
+  label: string;                    // Label di fallback
+  value: any;                       // Valore dell'opzione
+  txtId?: number;                   // ID traduzione (opzionale)
+}
+
+/**
+ * Configurazione filtri dashboard
+ */
+export interface DashboardFilterConfig {
+  field: string;                    // Campo da filtrare (es. 'anno')
+  datasetId: string;                // Dataset da filtrare
+  type: 'select' | 'multiselect' | 'daterange' | 'text';
+  label: string;                    // Label di fallback
+  labelTxtId?: number;              // ID traduzione per label (opzionale)
+  options?: 'auto' | DashboardFilterOption[];  // 'auto' = ricava unique values
+  defaultValue?: any;               // Valore default (es. 'all')
+  dependsOn?: string;               // Filtro dipende da altro filtro (es. 'Anno')
+  placeholder?: string;             // Placeholder per input
+  placeholderTxtId?: number;        // ID traduzione per placeholder (opzionale)
+}
+
 export interface Dashboard {
   _id?: string;
   prjId: string;
@@ -207,6 +232,7 @@ export interface Dashboard {
   // Dataset e settings
   datasets?: DashboardDataset[];  // Array di dataset disponibili
   settings?: DashboardSettings;   // Settings globali (locale, currency, etc.)
+  filters?: DashboardFilterConfig[];  // Configurazione filtri dashboard
   tools?: DashboardTools;
   status?: 'active' | 'draft' | 'archived';
   author?: string;

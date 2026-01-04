@@ -16,26 +16,31 @@ import { DashboardItem } from '../../services/dashboard.service';
   template: `
     <div class="dash-chart">
       <!-- Title -->
-      <div class="chart-header" *ngIf="item.title">
-        <h3 class="chart-title">{{ item.title }}{{ drillDownLabel ? ': ' + drillDownLabel : '' }}</h3>
-        <span class="chart-subtitle" *ngIf="item.subtitle">{{ item.subtitle }}</span>
-      </div>
+      @if (item.title) {
+        <div class="chart-header">
+          <h3 class="chart-title">{{ item.title }}{{ drillDownLabel ? ': ' + drillDownLabel : '' }}</h3>
+          @if (item.subtitle) {
+            <span class="chart-subtitle">{{ item.subtitle }}</span>
+          }
+        </div>
+      }
 
       <!-- Chart -->
       <div class="chart-container" [style.min-height.px]="chartHeight">
-        <p-chart
-          *ngIf="chartData && chartOptions"
-          [type]="chartType"
-          [data]="chartData"
-          [options]="chartOptions"
-          (onDataSelect)="onChartClick($event)">
-        </p-chart>
-
-        <!-- Empty state -->
-        <div *ngIf="!chartData" class="chart-empty">
-          <i class="pi pi-chart-bar"></i>
-          <span>Nessun dato disponibile</span>
-        </div>
+        @if (chartData && chartOptions) {
+          <p-chart
+            [type]="chartType"
+            [data]="chartData"
+            [options]="chartOptions"
+            (onDataSelect)="onChartClick($event)">
+          </p-chart>
+        } @else {
+          <!-- Empty state -->
+          <div class="chart-empty">
+            <i class="pi pi-chart-bar"></i>
+            <span>Nessun dato disponibile</span>
+          </div>
+        }
       </div>
     </div>
   `,

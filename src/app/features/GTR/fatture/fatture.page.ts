@@ -240,6 +240,9 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
 
     // Run Page
     this.gtsDataService.runPage(this.prjId, this.formId);
+
+    // Imposta connCode dinamicamente per AI Analyzer
+    this.aiAnalyzerConfig.connCode = this.gtsDataService.getActualConnCode();
   }
 
   ngOnDestroy(): void {
@@ -265,6 +268,7 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
   aiAnalyzerConfig: AiAnalyzerConfig = {
     prjId: 'GTR',
     datasetName: 'fatture',
+    pageCode: 'fatture_1',  // datasetName + formId per filtro analisi salvate
     dialogTitle: 'AI Analyzer - Fatture'
   };
 

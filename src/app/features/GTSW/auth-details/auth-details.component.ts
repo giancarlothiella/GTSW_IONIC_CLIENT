@@ -37,7 +37,9 @@ import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.c
     </app-gts-toolbar>
 
     <div [style]="viewStyle">
-      <app-gts-loader *ngIf="loading"></app-gts-loader>
+      @if (loading) {
+      <app-gts-loader></app-gts-loader>
+      }
 
       @for (element of metaData.tabs; track element.objectName) {
         @if (element.visible) {

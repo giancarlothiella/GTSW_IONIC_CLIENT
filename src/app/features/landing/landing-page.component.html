@@ -98,13 +98,15 @@
         </p>
       </div>
       <div class="features-grid">
-        <div class="feature-card" *ngFor="let feature of features">
-          <div class="feature-icon">
-            <ion-icon [name]="feature.icon"></ion-icon>
+        @for (feature of features; track feature) {
+          <div class="feature-card">
+            <div class="feature-icon">
+              <ion-icon [name]="feature.icon"></ion-icon>
+            </div>
+            <h3 class="feature-title">{{ feature.title }}</h3>
+            <p class="feature-description">{{ feature.description }}</p>
           </div>
-          <h3 class="feature-title">{{ feature.title }}</h3>
-          <p class="feature-description">{{ feature.description }}</p>
-        </div>
+        }
       </div>
     </div>
   </section>
@@ -119,26 +121,28 @@
         </p>
       </div>
       <div class="docs-grid">
-        <div class="doc-card" *ngFor="let doc of documents">
-          <div class="doc-icon">
-            <ion-icon [name]="doc.icon"></ion-icon>
-          </div>
-          <div class="doc-content">
-            <h3 class="doc-title">{{ doc.title }}</h3>
-            <p class="doc-description">{{ doc.description }}</p>
-            <div class="doc-meta">
-              <span class="doc-size">
-                <ion-icon name="document-outline"></ion-icon>
-                {{ doc.size }}
-              </span>
-              <span class="doc-format">PDF</span>
+        @for (doc of documents; track doc) {
+          <div class="doc-card">
+            <div class="doc-icon">
+              <ion-icon [name]="doc.icon"></ion-icon>
             </div>
+            <div class="doc-content">
+              <h3 class="doc-title">{{ doc.title }}</h3>
+              <p class="doc-description">{{ doc.description }}</p>
+              <div class="doc-meta">
+                <span class="doc-size">
+                  <ion-icon name="document-outline"></ion-icon>
+                  {{ doc.size }}
+                </span>
+                <span class="doc-format">PDF</span>
+              </div>
+            </div>
+            <button (click)="downloadDocument(doc.filename)" class="btn-download">
+              <ion-icon name="download-outline"></ion-icon>
+              Download
+            </button>
           </div>
-          <button (click)="downloadDocument(doc.filename)" class="btn-download">
-            <ion-icon name="download-outline"></ion-icon>
-            Download
-          </button>
-        </div>
+        }
       </div>
     </div>
   </section>
@@ -153,9 +157,11 @@
         </p>
       </div>
       <div class="tech-stack">
-        <div class="tech-badge" *ngFor="let tech of technologies" [style.border-color]="tech.color">
-          <span class="tech-name">{{ tech.name }}</span>
-        </div>
+        @for (tech of technologies; track tech) {
+          <div class="tech-badge" [style.border-color]="tech.color">
+            <span class="tech-name">{{ tech.name }}</span>
+          </div>
+        }
       </div>
       <div class="architecture-preview">
         <div class="arch-layer">

@@ -1,6 +1,6 @@
 {
   "prjId": "DCW",
-  "connCode": "",
+  "connCode": "DCW_SS",
   "dashboardCode": "salesDashboard",
   "title": "Sales Dashboard",
   "description": "Dashboard vendite con KPI, trend e analisi",
@@ -13,6 +13,58 @@
       "description": "Dataset principale vendite",
       "cacheKey": "salesDashboard_51",
       "cacheTTL": 30
+    }
+  ],
+
+  "filters": [
+    {
+      "field": "anno",
+      "datasetId": "sales",
+      "type": "select",
+      "label": "Anno",
+      "options": "auto",
+      "defaultValue": "all",
+      "placeholder": "Seleziona anno"
+    },
+    {
+      "field": "trimestre",
+      "datasetId": "sales",
+      "type": "select",
+      "label": "Trimestre",
+      "options": [
+        { "label": "Tutti", "value": "all" },
+        { "label": "Q1", "value": "Q1" },
+        { "label": "Q2", "value": "Q2" },
+        { "label": "Q3", "value": "Q3" },
+        { "label": "Q4", "value": "Q4" }
+      ],
+      "defaultValue": "all",
+      "dependsOn": "anno",
+      "placeholder": "Seleziona trimestre"
+    },
+    {
+      "field": "mese",
+      "datasetId": "sales",
+      "type": "select",
+      "label": "Mese",
+      "options": [
+        { "label": "Tutti", "value": "all" },
+        { "label": "Gennaio", "value": "01" },
+        { "label": "Febbraio", "value": "02" },
+        { "label": "Marzo", "value": "03" },
+        { "label": "Aprile", "value": "04" },
+        { "label": "Maggio", "value": "05" },
+        { "label": "Giugno", "value": "06" },
+        { "label": "Luglio", "value": "07" },
+        { "label": "Agosto", "value": "08" },
+        { "label": "Settembre", "value": "09" },
+        { "label": "Ottobre", "value": "10" },
+        { "label": "Novembre", "value": "11" },
+        { "label": "Dicembre", "value": "12" }
+      ],
+      "defaultValue": "all",
+      "dependsOn": "anno",
+      "placeholder": "Seleziona mese"
     }
   ],
 

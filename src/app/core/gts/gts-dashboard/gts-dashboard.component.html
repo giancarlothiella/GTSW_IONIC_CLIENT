@@ -1,133 +1,202 @@
 <!-- GTS Dashboard Component Template -->
 
-<div class="gts-dashboard" *ngIf="visible && dashboard">
+@if (visible && dashboard) {
+  <div class="gts-dashboard">
 
-  <!-- Header -->
-  <div class="dashboard-header">
-    <div class="dashboard-title-section">
-      <!-- Back button quando in drill-down -->
-      <button
-        *ngIf="isInDrillDown()"
-        pButton
-        type="button"
-        icon="pi pi-arrow-left"
-        class="p-button-text p-button-sm back-button"
-        (click)="goBack()"
-        [pTooltip]="t(1600, 'Torna indietro')"
-        tooltipPosition="right">
-      </button>
+    <!-- Header -->
+    <div class="dashboard-header">
+      <!-- Title, Filters and Tools - single row -->
+      <div class="dashboard-title-section">
+        <!-- Title and breadcrumb -->
+        <div class="title-and-breadcrumb">
+          <!-- Back button quando in drill-down -->
+          @if (isInDrillDown()) {
+            <button
+              pButton
+              type="button"
+              icon="pi pi-arrow-left"
+              class="p-button-text p-button-sm back-button"
+              (click)="goBack()"
+              [pTooltip]="t(1600, 'Torna indietro')"
+              tooltipPosition="right">
+            </button>
+          }
 
-      <h2 class="dashboard-title">{{ config.title || dashboard.title }}</h2>
+          <h2 class="dashboard-title">{{ config.title || dashboard.title }}</h2>
 
-      <!-- Drill-down breadcrumb -->
-      <span *ngIf="isInDrillDown()" class="drill-breadcrumb">
-        <span class="breadcrumb-separator">›</span>
-        <span class="breadcrumb-filter" *ngIf="getActiveDrillDownInfo() as drillInfo">
-          {{ drillInfo.field }}: {{ drillInfo.value }}
-        </span>
-      </span>
-    </div>
+          <!-- Drill-down breadcrumb -->
+          @if (isInDrillDown()) {
+            <span class="drill-breadcrumb">
+              <span class="breadcrumb-separator">›</span>
+              @if (getActiveDrillDownInfo(); as drillInfo) {
+                <span class="breadcrumb-filter">
+                  {{ drillInfo.field }}: {{ drillInfo.value }}
+                </span>
+              }
+            </span>
+          }
+        </div>
 
-    <!-- Tools -->
-    <div class="dashboard-tools" *ngIf="dashboard.tools">
-      <button
-        *ngIf="dashboard.tools.refresh"
-        pButton
-        type="button"
-        icon="pi pi-refresh"
-        class="p-button-text p-button-sm"
-        (click)="refresh()"
-        [pTooltip]="t(1601, 'Aggiorna dati')"
-        tooltipPosition="left">
-      </button>
-    </div>
-  </div>
+        <!-- Filters Section - inline -->
+        @if (dashboard.filters && dashboard.filters.length > 0) {
+          <div class="dashboard-filters">
+            @for (filter of dashboard.filters; track filter.field) {
+              <div class="filter-item">
+                <label class="filter-label">{{ filter.label }}</label>
+                <p-select
+                  [options]="getFilterOptions(filter.field)"
+                  [ngModel]="getFilterValue(filter.field)"
+                  (ngModelChange)="setFilterValue(filter.field, $event)"
+                  [placeholder]="filter.placeholder || filter.label"
+                  [disabled]="isFilterDisabled(filter)"
+                  optionLabel="label"
+                  optionValue="value"
+                  [style]="{ minWidth: '120px' }">
+                </p-select>
+              </div>
+            }
 
-  <!-- Loading -->
-  <div *ngIf="loading" class="dashboard-loading">
-    <p-progress-spinner strokeWidth="3" [style]="{width: '50px', height: '50px'}"></p-progress-spinner>
-    <span>{{ t(1602, 'Caricamento dashboard...') }}</span>
-  </div>
-
-  <!-- Error -->
-  <div *ngIf="error" class="dashboard-error">
-    <i class="pi pi-exclamation-triangle"></i>
-    <span>{{ error }}</span>
-    <button pButton type="button" label="Riprova" class="p-button-text" (click)="loadDashboard()"></button>
-  </div>
-
-  <!-- Dashboard Sections -->
-  <div *ngIf="!loading && !error" class="dashboard-content">
-
-    <ng-container *ngFor="let section of getSections()">
-      <!-- Section container -->
-      <div
-        class="dashboard-section"
-        [ngStyle]="getSectionStyle(section)"
-        [attr.data-section]="section.sectionId">
-
-        <!-- Items in section -->
-        <ng-container *ngFor="let item of getItemsForSection(section); let i = index">
-          <div
-            class="dashboard-item"
-            [ngStyle]="getItemStyle(item)"
-            [class.clickable]="item.drillDownFilter"
-            [class.item-card]="item.type === 'card'"
-            [class.item-chart]="item.type === 'chart'"
-            [class.item-grid]="item.type === 'grid'"
-            [class.in-drill-down]="isPositionInDrillDown(section.sectionId, $any(item)._positionIndex ?? i)">
-
-            <!-- Back button per posizione in drill-down -->
-            @if (isPositionInDrillDown(section.sectionId, $any(item)._positionIndex ?? i)) {
+            <!-- Reset filters button -->
+            @if (hasActiveFilters()) {
               <button
                 pButton
                 type="button"
-                icon="pi pi-arrow-left"
-                class="p-button-text p-button-sm position-back-button"
-                (click)="goBackPosition(section.sectionId, $any(item)._positionIndex ?? i); $event.stopPropagation()">
+                icon="pi pi-filter-slash"
+                class="p-button-text p-button-sm reset-filters-btn"
+                (click)="resetFilters()"
+                [pTooltip]="t(1701, 'Reset filtri')"
+                tooltipPosition="bottom"
+                tooltipStyleClass="gts-tooltip">
               </button>
             }
+          </div>
+        }
 
-            <!-- Card -->
-            <app-gts-dash-card
-              *ngIf="item.type === 'card'"
-              [item]="item"
-              [data]="getItemData(item.itemId)"
-              (onClick)="onDrillDown(item, $event, section.sectionId, $any(item)._positionIndex ?? i)">
-            </app-gts-dash-card>
+        <!-- Tools -->
+        @if (dashboard.tools) {
+          <div class="dashboard-tools">
+            @if (dashboard.tools.refresh) {
+              <button
+                pButton
+                type="button"
+                icon="pi pi-refresh"
+                class="p-button-text p-button-sm"
+                (click)="refresh()"
+                [pTooltip]="t(1700, 'Applica filtri e aggiorna')"
+                tooltipPosition="bottom"
+                tooltipStyleClass="gts-tooltip">
+              </button>
+            }
+          </div>
+        }
+      </div>
 
-            <!-- Chart -->
-            <app-gts-dash-chart
-              *ngIf="item.type === 'chart'"
-              [item]="item"
-              [data]="getItemData(item.itemId)"
-              [drillDownLabel]="getDrillDownLabel(section.sectionId, $any(item)._positionIndex ?? i)"
-              (onElementClick)="onDrillDown(item, $event, section.sectionId, $any(item)._positionIndex ?? i)">
-            </app-gts-dash-chart>
+      <!-- Applied filters info bar -->
+      @if (hasActiveFilters()) {
+        <div class="applied-filters-bar">
+          <i class="pi pi-filter"></i>
+          <span>{{ getAppliedFiltersLabel() }}</span>
+        </div>
+      }
+    </div>
 
-            <!-- Grid -->
-            <app-gts-dash-grid
-              *ngIf="item.type === 'grid'"
-              [item]="item"
-              [data]="getItemData(item.itemId)"
-              (onRowClick)="onDrillDown(item, $event, section.sectionId, $any(item)._positionIndex ?? i)">
-            </app-gts-dash-grid>
+    <!-- Loading -->
+    @if (loading) {
+      <div class="dashboard-loading">
+        <p-progress-spinner strokeWidth="3" [style]="{width: '50px', height: '50px'}"></p-progress-spinner>
+        <span>{{ t(1602, 'Caricamento dashboard...') }}</span>
+      </div>
+    }
+
+    <!-- Error -->
+    @if (error) {
+      <div class="dashboard-error">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>{{ error }}</span>
+        <button pButton type="button" label="Riprova" class="p-button-text" (click)="loadDashboard()"></button>
+      </div>
+    }
+
+    <!-- Dashboard Sections -->
+    @if (!loading && !error) {
+      <div class="dashboard-content">
+
+        @for (section of getSections(); track section.sectionId) {
+          <!-- Section container -->
+          <div
+            class="dashboard-section"
+            [ngStyle]="getSectionStyle(section)"
+            [attr.data-section]="section.sectionId">
+
+            <!-- Items in section -->
+            @for (item of getItemsForSection(section); track item.itemId; let i = $index) {
+              <div
+                class="dashboard-item"
+                [ngStyle]="getItemStyle(item)"
+                [class.clickable]="item.drillDownFilter"
+                [class.item-card]="item.type === 'card'"
+                [class.item-chart]="item.type === 'chart'"
+                [class.item-grid]="item.type === 'grid'"
+                [class.in-drill-down]="isPositionInDrillDown(section.sectionId, $any(item)._positionIndex ?? i)">
+
+                <!-- Back button per posizione in drill-down -->
+                @if (isPositionInDrillDown(section.sectionId, $any(item)._positionIndex ?? i)) {
+                  <button
+                    pButton
+                    type="button"
+                    icon="pi pi-arrow-left"
+                    class="p-button-text p-button-sm position-back-button"
+                    (click)="goBackPosition(section.sectionId, $any(item)._positionIndex ?? i); $event.stopPropagation()">
+                  </button>
+                }
+
+                <!-- Card -->
+                @if (item.type === 'card') {
+                  <app-gts-dash-card
+                    [item]="item"
+                    [data]="getItemData(item.itemId)"
+                    (onClick)="onDrillDown(item, $event, section.sectionId, $any(item)._positionIndex ?? i)">
+                  </app-gts-dash-card>
+                }
+
+                <!-- Chart -->
+                @if (item.type === 'chart') {
+                  <app-gts-dash-chart
+                    [item]="item"
+                    [data]="getItemData(item.itemId)"
+                    [drillDownLabel]="getDrillDownLabel(section.sectionId, $any(item)._positionIndex ?? i)"
+                    (onElementClick)="onDrillDown(item, $event, section.sectionId, $any(item)._positionIndex ?? i)">
+                  </app-gts-dash-chart>
+                }
+
+                <!-- Grid -->
+                @if (item.type === 'grid') {
+                  <app-gts-dash-grid
+                    [item]="item"
+                    [data]="getItemData(item.itemId)"
+                    (onRowClick)="onDrillDown(item, $event, section.sectionId, $any(item)._positionIndex ?? i)">
+                  </app-gts-dash-grid>
+                }
+
+              </div>
+            }
 
           </div>
-        </ng-container>
+        }
 
       </div>
-    </ng-container>
+    }
+
+    <!-- Empty state -->
+    @if (!loading && !error && getVisibleItems().length === 0) {
+      <div class="dashboard-empty">
+        <i class="pi pi-inbox"></i>
+        <span>{{ t(1603, 'Nessun elemento da visualizzare') }}</span>
+      </div>
+    }
 
   </div>
-
-  <!-- Empty state -->
-  <div *ngIf="!loading && !error && getVisibleItems().length === 0" class="dashboard-empty">
-    <i class="pi pi-inbox"></i>
-    <span>{{ t(1603, 'Nessun elemento da visualizzare') }}</span>
-  </div>
-
-</div>
+}
 
 <!-- Toast per messaggi -->
 <p-toast position="top-right"></p-toast>

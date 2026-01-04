@@ -11,7 +11,7 @@
  * - Supporto dataAdapter GTSuite per sorgente dati
  */
 
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -21,9 +21,10 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { Tooltip } from 'primeng/tooltip';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { Select } from 'primeng/select';
 
 // Services
-import { DashboardService, Dashboard, DashboardItem, DashboardSection, DashboardDataset, DashboardSettings } from '../../services/dashboard.service';
+import { DashboardService, Dashboard, DashboardItem, DashboardSection, DashboardDataset, DashboardSettings, DashboardFilterConfig } from '../../services/dashboard.service';
 import { GtsDataService } from '../../services/gts-data.service';
 import { TranslationService } from '../../services/translation.service';
 
@@ -72,6 +73,7 @@ interface DrillDownState {
     ProgressSpinner,
     Tooltip,
     Toast,
+    Select,
     GtsDashCardComponent,
     GtsDashChartComponent,
     GtsDashGridComponent
@@ -80,7 +82,7 @@ interface DrillDownState {
   templateUrl: './gts-dashboard.component.html',
   styleUrls: ['./gts-dashboard.component.scss']
 })
-export class GtsDashboardComponent implements OnInit, OnDestroy {
+export class GtsDashboardComponent implements OnInit, OnDestroy, OnChanges {
 
   // ============================================
   // INPUTS
@@ -129,8 +131,24 @@ export class GtsDashboardComponent implements OnInit, OnDestroy {
   // Cache dati aggregati per item
   private itemDataCache: Map<string, any[]> = new Map();
 
-  // Cache dati per dataset (key = datasetId)
+  // Cache dati originali per dataset (key = datasetId) - NON filtrati
+  private datasetCacheOriginal: Map<string, any[]> = new Map();
+
+  // Cache dati per dataset (key = datasetId) - può contenere dati filtrati
   private datasetCache: Map<string, any[]> = new Map();
+
+  // ============================================
+  // FILTERS STATE
+  // ============================================
+
+  // Valori filtri correnti (non ancora applicati)
+  filterValues: Map<string, any> = new Map();
+
+  // Valori filtri applicati (dopo click su Refresh)
+  appliedFilterValues: Map<string, any> = new Map();
+
+  // Opzioni per filtri con options: 'auto'
+  filterOptions: Map<string, Array<{ label: string; value: any }>> = new Map();
 
   // Settings della dashboard (per formattazione)
   get settings(): DashboardSettings {
@@ -155,9 +173,24 @@ export class GtsDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    // Quando la dashboard diventa visibile e i dati sono già caricati
+    if (changes['visible'] && changes['visible'].currentValue === true && !changes['visible'].firstChange) {
+      console.log('[ngOnChanges] Dashboard diventa visibile, inizializzo filtri');
+      // Se i dati sono già stati caricati, inizializza i filtri ora
+      if (this.datasetCacheOriginal.size > 0 && this.dashboard) {
+        this.initializeFilters();
+        this.applyFilters();
+      }
+    }
+  }
+
   ngOnDestroy(): void {
     this.itemDataCache.clear();
     this.datasetCache.clear();
+    this.filterValues.clear();
+    this.appliedFilterValues.clear();
+    this.filterOptions.clear();
   }
 
   // ============================================
@@ -206,12 +239,17 @@ export class GtsDashboardComponent implements OnInit, OnDestroy {
   /**
    * Ricarica i dati della dashboard
    */
+  /**
+   * Ricarica la dashboard applicando i filtri correnti
+   * Chiamato quando l'utente clicca sul pulsante Refresh
+   */
   refresh(): void {
     this.itemDataCache.clear();
     this.resetDrillDown();
-    if (this.rawData.length > 0) {
-      this.processAllItems();
-    }
+
+    // Applica i filtri e ricalcola
+    this.applyFilters();
+
     this.onRefresh.emit();
   }
 
@@ -252,9 +290,20 @@ export class GtsDashboardComponent implements OnInit, OnDestroy {
    * Callback quando i dati di un dataset sono stati caricati
    */
   private onDatasetReceived(datasetId: string, data: any[]): void {
-    // Normalizza e salva nella cache
+    // Log dati PRIMA della normalizzazione
+    if (data && data.length > 0) {
+      console.log(`[DEBUG] ORIGINAL keys (before normalize):`, Object.keys(data[0]));
+      console.log(`[DEBUG] ORIGINAL sample row:`, data[0]);
+    }
+    // Normalizza e salva nella cache ORIGINALE (non filtrata)
     const normalizedData = this.normalizeFieldNames(data);
     console.log(`Dataset ${datasetId} received: ${normalizedData.length} records`);
+    if (normalizedData.length > 0) {
+      console.log(`[DEBUG] NORMALIZED keys:`, Object.keys(normalizedData[0]));
+      console.log(`[DEBUG] NORMALIZED sample row:`, normalizedData[0]);
+    }
+    this.datasetCacheOriginal.set(datasetId, normalizedData);
+    // Inizialmente, anche la cache normale ha gli stessi dati
     this.datasetCache.set(datasetId, normalizedData);
 
     // Decrementa contatore pendenti
@@ -269,8 +318,17 @@ export class GtsDashboardComponent implements OnInit, OnDestroy {
       if (primaryDataset) {
         this._rawData = this.datasetCache.get(primaryDataset.datasetId) || [];
       }
-      this.processAllItems();
-      this.cdr.detectChanges();
+
+      // IMPORTANTE: Inizializza e applica filtri SOLO se la dashboard è visibile
+      if (this.visible) {
+        console.log('[onDatasetReceived] Dashboard visibile, inizializzo filtri');
+        // Inizializza i filtri
+        this.initializeFilters();
+        // Applica filtri di default e processa items
+        this.applyFilters();
+      } else {
+        console.log('[onDatasetReceived] Dashboard NON visibile, skip inizializzazione filtri');
+      }
     }
   }
 
@@ -324,6 +382,277 @@ export class GtsDashboardComponent implements OnInit, OnDestroy {
       });
       return normalized;
     });
+  }
+
+  // ============================================
+  // FILTERS
+  // ============================================
+
+  /**
+   * Inizializza i filtri con i valori di default e genera opzioni 'auto'
+   */
+  private initializeFilters(): void {
+    if (!this.dashboard?.filters || this.dashboard.filters.length === 0) {
+      console.log('[initializeFilters] Nessun filtro configurato');
+      return;
+    }
+
+    console.log('[initializeFilters] Inizializzo', this.dashboard.filters.length, 'filtri');
+
+    this.dashboard.filters.forEach(filterConfig => {
+      // Imposta valore di default
+      const defaultValue = filterConfig.defaultValue !== undefined ? filterConfig.defaultValue : 'all';
+      this.filterValues.set(filterConfig.field, defaultValue);
+      this.appliedFilterValues.set(filterConfig.field, defaultValue);
+      console.log(`[initializeFilters] Filtro ${filterConfig.field}: defaultValue = ${defaultValue}`);
+
+      // Genera opzioni automatiche se richiesto
+      if (filterConfig.options === 'auto') {
+        console.log(`[initializeFilters] Generazione auto-options per ${filterConfig.field} da dataset ${filterConfig.datasetId}`);
+        this.generateAutoOptions(filterConfig);
+      } else if (Array.isArray(filterConfig.options)) {
+        this.filterOptions.set(filterConfig.field, filterConfig.options);
+        console.log(`[initializeFilters] Opzioni manuali per ${filterConfig.field}:`, filterConfig.options.length);
+      }
+    });
+
+    console.log('[initializeFilters] Completato');
+  }
+
+  /**
+   * Genera opzioni automatiche per un filtro dai dati del dataset
+   */
+  private generateAutoOptions(filterConfig: DashboardFilterConfig): void {
+    const dataset = this.datasetCache.get(filterConfig.datasetId);
+    if (!dataset || dataset.length === 0) {
+      console.warn(`[generateAutoOptions] Dataset ${filterConfig.datasetId} non trovato o vuoto`);
+      return;
+    }
+
+    const field = filterConfig.field.toLowerCase();
+    const uniqueValues = new Set<any>();
+
+    dataset.forEach(row => {
+      const value = row[field];
+      if (value !== undefined && value !== null && value !== '') {
+        uniqueValues.add(value);
+      }
+    });
+
+    console.log(`[generateAutoOptions] Campo ${field}: ${uniqueValues.size} valori unici`);
+
+    // Ordina i valori (numeri per valore, stringhe alfabeticamente)
+    const sortedValues = Array.from(uniqueValues).sort((a, b) => {
+      if (typeof a === 'number' && typeof b === 'number') {
+        return b - a; // Numeri in ordine decrescente (anni più recenti prima)
+      }
+      return String(a).localeCompare(String(b));
+    });
+
+    // Crea opzioni con 'Tutti' come prima opzione
+    const options = [
+      { label: this.t(1518, 'Tutti'), value: 'all' },
+      ...sortedValues.map(val => ({ label: String(val), value: val }))
+    ];
+
+    this.filterOptions.set(filterConfig.field, options);
+    console.log(`[generateAutoOptions] Opzioni generate per ${field}:`, options.length);
+  }
+
+  /**
+   * Ottiene le opzioni per un filtro
+   */
+  getFilterOptions(field: string): Array<{ label: string; value: any }> {
+    return this.filterOptions.get(field) || [];
+  }
+
+  /**
+   * Ottiene il valore corrente di un filtro
+   */
+  getFilterValue(field: string): any {
+    return this.filterValues.get(field);
+  }
+
+  /**
+   * Imposta il valore di un filtro (NON applica ancora il filtro)
+   */
+  setFilterValue(field: string, value: any): void {
+    this.filterValues.set(field, value);
+  }
+
+  /**
+   * Ottiene i filtri configurati
+   */
+  getFilters(): DashboardFilterConfig[] {
+    return this.dashboard?.filters || [];
+  }
+
+  /**
+   * Verifica se un filtro deve essere disabilitato per dipendenza
+   */
+  isFilterDisabled(filterConfig: DashboardFilterConfig): boolean {
+    if (!filterConfig.dependsOn) return false;
+
+    // Verifica se il filtro da cui dipende ha valore 'all'
+    const dependsOnValue = this.filterValues.get(filterConfig.dependsOn);
+    return dependsOnValue === 'all' || dependsOnValue === undefined;
+  }
+
+  /**
+   * Applica i filtri correnti ai dataset e ricalcola gli items
+   * Questo metodo viene chiamato solo quando l'utente clicca su Refresh
+   */
+  applyFilters(): void {
+    try {
+      console.log('[applyFilters] Inizio applicazione filtri');
+
+      // Copia i valori correnti nei valori applicati
+      this.filterValues.forEach((value, key) => {
+        this.appliedFilterValues.set(key, value);
+        console.log(`[applyFilters] Filtro ${key} applicato: ${value}`);
+      });
+
+      // Filtra i dataset in base ai filtri applicati
+      this.filterDatasets();
+
+      // Ricalcola tutti gli items con i dati filtrati
+      this.itemDataCache.clear();
+      this.processAllItems();
+      this.cdr.detectChanges();
+
+      console.log('[applyFilters] Filtri applicati con successo');
+    } catch (error) {
+      console.error('[applyFilters] Errore durante applicazione filtri:', error);
+      // In caso di errore, non bloccare l'app, usa i dati non filtrati
+      this.filterDatasets(); // Ripristina dati originali
+      this.processAllItems();
+      this.cdr.detectChanges();
+    }
+  }
+
+  /**
+   * Filtra i dataset in base ai filtri applicati
+   */
+  private filterDatasets(): void {
+    if (!this.dashboard?.filters || this.dashboard.filters.length === 0) {
+      // Nessun filtro: ripristina i dati originali
+      this.datasetCacheOriginal.forEach((originalData, datasetId) => {
+        this.datasetCache.set(datasetId, originalData);
+      });
+    } else {
+      // Per ogni dataset ORIGINALE, crea una versione filtrata
+      this.datasetCacheOriginal.forEach((originalData, datasetId) => {
+        const filteredData = this.applyDatasetFilters(originalData, datasetId);
+        // Sovrascrivi la cache con i dati filtrati
+        this.datasetCache.set(datasetId, filteredData);
+      });
+    }
+
+    // Aggiorna anche rawData per retrocompatibilità
+    const primaryDataset = this.getPrimaryDataset();
+    if (primaryDataset) {
+      this._rawData = this.datasetCache.get(primaryDataset.datasetId) || [];
+    }
+  }
+
+  /**
+   * Applica i filtri attivi a un dataset specifico
+   */
+  private applyDatasetFilters(data: any[], datasetId: string): any[] {
+    if (!this.dashboard?.filters) return data;
+
+    let filtered = [...data];
+
+    // Applica ogni filtro che si riferisce a questo dataset
+    this.dashboard.filters.forEach(filterConfig => {
+      if (filterConfig.datasetId !== datasetId) return;
+
+      const filterValue = this.appliedFilterValues.get(filterConfig.field);
+      if (filterValue === undefined || filterValue === 'all') return;
+
+      const field = filterConfig.field.toLowerCase();
+
+      filtered = filtered.filter(row => {
+        const rowValue = row[field];
+
+        // Gestione speciale per trimestre
+        if (filterConfig.field.toLowerCase() === 'trimestre' && filterValue !== 'all') {
+          const month = String(row['mese'] || '').padStart(2, '0');
+          const quarterMonths = this.getQuarterMonths(filterValue);
+          return quarterMonths.includes(month);
+        }
+
+        // Gestione speciale per mese
+        if (filterConfig.field.toLowerCase() === 'mese' && filterValue !== 'all') {
+          const month = String(row['mese'] || '').padStart(2, '0');
+          return month === filterValue;
+        }
+
+        // Confronto normale
+        return rowValue == filterValue;
+      });
+    });
+
+    return filtered;
+  }
+
+  /**
+   * Ritorna i mesi di un trimestre
+   */
+  private getQuarterMonths(quarter: string): string[] {
+    switch (quarter) {
+      case 'Q1': return ['01', '02', '03'];
+      case 'Q2': return ['04', '05', '06'];
+      case 'Q3': return ['07', '08', '09'];
+      case 'Q4': return ['10', '11', '12'];
+      default: return [];
+    }
+  }
+
+  /**
+   * Ottiene la label per i filtri attivi (da mostrare nell'header)
+   */
+  getAppliedFiltersLabel(): string {
+    if (!this.dashboard?.filters) return '';
+
+    const activeFilters: string[] = [];
+
+    this.dashboard.filters.forEach(filterConfig => {
+      const value = this.appliedFilterValues.get(filterConfig.field);
+      if (value !== undefined && value !== 'all') {
+        // Trova la label corrispondente al valore
+        const options = this.filterOptions.get(filterConfig.field);
+        const option = options?.find(opt => opt.value === value);
+        const label = option?.label || String(value);
+        activeFilters.push(`${filterConfig.label}: ${label}`);
+      }
+    });
+
+    return activeFilters.join(' | ');
+  }
+
+  /**
+   * Verifica se ci sono filtri attivi
+   */
+  hasActiveFilters(): boolean {
+    if (!this.dashboard?.filters) return false;
+
+    return Array.from(this.appliedFilterValues.values()).some(val => val !== 'all' && val !== undefined);
+  }
+
+  /**
+   * Reset tutti i filtri ai valori di default
+   */
+  resetFilters(): void {
+    if (!this.dashboard?.filters) return;
+
+    this.dashboard.filters.forEach(filterConfig => {
+      const defaultValue = filterConfig.defaultValue !== undefined ? filterConfig.defaultValue : 'all';
+      this.filterValues.set(filterConfig.field, defaultValue);
+    });
+
+    // Applica automaticamente il reset
+    this.applyFilters();
   }
 
   // ============================================
@@ -390,6 +719,7 @@ export class GtsDashboardComponent implements OnInit, OnDestroy {
 
     // Applica aggregazione
     const aggregatedData = this.applyAggregationRules(sourceData, { aggregationRule: item.aggregationRule });
+    console.log(`[processItem] Item ${item.itemId}: sourceData=${sourceData.length} rows, aggregatedData=`, aggregatedData);
     this.itemDataCache.set(item.itemId, aggregatedData);
   }
 
@@ -767,7 +1097,7 @@ export class GtsDashboardComponent implements OnInit, OnDestroy {
 
     // 2. Filters
     if (filters && filters.length > 0) {
-      result = this.applyFilters(result, filters);
+      result = this.applyAggregationFilters(result, filters);
     }
 
     // 3. GroupBy + Aggregations
@@ -857,7 +1187,7 @@ export class GtsDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  private applyFilters(data: any[], filters: any[]): any[] {
+  private applyAggregationFilters(data: any[], filters: any[]): any[] {
     return data.filter(row => {
       return filters.every(filter => {
         const value = row[filter.field];

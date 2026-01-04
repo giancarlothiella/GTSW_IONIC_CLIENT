@@ -16,11 +16,17 @@ import { DashboardItem, DashboardGridColumn } from '../../services/dashboard.ser
   template: `
     <div class="dash-grid">
       <!-- Title -->
-      <div class="grid-header" *ngIf="item.title">
-        <h3 class="grid-title">{{ item.title }}</h3>
-        <span class="grid-subtitle" *ngIf="item.subtitle">{{ item.subtitle }}</span>
-        <span class="grid-count" *ngIf="data.length > 0">({{ data.length }} righe)</span>
-      </div>
+      @if (item.title) {
+        <div class="grid-header">
+          <h3 class="grid-title">{{ item.title }}</h3>
+          @if (item.subtitle) {
+            <span class="grid-subtitle">{{ item.subtitle }}</span>
+          }
+          @if (data.length > 0) {
+            <span class="grid-count">({{ data.length }} righe)</span>
+          }
+        </div>
+      }
 
       <!-- Table -->
       <p-table
@@ -41,39 +47,49 @@ import { DashboardItem, DashboardGridColumn } from '../../services/dashboard.ser
         <!-- Header -->
         <ng-template pTemplate="header">
           <tr>
-            <th *ngFor="let col of columns"
-                [style.width]="col.width || 'auto'"
-                [style.text-align]="col.align || 'left'"
-                [pSortableColumn]="col.sortable !== false ? col.field : undefined">
-              {{ col.header }}
-              <p-sortIcon *ngIf="col.sortable !== false" [field]="col.field"></p-sortIcon>
-            </th>
+            @for (col of columns; track col.field) {
+              <th [style.width]="col.width || 'auto'"
+                  [style.text-align]="col.align || 'left'"
+                  [pSortableColumn]="col.sortable !== false ? col.field : undefined">
+                {{ col.header }}
+                @if (col.sortable !== false) {
+                  <p-sortIcon [field]="col.field"></p-sortIcon>
+                }
+              </th>
+            }
           </tr>
         </ng-template>
 
         <!-- Body -->
         <ng-template pTemplate="body" let-row>
           <tr [class.clickable-row]="isClickable">
-            <td *ngFor="let col of columns"
-                [style.text-align]="col.align || 'left'"
-                (click)="handleRowClick(row)">
-              <span [innerHTML]="formatCell(row[col.field], col)"></span>
-            </td>
+            @for (col of columns; track col.field) {
+              <td [style.text-align]="col.align || 'left'"
+                  (click)="handleRowClick(row)">
+                <span [innerHTML]="formatCell(row[col.field], col)"></span>
+              </td>
+            }
           </tr>
         </ng-template>
 
         <!-- Footer con totali -->
-        <ng-template pTemplate="footer" *ngIf="showTotals && totals">
-          <tr class="totals-row">
-            <td *ngFor="let col of columns; let i = index"
-                [style.text-align]="col.align || 'left'">
-              <strong *ngIf="i === 0">Totale</strong>
-              <strong *ngIf="i > 0 && totals[col.field] !== undefined">
-                {{ formatCell(totals[col.field], col) }}
-              </strong>
-            </td>
-          </tr>
-        </ng-template>
+        @if (showTotals && hasTotals()) {
+          <ng-template pTemplate="footer">
+            <tr class="totals-row">
+              @for (col of columns; track col.field; let i = $index) {
+                <td [style.text-align]="col.align || 'left'"
+                    [style.width]="col.width || 'auto'">
+                  @if (i === 0) {
+                    <span class="total-cell">Totale</span>
+                  }
+                  @if (i > 0 && totals[col.field] !== undefined) {
+                    <span class="total-cell" [innerHTML]="formatCell(totals[col.field], col)"></span>
+                  }
+                </td>
+              }
+            </tr>
+          </ng-template>
+        }
 
         <!-- Empty -->
         <ng-template pTemplate="emptymessage">
@@ -161,14 +177,17 @@ import { DashboardItem, DashboardGridColumn } from '../../services/dashboard.ser
       .p-datatable .p-datatable-thead > tr > th {
         background: var(--surface-100, #f8f9fa);
         font-weight: 600;
-        padding: 0.5rem 0.75rem;
+        padding: 0.1rem 0.5rem;
         position: sticky;
         top: 0;
         z-index: 1;
+        font-size: 0.8rem;
+        line-height: 1.15;
       }
 
       .p-datatable .p-datatable-tbody > tr > td {
-        padding: 0.5rem 0.75rem;
+        padding: 0.1rem 0.5rem;
+        line-height: 1.15;
       }
 
       .p-datatable .p-datatable-tbody > tr.clickable-row {
@@ -179,16 +198,105 @@ import { DashboardItem, DashboardGridColumn } from '../../services/dashboard.ser
         }
       }
 
+      /* Paginatore compatto */
       .p-paginator {
-        padding: 0.5rem;
-        font-size: 0.8rem;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.75rem;
         flex-shrink: 0;
+        border-top: 1px solid var(--surface-200, #e9ecef);
+        background: var(--surface-50, #fafafa);
+        gap: 0.25rem;
+        min-height: unset;
+      }
+
+      .p-paginator .p-paginator-first,
+      .p-paginator .p-paginator-prev,
+      .p-paginator .p-paginator-next,
+      .p-paginator .p-paginator-last {
+        min-width: 1.5rem;
+        height: 1.5rem;
+        padding: 0;
+      }
+
+      .p-paginator .p-paginator-pages .p-paginator-page {
+        min-width: 1.5rem;
+        height: 1.5rem;
+        padding: 0;
+        font-size: 0.75rem;
+      }
+
+      /* Dropdown paginatore (p-select in PrimeNG 18+) */
+      .p-paginator p-select,
+      .p-paginator .p-select,
+      .p-paginator .p-dropdown {
+        height: 1.75rem !important;
+        min-height: 1.75rem !important;
+        font-size: 0.75rem;
+        border: 1px solid var(--surface-300, #dee2e6);
+        border-radius: 4px;
+        background: var(--surface-0, #ffffff);
+      }
+
+      .p-paginator .p-select-label,
+      .p-paginator .p-dropdown-label {
+        padding: 0 0.5rem !important;
+        font-size: 0.75rem !important;
+        line-height: 1.75rem !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+
+      .p-paginator .p-select-dropdown,
+      .p-paginator .p-dropdown-trigger {
+        width: 1.5rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+
+      .p-paginator .p-paginator-current {
+        font-size: 0.7rem;
+        padding: 0 0.5rem;
+      }
+
+      .p-paginator .p-paginator-rpp-options {
+        height: 1.75rem;
+        margin-left: 0.25rem;
+      }
+
+      /* Footer (totali) */
+      .p-datatable-tfoot {
+        background: var(--surface-100, #f8f9fa);
+      }
+
+      .p-datatable-tfoot > tr > td {
+        background: var(--surface-100, #f8f9fa) !important;
+        border-top: 2px solid var(--primary-color, #2196F3) !important;
+        padding: 0.2rem 0.5rem !important;
+        font-weight: 700 !important;
+        font-size: 0.8rem !important;
       }
     }
 
-    .totals-row {
+    :host ::ng-deep .p-datatable .p-datatable-tfoot > tr > td {
       background: var(--surface-100, #f8f9fa);
-      font-weight: 600;
+      border-top: 2px solid var(--primary-color, #2196F3);
+      padding: 0.25rem 0.5rem;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .totals-row td {
+      background: var(--surface-100, #f8f9fa);
+      border-top: 2px solid var(--primary-color, #2196F3);
+      padding: 0.25rem 0.5rem;
+    }
+
+    .total-cell {
+      font-weight: 700;
+      color: var(--text-color, #212529);
+      display: inline-block;
+      width: 100%;
     }
 
     .empty-message {
@@ -264,6 +372,10 @@ export class GtsDashGridComponent implements OnChanges {
         return sum + (isNaN(value) ? 0 : value);
       }, 0);
     });
+  }
+
+  hasTotals(): boolean {
+    return Object.keys(this.totals).length > 0;
   }
 
   formatCell(value: any, col: DashboardGridColumn): string {

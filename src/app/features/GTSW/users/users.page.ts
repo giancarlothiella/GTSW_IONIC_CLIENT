@@ -35,7 +35,9 @@ import { AuthDetailsComponent } from '../auth-details/auth-details.component';
           (newValueEvent)="gtsDataService.toolbarSelectEvent($event)">
         </app-gts-toolbar>
 
-        <app-gts-loader *ngIf="loading"></app-gts-loader>
+        @if (loading) {
+        <app-gts-loader></app-gts-loader>
+        }
 
         <div [style]="viewStyle">
           @for (element of metaData.grids; track element.objectName) {

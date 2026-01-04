@@ -9,70 +9,91 @@
       <h2>
         <i class="pi pi-file-pdf"></i>
         {{t(1000, 'AI Template Builder')}}
-        <span class="unsaved-indicator" *ngIf="hasUnsavedChanges" title="Ci sono modifiche non salvate">
-          <i class="pi pi-exclamation-circle"></i>
-          {{t(1350, 'Non salvato')}}
-        </span>
+        @if (hasUnsavedChanges) {
+          <span class="unsaved-indicator" title="Ci sono modifiche non salvate">
+            <i class="pi pi-exclamation-circle"></i>
+            {{t(1350, 'Non salvato')}}
+          </span>
+        }
       </h2>
       <!-- Sottotitolo dinamico in base alla modalità -->
-      <p class="header-subtitle" *ngIf="mode === 'fromReport' && sessionData">
-        {{t(1002, 'Session')}} #{{sessionData.sessionId}} |
-        {{t(1003, 'Report')}}: {{sessionData.reportCode}} |
-        {{t(1004, 'Project')}}: {{sessionData.prjId}}
-      </p>
-      <p class="header-subtitle" *ngIf="mode === 'edit' && existingTemplate">
-        {{t(1005, 'Edit')}}: {{existingTemplate.prjId}} / {{existingTemplate.connCode}} / {{existingTemplate.reportCode}} - {{existingTemplate.reportName}}
-        <span class="version-badge" *ngIf="existingTemplate.version">v{{existingTemplate.version}}</span>
-      </p>
-      <p class="header-subtitle" *ngIf="mode === 'newWithMock'">
-        {{t(1006, 'Nuovo template da dati Mock JSON')}}
-      </p>
-      <p class="header-subtitle" *ngIf="mode === 'newWithPdf'">
-        {{t(1007, 'Nuovo template da PDF esterno')}}
-      </p>
-      <p class="header-subtitle" *ngIf="!modeSelected">
-        {{t(1008, 'Seleziona modalità di creazione')}}
-      </p>
+      @if (mode === 'fromReport' && sessionData) {
+        <p class="header-subtitle">
+          {{t(1002, 'Session')}} #{{sessionData.sessionId}} |
+          {{t(1003, 'Report')}}: {{sessionData.reportCode}} |
+          {{t(1004, 'Project')}}: {{sessionData.prjId}}
+        </p>
+      }
+      @if (mode === 'edit' && existingTemplate) {
+        <p class="header-subtitle">
+          {{t(1005, 'Edit')}}: {{existingTemplate.prjId}} / {{existingTemplate.connCode}} / {{existingTemplate.reportCode}} - {{existingTemplate.reportName}}
+          @if (existingTemplate.version) {
+            <span class="version-badge">v{{existingTemplate.version}}</span>
+          }
+        </p>
+      }
+      @if (mode === 'newWithMock') {
+        <p class="header-subtitle">
+          {{t(1006, 'Nuovo template da dati Mock JSON')}}
+        </p>
+      }
+      @if (mode === 'newWithPdf') {
+        <p class="header-subtitle">
+          {{t(1007, 'Nuovo template da PDF esterno')}}
+        </p>
+      }
+      @if (!modeSelected) {
+        <p class="header-subtitle">
+          {{t(1008, 'Seleziona modalità di creazione')}}
+        </p>
+      }
     </div>
     <div class="header-right">
       <!-- Rigenera Template AI - visibile solo quando siamo in preview/editing -->
-      <button pButton
-              *ngIf="currentStep === 'preview' || currentStep === 'editing'"
-              type="button"
-              [label]="t(1355, 'Rigenera Template')"
-              icon="pi pi-sync"
-              class="p-button-warning"
-              [disabled]="loading || regeneratingTemplate"
-              [pTooltip]="t(1356, 'Rigenera il template HTML con AI usando i dati già caricati')"
-              tooltipPosition="bottom"
-              (click)="regenerateTemplateAI()"></button>
+      @if (currentStep === 'preview' || currentStep === 'editing') {
+        <button pButton
+                type="button"
+                [label]="t(1355, 'Rigenera Template')"
+                icon="pi pi-sync"
+                class="p-button-warning"
+                [disabled]="loading || regeneratingTemplate"
+                [pTooltip]="t(1356, 'Rigenera il template HTML con AI usando i dati già caricati')"
+                tooltipPosition="bottom"
+                (click)="regenerateTemplateAI()"></button>
+      }
     </div>
   </div>
 
   <!-- LOADING OVERLAY -->
-  <div class="loading-overlay-container" *ngIf="loading">
-    <div class="loading-overlay" [class.analyzing]="currentStep === 'analyzing'">
+  @if (loading) {
+    <div class="loading-overlay-container">
+      <div class="loading-overlay" [class.analyzing]="currentStep === 'analyzing'">
 
-      <!-- Spinner animato -->
-      <div class="loader-icon" *ngIf="currentStep !== 'analyzing'">
-        <p-progressSpinner></p-progressSpinner>
-      </div>
+        <!-- Spinner animato -->
+        @if (currentStep !== 'analyzing') {
+          <div class="loader-icon">
+            <p-progressSpinner></p-progressSpinner>
+          </div>
+        }
 
-      <!-- AI Animation per analisi -->
-      <div class="ai-loader" *ngIf="currentStep === 'analyzing'">
-        <div class="ai-brain">
-          <i class="pi pi-sparkles"></i>
-        </div>
-        <div class="ai-pulse"></div>
-        <div class="ai-pulse delay-1"></div>
-        <div class="ai-pulse delay-2"></div>
-      </div>
+        <!-- AI Animation per analisi -->
+        @if (currentStep === 'analyzing') {
+          <div class="ai-loader">
+            <div class="ai-brain">
+              <i class="pi pi-sparkles"></i>
+            </div>
+            <div class="ai-pulse"></div>
+            <div class="ai-pulse delay-1"></div>
+            <div class="ai-pulse delay-2"></div>
+          </div>
+        }
 
-      <!-- Messaggio principale -->
-      <p class="loading-title">{{loadingMessage}}</p>
+        <!-- Messaggio principale -->
+        <p class="loading-title">{{loadingMessage}}</p>
 
-      <!-- Timer e info durante analisi -->
-      <div class="analysis-info" *ngIf="currentStep === 'analyzing'">
+        <!-- Timer e info durante analisi -->
+        @if (currentStep === 'analyzing') {
+          <div class="analysis-info">
         <div class="elapsed-time">
           <i class="pi pi-clock"></i>
           <span class="time-value">{{elapsedTimeFormatted}}</span>
@@ -95,14 +116,16 @@
             {{t(1023, 'Finalizzazione regole...')}}
           </div>
         </div>
-        <small class="patience-note">
-          <i class="pi pi-info-circle"></i>
-          {{t(1024, "L'analisi AI può richiedere 30 secondi - 3 minuti in base alla complessità")}}
-        </small>
-      </div>
+          <small class="patience-note">
+            <i class="pi pi-info-circle"></i>
+            {{t(1024, "L'analisi AI può richiedere 30 secondi - 3 minuti in base alla complessità")}}
+          </small>
+          </div>
+        }
 
+      </div>
     </div>
-  </div>
+  }
 
   <!-- STEPS INDICATOR - Rimosso: era ridondante -->
 
@@ -112,7 +135,8 @@
     <!-- ========================================== -->
     <!-- STEP 0: SELEZIONE MODALITÀ -->
     <!-- ========================================== -->
-    <div class="step-panel" *ngIf="currentStep === 'mode'">
+    @if (currentStep === 'mode') {
+    <div class="step-panel">
       <p-card [header]="t(1040, 'Seleziona Modalità di Creazione')">
         <div class="mode-selection-grid">
 
@@ -149,7 +173,8 @@
           </div>
 
           <!-- Opzione: Carica Template Esistente (nascosta se arriviamo da pagina esterna) -->
-          <div class="mode-card load-existing" *ngIf="!hasReturnTo" (click)="openLoadTemplateDialog()">
+          @if (!hasReturnTo) {
+          <div class="mode-card load-existing" (click)="openLoadTemplateDialog()">
             <div class="mode-icon existing">
               <i class="pi pi-folder-open"></i>
             </div>
@@ -163,28 +188,33 @@
               </ul>
             </div>
           </div>
+          }
 
         </div>
       </p-card>
 
       <!-- Footer con pulsante Back (solo se arriviamo da pagina esterna) -->
-      <div class="step-actions back-only" *ngIf="hasReturnTo">
-        <button pButton
-                type="button"
-                [label]="t(1004, 'Indietro')"
-                icon="pi pi-arrow-left"
-                class="p-button-secondary"
-                (click)="goBackToLogs()"></button>
-      </div>
+      @if (hasReturnTo) {
+        <div class="step-actions back-only">
+          <button pButton
+                  type="button"
+                  [label]="t(1004, 'Indietro')"
+                  icon="pi pi-arrow-left"
+                  class="p-button-secondary"
+                  (click)="goBackToLogs()"></button>
+        </div>
+      }
     </div>
+    }
 
     <!-- ========================================== -->
     <!-- STEP 1: UPLOAD/SORGENTE DATI -->
     <!-- ========================================== -->
-    <div class="step-panel" *ngIf="currentStep === 'upload'">
+    @if (currentStep === 'upload') {
+    <div class="step-panel">
 
       <!-- ===== MODALITÀ: DA REPORT (fromReport) ===== -->
-      <ng-container *ngIf="mode === 'fromReport'">
+      @if (mode === 'fromReport') {
 
       <!-- Session Info Card -->
       <p-card [header]="t(1070, 'Informazioni Sessione')" [style]="{'margin-bottom': '20px'}">
@@ -220,10 +250,12 @@
       <p-card [header]="t(1077, 'Carica PDF di Riferimento')">
 
         <!-- Alert quando requireManualPdf è true -->
-        <div *ngIf="requireManualPdf" class="manual-pdf-alert">
+        @if (requireManualPdf) {
+        <div class="manual-pdf-alert">
           <i class="pi pi-info-circle"></i>
           <span>{{t(1097, 'Questa sessione non ha un PDF FastReport. Carica manualmente il PDF generato esternamente.')}}</span>
         </div>
+        }
 
         <!-- Source Selection -->
         <div class="pdf-source-field">
@@ -239,28 +271,29 @@
           optionDisabled="disabled">
           </p-selectButton>
           <div class="pdf-source-description">
-            <span *ngIf="pdfSource === 'fastReport' && !requireManualPdf">
-              {{t(1082, 'Usa PDF già generato da FastReport per questa sessione')}}
-            </span>
-            <span *ngIf="pdfSource === 'fastReport' && requireManualPdf">
-              {{t(1098, 'PDF FastReport non disponibile per questa sessione')}}
-            </span>
-            <span *ngIf="pdfSource === 'clientPDF'">
-              {{t(1083, 'Carica PDF fornito dal cliente come esempio')}}
-            </span>
-            <span *ngIf="pdfSource === 'developerPDF'">
-              {{t(1084, 'Carica PDF di esempio creato dallo sviluppatore')}}
-            </span>
+            @if (pdfSource === 'fastReport' && !requireManualPdf) {
+              <span>{{t(1082, 'Usa PDF già generato da FastReport per questa sessione')}}</span>
+            }
+            @if (pdfSource === 'fastReport' && requireManualPdf) {
+              <span>{{t(1098, 'PDF FastReport non disponibile per questa sessione')}}</span>
+            }
+            @if (pdfSource === 'clientPDF') {
+              <span>{{t(1083, 'Carica PDF fornito dal cliente come esempio')}}</span>
+            }
+            @if (pdfSource === 'developerPDF') {
+              <span>{{t(1084, 'Carica PDF di esempio creato dallo sviluppatore')}}</span>
+            }
           </div>
         </div>
 
         <!-- File Upload (se non fastReport) - usa stesso stile di newWithPdf -->
-        <div class="field" *ngIf="pdfSource !== 'fastReport'" style="margin-top: 20px;">
+        @if (pdfSource !== 'fastReport') {
+        <div class="field" style="margin-top: 20px;">
           <label>{{t(1085, 'Seleziona File PDF')}}:</label>
 
           <!-- Area Upload PDF (quando non c'è file) -->
+          @if (!uploadedPdf) {
           <div class="pdf-upload-area"
-               *ngIf="!uploadedPdf"
                [class.drag-over]="isDraggingPdf"
                (dragover)="onDragOver($event, 'pdf')"
                (dragleave)="onDragLeave($event, 'pdf')"
@@ -284,24 +317,28 @@
               </p>
             </div>
           </div>
+          }
 
           <!-- PDF Caricato (con bottone rimuovi) -->
-          <div class="uploaded-file-card" *ngIf="uploadedPdf">
-            <div class="file-icon">
-              <i class="pi pi-file-pdf"></i>
+          @if (uploadedPdf) {
+            <div class="uploaded-file-card">
+              <div class="file-icon">
+                <i class="pi pi-file-pdf"></i>
+              </div>
+              <div class="file-info">
+                <span class="file-name">{{uploadedPdf.file.name}}</span>
+                <span class="file-size">({{(uploadedPdf.file.size / 1024).toFixed(0)}} KB)</span>
+              </div>
+              <button pButton
+                      type="button"
+                      icon="pi pi-times"
+                      [label]="t(1106, 'Rimuovi')"
+                      class="p-button-danger p-button-outlined p-button-sm"
+                      (click)="removePdf()"></button>
             </div>
-            <div class="file-info">
-              <span class="file-name">{{uploadedPdf.file.name}}</span>
-              <span class="file-size">({{(uploadedPdf.file.size / 1024).toFixed(0)}} KB)</span>
-            </div>
-            <button pButton
-                    type="button"
-                    icon="pi pi-times"
-                    [label]="t(1106, 'Rimuovi')"
-                    class="p-button-danger p-button-outlined p-button-sm"
-                    (click)="removePdf()"></button>
-          </div>
+          }
         </div>
+        }
 
         <!-- Data Summary -->
         <div class="data-summary">
@@ -315,10 +352,12 @@
               <div class="stat-value">{{mainRecordsCount}}</div>
               <div class="stat-label">{{t(1089, 'MAIN')}}</div>
             </div>
-            <div class="stat-card" *ngFor="let sr of oracleData?.subreports | keyvalue">
-              <div class="stat-value">{{sr.value.length}}</div>
-              <div class="stat-label">{{sr.key}}</div>
-            </div>
+            @for (sr of oracleData?.subreports | keyvalue; track sr.key) {
+              <div class="stat-card">
+                <div class="stat-value">{{sr.value.length}}</div>
+                <div class="stat-label">{{sr.key}}</div>
+              </div>
+            }
           </div>
         </div>
 
@@ -392,10 +431,10 @@
         </div>
 
       </p-card>
-      </ng-container>
+      }
 
       <!-- ===== MODALITÀ: NUOVO DA MOCK JSON (newWithMock) ===== -->
-      <ng-container *ngIf="mode === 'newWithMock'">
+      @if (mode === 'newWithMock') {
         <p-card [header]="t(1100, 'Carica Dati Mock JSON')">
           <div class="field">
             <label>{{t(1072, 'Report Code')}}:</label>
@@ -410,68 +449,75 @@
             <label>{{t(1085, 'Seleziona File JSON')}}:</label>
 
             <!-- Area Upload JSON (quando non c'è file) -->
-            <div class="json-upload-area"
-                 *ngIf="!uploadedMockJson"
-                 [class.drag-over]="isDraggingJson"
-                 (dragover)="onDragOver($event, 'json')"
-                 (dragleave)="onDragLeave($event, 'json')"
-                 (drop)="onDrop($event, 'json')">
-              <div class="drop-zone-content">
-                <i class="pi pi-cloud-upload drop-icon"></i>
-                <p class="drop-text">{{t(1101, 'Trascina qui il JSON')}}</p>
-                <p class="drop-divider">{{t(1102, 'oppure')}}</p>
-                <p-fileUpload
-                  mode="basic"
-                  accept="application/json"
-                  [maxFileSize]="5000000"
-                  [auto]="true"
-                  [chooseLabel]="t(1103, 'Scegli JSON')"
-                  chooseIcon="pi pi-upload"
-                  (onSelect)="onMockJsonFileSelected($event)">
-                </p-fileUpload>
-                <p class="upload-hint">
-                  <i class="pi pi-info-circle"></i>
-                  {{t(1104, 'Formati accettati: JSON (max 5MB)')}}
-                </p>
+            @if (!uploadedMockJson) {
+              <div class="json-upload-area"
+                   [class.drag-over]="isDraggingJson"
+                   (dragover)="onDragOver($event, 'json')"
+                   (dragleave)="onDragLeave($event, 'json')"
+                   (drop)="onDrop($event, 'json')">
+                <div class="drop-zone-content">
+                  <i class="pi pi-cloud-upload drop-icon"></i>
+                  <p class="drop-text">{{t(1101, 'Trascina qui il JSON')}}</p>
+                  <p class="drop-divider">{{t(1102, 'oppure')}}</p>
+                  <p-fileUpload
+                    mode="basic"
+                    accept="application/json"
+                    [maxFileSize]="5000000"
+                    [auto]="true"
+                    [chooseLabel]="t(1103, 'Scegli JSON')"
+                    chooseIcon="pi pi-upload"
+                    (onSelect)="onMockJsonFileSelected($event)">
+                  </p-fileUpload>
+                  <p class="upload-hint">
+                    <i class="pi pi-info-circle"></i>
+                    {{t(1104, 'Formati accettati: JSON (max 5MB)')}}
+                  </p>
+                </div>
               </div>
-            </div>
+            }
 
             <!-- JSON Caricato (con bottone rimuovi) -->
-            <div class="uploaded-file-card json" *ngIf="uploadedMockJson">
-              <div class="file-icon">
-                <i class="pi pi-file"></i>
+            @if (uploadedMockJson) {
+              <div class="uploaded-file-card json">
+                <div class="file-icon">
+                  <i class="pi pi-file"></i>
+                </div>
+                <div class="file-info">
+                  <span class="file-name">{{mockDataFileName}}</span>
+                  <span class="file-size">{{t(1105, 'JSON valido')}}</span>
+                </div>
+                <button pButton
+                        type="button"
+                        icon="pi pi-times"
+                        [label]="t(1106, 'Rimuovi')"
+                        class="p-button-danger p-button-outlined p-button-sm"
+                        (click)="removeMockJson()"></button>
               </div>
-              <div class="file-info">
-                <span class="file-name">{{mockDataFileName}}</span>
-                <span class="file-size">{{t(1105, 'JSON valido')}}</span>
-              </div>
-              <button pButton
-                      type="button"
-                      icon="pi pi-times"
-                      [label]="t(1106, 'Rimuovi')"
-                      class="p-button-danger p-button-outlined p-button-sm"
-                      (click)="removeMockJson()"></button>
-            </div>
+            }
           </div>
 
           <!-- Data Summary (se JSON caricato) -->
-          <div class="data-summary" *ngIf="parsedMockData">
-            <h4><i class="pi pi-database"></i> {{t(1107, 'Riepilogo Dati Mock')}}</h4>
-            <div class="summary-stats">
-              <div class="stat-card">
-                <div class="stat-value">{{totalRecords}}</div>
-                <div class="stat-label">{{t(1088, 'Record Totali')}}</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">{{mainRecordsCount}}</div>
-                <div class="stat-label">{{t(1089, 'MAIN')}}</div>
-              </div>
-              <div class="stat-card" *ngFor="let sr of parsedMockData.subreports | keyvalue">
-                <div class="stat-value">{{sr.value.length}}</div>
-                <div class="stat-label">{{sr.key}}</div>
+          @if (parsedMockData) {
+            <div class="data-summary">
+              <h4><i class="pi pi-database"></i> {{t(1107, 'Riepilogo Dati Mock')}}</h4>
+              <div class="summary-stats">
+                <div class="stat-card">
+                  <div class="stat-value">{{totalRecords}}</div>
+                  <div class="stat-label">{{t(1088, 'Record Totali')}}</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">{{mainRecordsCount}}</div>
+                  <div class="stat-label">{{t(1089, 'MAIN')}}</div>
+                </div>
+                @for (sr of parsedMockData.subreports | keyvalue; track sr.key) {
+                  <div class="stat-card">
+                    <div class="stat-value">{{sr.value.length}}</div>
+                    <div class="stat-label">{{sr.key}}</div>
+                  </div>
+                }
               </div>
             </div>
-          </div>
+          }
 
           <!-- Info Box (cosa farà l'AI) -->
           <div class="info-box" style="margin-top: 20px;">
@@ -488,10 +534,12 @@
           </div>
 
           <!-- Esempio struttura JSON (collassato quando c'è già un file) -->
-          <div class="json-example-box" *ngIf="!uploadedMockJson" style="margin-top: 20px;">
-            <h5><i class="pi pi-code"></i> {{t(1118, 'Struttura JSON richiesta')}}:</h5>
-            <pre class="json-example-code">{{ jsonExampleText }}</pre>
-          </div>
+          @if (!uploadedMockJson) {
+            <div class="json-example-box" style="margin-top: 20px;">
+              <h5><i class="pi pi-code"></i> {{t(1118, 'Struttura JSON richiesta')}}:</h5>
+              <pre class="json-example-code">{{ jsonExampleText }}</pre>
+            </div>
+          }
 
           <!-- User Instructions for AI -->
           <div class="user-instructions-section">
@@ -536,10 +584,10 @@
                     (click)="analyzeFromMockData()"></button>
           </div>
         </p-card>
-      </ng-container>
+      }
 
       <!-- ===== MODALITÀ: NUOVO DA PDF (newWithPdf) ===== -->
-      <ng-container *ngIf="mode === 'newWithPdf'">
+      @if (mode === 'newWithPdf') {
         <p-card [header]="t(1120, 'Carica PDF Esterno')">
           <div class="field">
             <label>{{t(1072, 'Report Code')}}:</label>
@@ -554,48 +602,51 @@
             <label>{{t(1085, 'Seleziona File PDF')}}:</label>
 
             <!-- Area Upload PDF (quando non c'è file) -->
-            <div class="pdf-upload-area"
-                 *ngIf="!uploadedPdf"
-                 [class.drag-over]="isDraggingPdf"
-                 (dragover)="onDragOver($event, 'pdf')"
-                 (dragleave)="onDragLeave($event, 'pdf')"
-                 (drop)="onDrop($event, 'pdf')">
-              <div class="drop-zone-content">
-                <i class="pi pi-cloud-upload drop-icon"></i>
-                <p class="drop-text">{{t(1121, 'Trascina qui il PDF')}}</p>
-                <p class="drop-divider">{{t(1102, 'oppure')}}</p>
-                <p-fileUpload
-                  mode="basic"
-                  accept="application/pdf"
-                  [maxFileSize]="10000000"
-                  [auto]="true"
-                  [chooseLabel]="t(1086, 'Scegli PDF')"
-                  chooseIcon="pi pi-upload"
-                  (onSelect)="onPdfFileSelected($event)">
-                </p-fileUpload>
-                <p class="upload-hint">
-                  <i class="pi pi-info-circle"></i>
-                  {{t(1122, 'Formati accettati: PDF (max 10MB)')}}
-                </p>
+            @if (!uploadedPdf) {
+              <div class="pdf-upload-area"
+                   [class.drag-over]="isDraggingPdf"
+                   (dragover)="onDragOver($event, 'pdf')"
+                   (dragleave)="onDragLeave($event, 'pdf')"
+                   (drop)="onDrop($event, 'pdf')">
+                <div class="drop-zone-content">
+                  <i class="pi pi-cloud-upload drop-icon"></i>
+                  <p class="drop-text">{{t(1121, 'Trascina qui il PDF')}}</p>
+                  <p class="drop-divider">{{t(1102, 'oppure')}}</p>
+                  <p-fileUpload
+                    mode="basic"
+                    accept="application/pdf"
+                    [maxFileSize]="10000000"
+                    [auto]="true"
+                    [chooseLabel]="t(1086, 'Scegli PDF')"
+                    chooseIcon="pi pi-upload"
+                    (onSelect)="onPdfFileSelected($event)">
+                  </p-fileUpload>
+                  <p class="upload-hint">
+                    <i class="pi pi-info-circle"></i>
+                    {{t(1122, 'Formati accettati: PDF (max 10MB)')}}
+                  </p>
+                </div>
               </div>
-            </div>
+            }
 
             <!-- PDF Caricato (con bottone rimuovi) -->
-            <div class="uploaded-file-card" *ngIf="uploadedPdf">
-              <div class="file-icon">
-                <i class="pi pi-file-pdf"></i>
+            @if (uploadedPdf) {
+              <div class="uploaded-file-card">
+                <div class="file-icon">
+                  <i class="pi pi-file-pdf"></i>
+                </div>
+                <div class="file-info">
+                  <span class="file-name">{{uploadedPdf.file.name}}</span>
+                  <span class="file-size">({{(uploadedPdf.file.size / 1024).toFixed(0)}} KB)</span>
+                </div>
+                <button pButton
+                        type="button"
+                        icon="pi pi-times"
+                        [label]="t(1106, 'Rimuovi')"
+                        class="p-button-danger p-button-outlined p-button-sm"
+                        (click)="removePdf()"></button>
               </div>
-              <div class="file-info">
-                <span class="file-name">{{uploadedPdf.file.name}}</span>
-                <span class="file-size">({{(uploadedPdf.file.size / 1024).toFixed(0)}} KB)</span>
-              </div>
-              <button pButton
-                      type="button"
-                      icon="pi pi-times"
-                      [label]="t(1106, 'Rimuovi')"
-                      class="p-button-danger p-button-outlined p-button-sm"
-                      (click)="removePdf()"></button>
-            </div>
+            }
           </div>
 
           <div class="info-box" style="margin-top: 20px;">
@@ -657,25 +708,29 @@
             </div>
           </div>
         </p-card>
-      </ng-container>
+      }
 
     </div>
+    }
 
     <!-- ========================================== -->
     <!-- STEP 2: ANALYZING -->
     <!-- ========================================== -->
-    <div class="step-panel" *ngIf="currentStep === 'analyzing'">
-      <div class="analyzing-panel">
-        <p-progressSpinner></p-progressSpinner>
-        <h3>{{t(1025, 'AI sta analizzando il PDF...')}}</h3>
-        <p>{{t(1026, 'Attendere, potrebbero volerci alcuni secondi')}}</p>
+    @if (currentStep === 'analyzing') {
+      <div class="step-panel">
+        <div class="analyzing-panel">
+          <p-progressSpinner></p-progressSpinner>
+          <h3>{{t(1025, 'AI sta analizzando il PDF...')}}</h3>
+          <p>{{t(1026, 'Attendere, potrebbero volerci alcuni secondi')}}</p>
+        </div>
       </div>
-    </div>
+    }
 
     <!-- ========================================== -->
     <!-- STEP 3: PREVIEW & EDIT -->
     <!-- ========================================== -->
-    <div class="step-panel" *ngIf="currentStep === 'preview' || currentStep === 'editing'">
+    @if (currentStep === 'preview' || currentStep === 'editing') {
+    <div class="step-panel">
       
       <!-- Toolbar -->
       <div class="preview-toolbar">
@@ -750,27 +805,29 @@
                   tooltipPosition="top"
                   (click)="downloadPreviewPDF()"></button>
           <!-- Bottone per PDF FastReport (sessione corrente) -->
-          <button pButton
-                  type="button"
-                  [label]="t(1149, 'PDF Sorgente')"
-                  icon="pi pi-file-pdf"
-                  class="p-button-outlined p-button-help"
-                  *ngIf="fastReportPdf"
-                  [disabled]="isAnyEditing"
-                  [pTooltip]="t(1150, 'Visualizza il PDF originale usato per generare questo template')"
-                  tooltipPosition="bottom"
-                  (click)="openFastReportPdf()"></button>
+          @if (fastReportPdf) {
+            <button pButton
+                    type="button"
+                    [label]="t(1149, 'PDF Sorgente')"
+                    icon="pi pi-file-pdf"
+                    class="p-button-outlined p-button-help"
+                    [disabled]="isAnyEditing"
+                    [pTooltip]="t(1150, 'Visualizza il PDF originale usato per generare questo template')"
+                    tooltipPosition="bottom"
+                    (click)="openFastReportPdf()"></button>
+          }
           <!-- Bottone per PDF salvato (template esistente in modalità edit) -->
-          <button pButton
-                  type="button"
-                  [label]="t(1149, 'PDF Sorgente')"
-                  icon="pi pi-file-pdf"
-                  class="p-button-outlined p-button-help"
-                  *ngIf="mode === 'edit' && existingTemplate?.sourcePdf?.base64 && !fastReportPdf"
-                  [disabled]="isAnyEditing"
-                  [pTooltip]="t(1150, 'Visualizza il PDF originale usato per generare questo template')"
-                  tooltipPosition="bottom"
-                  (click)="openSourcePdf()"></button>
+          @if (mode === 'edit' && existingTemplate?.sourcePdf?.base64 && !fastReportPdf) {
+            <button pButton
+                    type="button"
+                    [label]="t(1149, 'PDF Sorgente')"
+                    icon="pi pi-file-pdf"
+                    class="p-button-outlined p-button-help"
+                    [disabled]="isAnyEditing"
+                    [pTooltip]="t(1150, 'Visualizza il PDF originale usato per generare questo template')"
+                    tooltipPosition="bottom"
+                    (click)="openSourcePdf()"></button>
+          }
         </div>
         <div class="toolbar-right">
           <button pButton
@@ -804,15 +861,15 @@
           </p-tab>
           <p-tab value="template" [disabled]="isAnyEditing && !isEditingHtml">
             <i class="pi pi-code"></i> {{t(1170, 'Template HTML')}}
-            <span class="editing-badge" *ngIf="isEditingHtml">{{t(1174, 'EDITING')}}</span>
+            @if (isEditingHtml) {<span class="editing-badge">{{t(1174, 'EDITING')}}</span>}
           </p-tab>
           <p-tab value="rules" [disabled]="isAnyEditing && !isEditingRules">
             <i class="pi pi-cog"></i> {{t(1171, 'Aggregation Rules')}}
-            <span class="editing-badge" *ngIf="isEditingRules">{{t(1174, 'EDITING')}}</span>
+            @if (isEditingRules) {<span class="editing-badge">{{t(1174, 'EDITING')}}</span>}
           </p-tab>
           <p-tab value="mockData" [disabled]="isAnyEditing && !isEditingMockData">
             <i class="pi pi-database"></i> {{t(1172, 'Mock Data')}}
-            <span class="editing-badge" *ngIf="isEditingMockData">{{t(1174, 'EDITING')}}</span>
+            @if (isEditingMockData) {<span class="editing-badge">{{t(1174, 'EDITING')}}</span>}
           </p-tab>
           <p-tab value="preview" [disabled]="isAnyEditing">
             <i class="pi pi-eye"></i> {{t(1173, 'Live Preview')}}
@@ -824,31 +881,34 @@
           <p-tabpanel value="info">
             <div class="tab-edit-toolbar">
               <!-- Bottoni quando NON in editing -->
-              <button pButton
-                      type="button"
-                      [label]="t(1540, 'Modifica Info')"
-                      icon="pi pi-pencil"
-                      class="p-button-warning"
-                      *ngIf="!isEditingInfo && mode === 'edit'"
-                      [disabled]="isAnyEditing"
-                      [pTooltip]="t(1541, 'Entra in modalità modifica per modificare le info')"
-                      (click)="startEditingInfo()"></button>
+              @if (!isEditingInfo && mode === 'edit') {
+                <button pButton
+                        type="button"
+                        [label]="t(1540, 'Modifica Info')"
+                        icon="pi pi-pencil"
+                        class="p-button-warning"
+                        [disabled]="isAnyEditing"
+                        [pTooltip]="t(1541, 'Entra in modalità modifica per modificare le info')"
+                        (click)="startEditingInfo()"></button>
+              }
               <!-- Bottoni quando IN editing -->
-              <div class="edit-actions" *ngIf="isEditingInfo">
-                <span class="edit-mode-label"><i class="pi pi-exclamation-triangle"></i> {{t(1177, 'Modalità Modifica Attiva')}}</span>
-                <button pButton
-                        type="button"
-                        [label]="t(1178, 'Salva')"
-                        icon="pi pi-check"
-                        class="p-button-success"
-                        (click)="saveEditingInfo()"></button>
-                <button pButton
-                        type="button"
-                        [label]="t(1001, 'Annulla')"
-                        icon="pi pi-times"
-                        class="p-button-secondary"
-                        (click)="cancelEditingInfo()"></button>
-              </div>
+              @if (isEditingInfo) {
+                <div class="edit-actions">
+                  <span class="edit-mode-label"><i class="pi pi-exclamation-triangle"></i> {{t(1177, 'Modalità Modifica Attiva')}}</span>
+                  <button pButton
+                          type="button"
+                          [label]="t(1178, 'Salva')"
+                          icon="pi pi-check"
+                          class="p-button-success"
+                          (click)="saveEditingInfo()"></button>
+                  <button pButton
+                          type="button"
+                          [label]="t(1001, 'Annulla')"
+                          icon="pi pi-times"
+                          class="p-button-secondary"
+                          (click)="cancelEditingInfo()"></button>
+                </div>
+              }
             </div>
             <div class="template-info-panel" [class.editing-active]="isEditingInfo">
               <!-- Riga 1: Identificativi -->
@@ -914,40 +974,42 @@
           <p-tabpanel value="template">
             <div class="tab-edit-toolbar">
               <!-- Bottoni quando NON in editing -->
-              <button pButton
-                      type="button"
-                      [label]="t(1175, 'Modifica HTML')"
-                      icon="pi pi-pencil"
-                      class="p-button-warning"
-                      *ngIf="!isEditingHtml"
-                      [disabled]="isAnyEditing"
-                      [pTooltip]="t(1176, 'Entra in modalità modifica per modificare HTML')"
-                      (click)="startEditingHtml()"></button>
-              <button pButton
-                      type="button"
-                      [label]="t(1511, 'Edit CSS')"
-                      icon="pi pi-palette"
-                      class="p-button-info"
-                      *ngIf="!isEditingHtml"
-                      [disabled]="isAnyEditing"
-                      [pTooltip]="t(1512, 'Apri editor CSS per modificare gli stili del template')"
-                      (click)="openCssEditor()"></button>
+              @if (!isEditingHtml) {
+                <button pButton
+                        type="button"
+                        [label]="t(1175, 'Modifica HTML')"
+                        icon="pi pi-pencil"
+                        class="p-button-warning"
+                        [disabled]="isAnyEditing"
+                        [pTooltip]="t(1176, 'Entra in modalità modifica per modificare HTML')"
+                        (click)="startEditingHtml()"></button>
+                <button pButton
+                        type="button"
+                        [label]="t(1511, 'Edit CSS')"
+                        icon="pi pi-palette"
+                        class="p-button-info"
+                        [disabled]="isAnyEditing"
+                        [pTooltip]="t(1512, 'Apri editor CSS per modificare gli stili del template')"
+                        (click)="openCssEditor()"></button>
+              }
               <!-- Bottoni quando IN editing -->
-              <div class="edit-actions" *ngIf="isEditingHtml">
-                <span class="edit-mode-label"><i class="pi pi-exclamation-triangle"></i> {{t(1177, 'Modalità Modifica Attiva')}}</span>
-                <button pButton
-                        type="button"
-                        [label]="t(1178, 'Salva')"
-                        icon="pi pi-check"
-                        class="p-button-success"
-                        (click)="saveEditingHtml()"></button>
-                <button pButton
-                        type="button"
-                        [label]="t(1001, 'Annulla')"
-                        icon="pi pi-times"
-                        class="p-button-secondary"
-                        (click)="cancelEditingHtml()"></button>
-              </div>
+              @if (isEditingHtml) {
+                <div class="edit-actions">
+                  <span class="edit-mode-label"><i class="pi pi-exclamation-triangle"></i> {{t(1177, 'Modalità Modifica Attiva')}}</span>
+                  <button pButton
+                          type="button"
+                          [label]="t(1178, 'Salva')"
+                          icon="pi pi-check"
+                          class="p-button-success"
+                          (click)="saveEditingHtml()"></button>
+                  <button pButton
+                          type="button"
+                          [label]="t(1001, 'Annulla')"
+                          icon="pi pi-times"
+                          class="p-button-secondary"
+                          (click)="cancelEditingHtml()"></button>
+                </div>
+              }
             </div>
             <div class="editor-container" [class.editing-active]="isEditingHtml">
               <textarea pTextarea
@@ -963,31 +1025,34 @@
           <p-tabpanel value="rules">
             <div class="tab-edit-toolbar">
               <!-- Bottoni quando NON in editing -->
-              <button pButton
-                      type="button"
-                      [label]="t(1179, 'Modifica Regole')"
-                      icon="pi pi-pencil"
-                      class="p-button-warning"
-                      *ngIf="!isEditingRules"
-                      [disabled]="isAnyEditing"
-                      [pTooltip]="t(1180, 'Entra in modalità modifica per modificare le regole di aggregazione')"
-                      (click)="startEditingRules()"></button>
+              @if (!isEditingRules) {
+                <button pButton
+                        type="button"
+                        [label]="t(1179, 'Modifica Regole')"
+                        icon="pi pi-pencil"
+                        class="p-button-warning"
+                        [disabled]="isAnyEditing"
+                        [pTooltip]="t(1180, 'Entra in modalità modifica per modificare le regole di aggregazione')"
+                        (click)="startEditingRules()"></button>
+              }
               <!-- Bottoni quando IN editing -->
-              <div class="edit-actions" *ngIf="isEditingRules">
-                <span class="edit-mode-label"><i class="pi pi-exclamation-triangle"></i> {{t(1177, 'Modalità Modifica Attiva')}}</span>
-                <button pButton
-                        type="button"
-                        [label]="t(1178, 'Salva')"
-                        icon="pi pi-check"
-                        class="p-button-success"
-                        (click)="saveEditingRules()"></button>
-                <button pButton
-                        type="button"
-                        [label]="t(1001, 'Annulla')"
-                        icon="pi pi-times"
-                        class="p-button-secondary"
-                        (click)="cancelEditingRules()"></button>
-              </div>
+              @if (isEditingRules) {
+                <div class="edit-actions">
+                  <span class="edit-mode-label"><i class="pi pi-exclamation-triangle"></i> {{t(1177, 'Modalità Modifica Attiva')}}</span>
+                  <button pButton
+                          type="button"
+                          [label]="t(1178, 'Salva')"
+                          icon="pi pi-check"
+                          class="p-button-success"
+                          (click)="saveEditingRules()"></button>
+                  <button pButton
+                          type="button"
+                          [label]="t(1001, 'Annulla')"
+                          icon="pi pi-times"
+                          class="p-button-secondary"
+                          (click)="cancelEditingRules()"></button>
+                </div>
+              }
             </div>
             <div class="editor-container" [class.editing-active]="isEditingRules">
               <textarea pTextarea
@@ -1003,149 +1068,182 @@
           <p-tabpanel value="mockData">
             <div class="tab-edit-toolbar">
               <!-- Toggle View Mode (solo quando NON in editing) -->
-              <div class="view-mode-toggle" *ngIf="!isEditingMockData">
-                <div class="toggle-button-group">
-                  <button pButton type="button"
-                          icon="pi pi-table"
-                          [class]="mockDataViewMode === 'table' ? 'toggle-btn active' : 'toggle-btn'"
-                          [pTooltip]="t(1505, 'Vista Tabella')"
-                          (click)="mockDataViewMode = 'table'"></button>
-                  <button pButton type="button"
-                          icon="pi pi-code"
-                          [class]="mockDataViewMode === 'json' ? 'toggle-btn active' : 'toggle-btn'"
-                          [pTooltip]="t(1506, 'Vista JSON')"
-                          (click)="mockDataViewMode = 'json'"></button>
+              @if (!isEditingMockData) {
+                <div class="view-mode-toggle">
+                  <div class="toggle-button-group">
+                    <button pButton type="button"
+                            icon="pi pi-table"
+                            [class]="mockDataViewMode === 'table' ? 'toggle-btn active' : 'toggle-btn'"
+                            [pTooltip]="t(1505, 'Vista Tabella')"
+                            (click)="mockDataViewMode = 'table'"></button>
+                    <button pButton type="button"
+                            icon="pi pi-code"
+                            [class]="mockDataViewMode === 'json' ? 'toggle-btn active' : 'toggle-btn'"
+                            [pTooltip]="t(1506, 'Vista JSON')"
+                            (click)="mockDataViewMode = 'json'"></button>
+                  </div>
+                  <!-- Expand/Collapse All (solo in vista tabella) -->
+                  @if (mockDataViewMode === 'table') {
+                    <button pButton type="button" icon="pi pi-plus" class="expand-collapse-btn"
+                            [pTooltip]="t(1507, 'Espandi tutto')" (click)="expandAllMockDataNodes()"></button>
+                    <button pButton type="button" icon="pi pi-minus" class="expand-collapse-btn"
+                            [pTooltip]="t(1508, 'Comprimi tutto')" (click)="collapseAllMockDataNodes()"></button>
+                  }
                 </div>
-                <!-- Expand/Collapse All (solo in vista tabella) -->
-                <ng-container *ngIf="mockDataViewMode === 'table'">
-                  <button pButton type="button" icon="pi pi-plus" class="expand-collapse-btn"
-                          [pTooltip]="t(1507, 'Espandi tutto')" (click)="expandAllMockDataNodes()"></button>
-                  <button pButton type="button" icon="pi pi-minus" class="expand-collapse-btn"
-                          [pTooltip]="t(1508, 'Comprimi tutto')" (click)="collapseAllMockDataNodes()"></button>
-                </ng-container>
-              </div>
-              <!-- Bottoni quando NON in editing -->
-              <button pButton
-                      type="button"
-                      [label]="t(1181, 'Modifica Dati')"
-                      icon="pi pi-pencil"
-                      class="p-button-warning"
-                      *ngIf="!isEditingMockData"
-                      [disabled]="isAnyEditing"
-                      [pTooltip]="t(1182, 'Entra in modalità modifica per modificare i dati mock')"
-                      (click)="startEditingMockData()"></button>
+                <!-- Bottoni quando NON in editing -->
+                <button pButton
+                        type="button"
+                        [label]="t(1181, 'Modifica Dati')"
+                        icon="pi pi-pencil"
+                        class="p-button-warning"
+                        [disabled]="isAnyEditing"
+                        [pTooltip]="t(1182, 'Entra in modalità modifica per modificare i dati mock')"
+                        (click)="startEditingMockData()"></button>
+              }
               <!-- Bottoni quando IN editing -->
-              <div class="edit-actions" *ngIf="isEditingMockData">
-                <span class="edit-mode-label"><i class="pi pi-exclamation-triangle"></i> {{t(1177, 'Modalità Modifica Attiva')}}</span>
-                <button pButton
-                        type="button"
-                        [label]="t(1178, 'Salva')"
-                        icon="pi pi-check"
-                        class="p-button-success"
-                        (click)="saveEditingMockData()"></button>
-                <button pButton
-                        type="button"
-                        [label]="t(1001, 'Annulla')"
-                        icon="pi pi-times"
-                        class="p-button-secondary"
-                        (click)="cancelEditingMockData()"></button>
-              </div>
+              @if (isEditingMockData) {
+                <div class="edit-actions">
+                  <span class="edit-mode-label"><i class="pi pi-exclamation-triangle"></i> {{t(1177, 'Modalità Modifica Attiva')}}</span>
+                  <button pButton
+                          type="button"
+                          [label]="t(1178, 'Salva')"
+                          icon="pi pi-check"
+                          class="p-button-success"
+                          (click)="saveEditingMockData()"></button>
+                  <button pButton
+                          type="button"
+                          [label]="t(1001, 'Annulla')"
+                          icon="pi pi-times"
+                          class="p-button-secondary"
+                          (click)="cancelEditingMockData()"></button>
+                </div>
+              }
             </div>
 
             <!-- Vista sola lettura - JSON -->
-            <div class="mock-data-viewer" *ngIf="!isEditingMockData && mockDataViewMode === 'json'">
-              <pre>{{aiResult?.mockData || oracleData | json}}</pre>
-            </div>
+            @if (!isEditingMockData && mockDataViewMode === 'json') {
+              <div class="mock-data-viewer">
+                <pre>{{aiResult?.mockData || oracleData | json}}</pre>
+              </div>
+            }
 
             <!-- Vista sola lettura - TABELLA (Tree View) -->
-            <div class="mock-data-tree-view" *ngIf="!isEditingMockData && mockDataViewMode === 'table' && currentMockData">
-              <!-- Nodo MAIN -->
-              <div class="tree-node">
-                <div class="tree-node-header" (click)="toggleMockDataNode('main')">
-                  <i class="pi" [ngClass]="isMockDataNodeExpanded('main') ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
-                  <i class="pi pi-table node-icon"></i>
-                  <span class="node-label">main</span>
-                  <span class="node-badge">{{currentMockData.main.length || 0}} {{t(1501, 'record')}}</span>
-                </div>
-                <div class="tree-node-content" *ngIf="isMockDataNodeExpanded('main') && currentMockData.main.length">
-                  <div class="data-table-wrapper">
-                    <table class="data-table">
-                      <thead>
-                        <tr>
-                          <th *ngFor="let col of getTableColumns(currentMockData.main)">{{col}}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr *ngFor="let row of currentMockData.main">
-                          <td *ngFor="let col of getTableColumns(currentMockData.main)">
-                            <span class="cell-value" [title]="row[col]">{{row[col]}}</span>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Nodo SUBREPORTS -->
-              <div class="tree-node" *ngIf="getSubreportKeys().length > 0">
-                <div class="tree-node-header" (click)="toggleMockDataNode('subreports')">
-                  <i class="pi" [ngClass]="isMockDataNodeExpanded('subreports') ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
-                  <i class="pi pi-folder node-icon"></i>
-                  <span class="node-label">subreports</span>
-                  <span class="node-badge">{{getSubreportKeys().length}} {{t(1502, 'datasets')}}</span>
-                </div>
-                <div class="tree-node-content subreports-container" *ngIf="isMockDataNodeExpanded('subreports')">
-                  <!-- Singoli subreport -->
-                  <div class="tree-node subreport-node" *ngFor="let srKey of getSubreportKeys()">
-                    <div class="tree-node-header" (click)="toggleMockDataNode('sr_' + srKey)">
-                      <i class="pi" [ngClass]="isMockDataNodeExpanded('sr_' + srKey) ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
-                      <i class="pi pi-list node-icon" [ngClass]="{'empty-icon': !currentMockData.subreports[srKey]?.length}"></i>
-                      <span class="node-label">{{srKey}}</span>
-                      <span class="node-badge" [ngClass]="{'empty-badge': !currentMockData.subreports[srKey]?.length}">
-                        {{currentMockData.subreports[srKey]?.length || 0}} {{t(1501, 'record')}}
-                      </span>
+            @if (!isEditingMockData && mockDataViewMode === 'table' && currentMockData) {
+              <div class="mock-data-tree-view">
+                <!-- Nodo MAIN -->
+                @if (currentMockData.main) {
+                  <div class="tree-node">
+                    <div class="tree-node-header" (click)="toggleMockDataNode('main')">
+                      <i class="pi" [ngClass]="isMockDataNodeExpanded('main') ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
+                      <i class="pi pi-table node-icon"></i>
+                      <span class="node-label">main</span>
+                      <span class="node-badge">{{currentMockData.main.length || 0}} {{t(1501, 'record')}}</span>
                     </div>
-                    <div class="tree-node-content" *ngIf="isMockDataNodeExpanded('sr_' + srKey) && currentMockData.subreports[srKey]?.length">
-                      <div class="data-table-wrapper">
-                        <table class="data-table">
-                          <thead>
-                            <tr>
-                              <th *ngFor="let col of getTableColumns(currentMockData.subreports[srKey])">{{col}}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr *ngFor="let row of currentMockData.subreports[srKey]">
-                              <td *ngFor="let col of getTableColumns(currentMockData.subreports[srKey])">
-                                <span class="cell-value" [title]="row[col]">{{row[col]}}</span>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
+                    @if (isMockDataNodeExpanded('main') && currentMockData.main.length) {
+                      <div class="tree-node-content">
+                        <div class="data-table-wrapper">
+                          <table class="data-table">
+                            <thead>
+                              <tr>
+                                @for (col of getTableColumns(currentMockData.main); track col) {
+                                  <th>{{col}}</th>
+                                }
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (row of currentMockData.main; track $index) {
+                                <tr>
+                                  @for (col of getTableColumns(currentMockData.main); track col) {
+                                    <td><span class="cell-value" [title]="row[col]">{{row[col]}}</span></td>
+                                  }
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                    <!-- Messaggio per subreport vuoti -->
-                    <div class="tree-node-content empty-subreport" *ngIf="isMockDataNodeExpanded('sr_' + srKey) && !currentMockData.subreports[srKey]?.length">
-                      <i class="pi pi-info-circle"></i> {{t(1503, 'Nessun record in questo subreport')}}
-                    </div>
+                    }
                   </div>
-                </div>
-              </div>
+                }
 
-              <!-- Messaggio se non ci sono dati -->
-              <div class="no-data-message" *ngIf="!currentMockData.main.length && getSubreportKeys().length === 0">
-                <i class="pi pi-inbox"></i>
-                <p>{{t(1504, 'Nessun dato disponibile')}}</p>
+                <!-- Nodo SUBREPORTS -->
+                @if (getSubreportKeys().length > 0) {
+                  <div class="tree-node">
+                    <div class="tree-node-header" (click)="toggleMockDataNode('subreports')">
+                      <i class="pi" [ngClass]="isMockDataNodeExpanded('subreports') ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
+                      <i class="pi pi-folder node-icon"></i>
+                      <span class="node-label">subreports</span>
+                      <span class="node-badge">{{getSubreportKeys().length}} {{t(1502, 'datasets')}}</span>
+                    </div>
+                    @if (isMockDataNodeExpanded('subreports')) {
+                      <div class="tree-node-content subreports-container">
+                        <!-- Singoli subreport -->
+                        @for (srKey of getSubreportKeys(); track srKey) {
+                          <div class="tree-node subreport-node">
+                            <div class="tree-node-header" (click)="toggleMockDataNode('sr_' + srKey)">
+                              <i class="pi" [ngClass]="isMockDataNodeExpanded('sr_' + srKey) ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
+                              <i class="pi pi-list node-icon" [ngClass]="{'empty-icon': !currentMockData.subreports[srKey]?.length}"></i>
+                              <span class="node-label">{{srKey}}</span>
+                              <span class="node-badge" [ngClass]="{'empty-badge': !currentMockData.subreports[srKey]?.length}">
+                                {{currentMockData.subreports[srKey]?.length || 0}} {{t(1501, 'record')}}
+                              </span>
+                            </div>
+                            @if (isMockDataNodeExpanded('sr_' + srKey) && currentMockData.subreports[srKey]?.length) {
+                              <div class="tree-node-content">
+                                <div class="data-table-wrapper">
+                                  <table class="data-table">
+                                    <thead>
+                                      <tr>
+                                        @for (col of getTableColumns(currentMockData.subreports[srKey]); track col) {
+                                          <th>{{col}}</th>
+                                        }
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      @for (row of currentMockData.subreports[srKey]; track $index) {
+                                        <tr>
+                                          @for (col of getTableColumns(currentMockData.subreports[srKey]); track col) {
+                                            <td><span class="cell-value" [title]="row[col]">{{row[col]}}</span></td>
+                                          }
+                                        </tr>
+                                      }
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            }
+                            <!-- Messaggio per subreport vuoti -->
+                            @if (isMockDataNodeExpanded('sr_' + srKey) && !currentMockData.subreports[srKey]?.length) {
+                              <div class="tree-node-content empty-subreport">
+                                <i class="pi pi-info-circle"></i> {{t(1503, 'Nessun record in questo subreport')}}
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- Messaggio se non ci sono dati -->
+                @if ((!currentMockData.main || !currentMockData.main.length) && !getSubreportKeys().length) {
+                  <div class="no-data-message">
+                    <i class="pi pi-inbox"></i>
+                    <p>{{t(1504, 'Nessun dato disponibile')}}</p>
+                  </div>
+                }
               </div>
-            </div>
+            }
 
             <!-- Editor quando in editing -->
-            <div class="editor-container editing-active" *ngIf="isEditingMockData">
-              <textarea pTextarea
-                        [(ngModel)]="mockDataJson"
-                        rows="20"
-                        class="code-editor"></textarea>
-            </div>
+            @if (isEditingMockData) {
+              <div class="editor-container editing-active">
+                <textarea pTextarea
+                          [(ngModel)]="mockDataJson"
+                          rows="20"
+                          class="code-editor"></textarea>
+              </div>
+            }
           </p-tabpanel>
 
           <!-- TAB: Live Preview -->
@@ -1168,7 +1266,8 @@
                 (click)="goBack()"></button>
 
         <!-- Template Management Buttons (solo se esiste un template salvato) -->
-        <div class="template-management-buttons" *ngIf="existingTemplate">
+        @if (existingTemplate) {
+        <div class="template-management-buttons">
           <button pButton
                   type="button"
                   [label]="t(1212, 'Versioni')"
@@ -1197,6 +1296,7 @@
                   tooltipPosition="top"
                   (click)="openCleanVersionsDialog()"></button>
         </div>
+        }
 
         <button pButton
                 type="button"
@@ -1211,6 +1311,7 @@
       </div>
 
     </div>
+    }
 
   </div>
 
@@ -1397,15 +1498,18 @@
   </div>
 
   <!-- Loading -->
-  <div class="templates-loading" *ngIf="loadingTemplates">
+  @if (loadingTemplates) {
+  <div class="templates-loading">
     <p-progressSpinner [style]="{width: '40px', height: '40px'}"></p-progressSpinner>
     <span>{{t(1234, 'Caricamento template...')}}</span>
   </div>
+  }
 
   <!-- Lista Template -->
-  <div class="templates-list" *ngIf="!loadingTemplates">
+  @if (!loadingTemplates) {
+  <div class="templates-list">
+    @for (tpl of filteredTemplatesList; track tpl) {
     <div class="template-item"
-         *ngFor="let tpl of filteredTemplatesList"
          [class.selected]="selectedTemplateToLoad?.prjId === tpl.prjId && selectedTemplateToLoad?.connCode === tpl.connCode && selectedTemplateToLoad?.reportCode === tpl.reportCode"
          (click)="selectTemplateToLoad(tpl)">
       <div class="template-icon">
@@ -1436,14 +1540,20 @@
         <i class="pi pi-chevron-right"></i>
       </div>
     </div>
+    }
 
     <!-- Empty State -->
-    <div class="templates-empty" *ngIf="filteredTemplatesList.length === 0">
+    @if (filteredTemplatesList.length === 0) {
+    <div class="templates-empty">
       <i class="pi pi-inbox"></i>
       <p>{{t(1235, 'Nessun template trovato')}}</p>
-      <small *ngIf="templateSearchQuery">{{t(1236, 'Prova con una ricerca diversa')}}</small>
+      @if (templateSearchQuery) {
+      <small>{{t(1236, 'Prova con una ricerca diversa')}}</small>
+      }
     </div>
+    }
   </div>
+  }
 
   <!-- Footer -->
   <ng-template pTemplate="footer">
@@ -1495,7 +1605,8 @@
     </div>
 
     <!-- Custom Request (visible when 'custom' is selected) -->
-    <div class="field" *ngIf="selectedStylePreset === 'custom'">
+    @if (selectedStylePreset === 'custom') {
+    <div class="field">
       <label>{{t(1244, 'Descrivi lo stile desiderato')}}:</label>
       <textarea pTextarea
                 [(ngModel)]="customStyleRequest"
@@ -1503,9 +1614,11 @@
                 [placeholder]="t(1245, 'Es: Stile elegante con colori blu navy, tabelle con bordi sottili, font sans-serif moderno, intestazioni evidenziate...')"
                 [style]="{width: '100%'}"></textarea>
     </div>
+    }
 
     <!-- Loading con Timer -->
-    <div class="style-loading" *ngIf="styleEnhancing">
+    @if (styleEnhancing) {
+    <div class="style-loading">
       <div class="ai-loader-mini">
         <div class="ai-brain-mini style">
           <i class="pi pi-sparkles"></i>
@@ -1519,9 +1632,11 @@
       </div>
       <small class="loading-hint">{{t(1247, 'Generazione stile richiede tipicamente 30-90 secondi')}}</small>
     </div>
+    }
 
     <!-- Timeout Message -->
-    <div class="style-timeout" *ngIf="styleTimeout && !styleEnhancing">
+    @if (styleTimeout && !styleEnhancing) {
+    <div class="style-timeout">
       <div class="timeout-header">
         <i class="pi pi-clock"></i>
         <span>{{t(1248, 'Timeout - La richiesta ha impiegato troppo tempo')}}</span>
@@ -1538,16 +1653,19 @@
                 (click)="enhanceStyle()"></button>
       </div>
     </div>
+    }
 
     <!-- Result Preview (after generation) -->
-    <div class="style-result" *ngIf="lastStyleResult && !styleEnhancing && !styleTimeout">
+    @if (lastStyleResult && !styleEnhancing && !styleTimeout) {
+    <div class="style-result">
       <div class="result-header">
         <i class="pi pi-check-circle"></i>
         <span>{{t(1251, 'Stile generato con successo!')}}</span>
       </div>
 
       <!-- Color Palette Preview -->
-      <div class="color-palette" *ngIf="lastStyleResult.colorPalette">
+      @if (lastStyleResult.colorPalette) {
+      <div class="color-palette">
         <label>{{t(1252, 'Palette colori')}}:</label>
         <div class="color-swatches">
           <div class="swatch" [style.background]="lastStyleResult.colorPalette.primary" [pTooltip]="t(1293, 'Primario')"></div>
@@ -1557,14 +1675,19 @@
           <div class="swatch" [style.background]="lastStyleResult.colorPalette.text" [pTooltip]="t(1297, 'Testo')"></div>
         </div>
       </div>
+      }
 
       <!-- Suggestions -->
-      <div class="suggestions" *ngIf="lastStyleResult.suggestions && lastStyleResult.suggestions.length > 0">
+      @if (lastStyleResult.suggestions && lastStyleResult.suggestions.length > 0) {
+      <div class="suggestions">
         <label>{{t(1253, 'Suggerimenti')}}:</label>
         <ul>
-          <li *ngFor="let suggestion of lastStyleResult.suggestions">{{suggestion}}</li>
+          @for (suggestion of lastStyleResult.suggestions; track suggestion) {
+          <li>{{suggestion}}</li>
+          }
         </ul>
       </div>
+      }
 
       <!-- Action to regenerate -->
       <div class="regenerate-hint">
@@ -1572,6 +1695,7 @@
         <span>{{t(1254, 'Non soddisfatto? Seleziona un altro stile o modifica la richiesta e clicca "Genera" di nuovo.')}}</span>
       </div>
     </div>
+    }
   </div>
 
   <ng-template pTemplate="footer">
@@ -1589,13 +1713,14 @@
             class="btn-ai-primary"
             [disabled]="styleEnhancing || (!selectedStylePreset || (selectedStylePreset === 'custom' && !customStyleRequest))"
             (click)="enhanceStyle()"></button>
+    @if (lastStyleResult && !styleEnhancing) {
     <button pButton
             type="button"
             [label]="t(1256, 'Applica e Chiudi')"
             icon="pi pi-check"
             class="p-button-success"
-            *ngIf="lastStyleResult && !styleEnhancing"
             (click)="applyStyleAndClose()"></button>
+    }
   </ng-template>
 
 </p-dialog>
@@ -1618,7 +1743,8 @@
        [class.dragging-over]="isDraggingOver">
 
     <!-- Intro (solo se chat vuota) -->
-    <div class="quick-edit-intro" *ngIf="chatMessages.length === 0">
+    @if (chatMessages.length === 0) {
+    <div class="quick-edit-intro">
       <i class="pi pi-comments"></i>
       <p>{{t(1650, 'Collabora con Claude AI per modificare il template. Puoi allegare screenshot della preview per mostrare problemi visivi.')}}</p>
       <div class="quick-edit-examples">
@@ -1630,10 +1756,13 @@
         </ul>
       </div>
     </div>
+    }
 
     <!-- Chat Messages -->
-    <div class="chat-messages-container" *ngIf="chatMessages.length > 0">
-      <div class="chat-message" *ngFor="let msg of chatMessages" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+    @if (chatMessages.length > 0) {
+    <div class="chat-messages-container">
+      @for (msg of chatMessages; track msg) {
+      <div class="chat-message" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
         <div class="message-avatar">
           <i class="pi" [ngClass]="msg.role === 'user' ? 'pi-user' : 'pi-bolt'"></i>
         </div>
@@ -1645,32 +1774,44 @@
           <div class="message-text">{{msg.content}}</div>
 
           <!-- Screenshot allegato -->
-          <div class="message-screenshot" *ngIf="msg.screenshot">
+          @if (msg.screenshot) {
+          <div class="message-screenshot">
             <img [src]="'data:image/png;base64,' + msg.screenshot" alt="Screenshot" />
           </div>
+          }
 
           <!-- Modifiche effettuate (solo per AI) -->
-          <div class="message-changes" *ngIf="msg.role === 'assistant' && msg.changes && msg.changes.length > 0">
+          @if (msg.role === 'assistant' && msg.changes && msg.changes.length > 0) {
+          <div class="message-changes">
             <label>{{t(1283, 'Modifiche effettuate')}}:</label>
             <ul>
-              <li *ngFor="let change of msg.changes">
+              @for (change of msg.changes; track change) {
+              <li>
                 <i class="pi pi-check"></i> {{change}}
               </li>
+              }
             </ul>
           </div>
+          }
 
           <!-- Suggerimenti (solo per AI) -->
-          <div class="message-suggestions" *ngIf="msg.role === 'assistant' && msg.suggestions && msg.suggestions.length > 0">
+          @if (msg.role === 'assistant' && msg.suggestions && msg.suggestions.length > 0) {
+          <div class="message-suggestions">
             <label>{{t(1253, 'Suggerimenti')}}:</label>
             <ul>
-              <li *ngFor="let suggestion of msg.suggestions">{{suggestion}}</li>
+              @for (suggestion of msg.suggestions; track suggestion) {
+              <li>{{suggestion}}</li>
+              }
             </ul>
           </div>
+          }
         </div>
       </div>
+      }
 
       <!-- Loading indicator -->
-      <div class="chat-message assistant loading" *ngIf="quickEditProcessing">
+      @if (quickEditProcessing) {
+      <div class="chat-message assistant loading">
         <div class="message-avatar">
           <i class="pi pi-bolt"></i>
         </div>
@@ -1687,32 +1828,40 @@
           </div>
         </div>
       </div>
+      }
     </div>
+    }
 
     <!-- Timeout Message -->
-    <div class="quick-edit-timeout" *ngIf="quickEditTimeout && !quickEditProcessing">
+    @if (quickEditTimeout && !quickEditProcessing) {
+    <div class="quick-edit-timeout">
       <div class="timeout-header">
         <i class="pi pi-clock"></i>
         <span>{{t(1248, 'Timeout - La richiesta ha impiegato troppo tempo')}}</span>
       </div>
       <p>{{t(1281, 'Claude sta impiegando più tempo del previsto. Prova a semplificare la richiesta o riprova.')}}</p>
     </div>
+    }
 
     <!-- Drop zone overlay -->
-    <div class="drop-overlay" *ngIf="isDraggingOver">
+    @if (isDraggingOver) {
+    <div class="drop-overlay">
       <i class="pi pi-image"></i>
       <span>{{t(1653, 'Rilascia l\'immagine qui')}}</span>
     </div>
+    }
   </div>
 
   <!-- Input Area (sempre visibile in basso) -->
   <div class="chat-input-area">
     <!-- Screenshot preview -->
-    <div class="screenshot-preview" *ngIf="currentScreenshot">
+    @if (currentScreenshot) {
+    <div class="screenshot-preview">
       <img [src]="'data:image/png;base64,' + currentScreenshot" alt="Screenshot" />
       <button pButton type="button" icon="pi pi-times" class="p-button-rounded p-button-text p-button-danger remove-screenshot" (click)="clearScreenshot()"></button>
       <span class="screenshot-name">{{currentScreenshotName || 'screenshot.png'}}</span>
     </div>
+    }
 
     <!-- Input row -->
     <div class="input-row">
@@ -1866,30 +2015,37 @@
 
   <div class="pdf-viewer-content">
     <!-- Loading -->
-    <div class="pdf-viewer-loading" *ngIf="pdfViewerLoading">
+    @if (pdfViewerLoading) {
+    <div class="pdf-viewer-loading">
       <p-progressSpinner [style]="{width: '50px', height: '50px'}"></p-progressSpinner>
       <span>{{t(1471, 'Caricamento PDF...')}}</span>
     </div>
+    }
 
     <!-- PDF Iframe -->
-    <iframe *ngIf="pdfViewerUrl && !pdfViewerLoading"
-            [src]="pdfViewerUrl"
+    @if (pdfViewerUrl && !pdfViewerLoading) {
+    <iframe [src]="pdfViewerUrl"
             class="pdf-viewer-iframe"
             type="application/pdf">
     </iframe>
+    }
 
     <!-- Fallback message -->
-    <div class="pdf-viewer-fallback" *ngIf="!pdfViewerUrl && !pdfViewerLoading">
+    @if (!pdfViewerUrl && !pdfViewerLoading) {
+    <div class="pdf-viewer-fallback">
       <i class="pi pi-file-pdf"></i>
       <p>{{t(1472, 'Nessun PDF da visualizzare')}}</p>
     </div>
+    }
   </div>
 
   <ng-template pTemplate="footer">
     <div class="pdf-viewer-footer">
-      <span class="pdf-filename" *ngIf="pdfViewerFileName">
+      @if (pdfViewerFileName) {
+      <span class="pdf-filename">
         <i class="pi pi-file-pdf"></i> {{pdfViewerFileName}}
       </span>
+      }
       <div class="pdf-viewer-actions">
         <button pButton
                 type="button"
@@ -1927,7 +2083,8 @@
     </div>
 
     <!-- Info sul template sorgente -->
-    <div class="field" *ngIf="existingTemplate">
+    @if (existingTemplate) {
+    <div class="field">
       <label>{{t(1412, 'Template sorgente')}}:</label>
       <div class="source-template-box">
         <span class="template-key">
@@ -1938,6 +2095,7 @@
         <span class="template-name">{{existingTemplate.reportName}}</span>
       </div>
     </div>
+    }
 
     <!-- Selezione connessione di destinazione -->
     <div class="field">
@@ -1957,16 +2115,20 @@
     </div>
 
     <!-- Warning se la connessione è la stessa -->
-    <div class="duplicate-warning" *ngIf="duplicateTargetConnCode === existingTemplate?.connCode">
+    @if (duplicateTargetConnCode === existingTemplate?.connCode) {
+    <div class="duplicate-warning">
       <i class="pi pi-exclamation-triangle"></i>
       <span>{{t(1416, 'La connessione di destinazione deve essere diversa da quella sorgente')}}</span>
     </div>
+    }
 
     <!-- Loading -->
-    <div class="duplicate-loading" *ngIf="duplicateProcessing">
+    @if (duplicateProcessing) {
+    <div class="duplicate-loading">
       <p-progressSpinner [style]="{width: '30px', height: '30px'}"></p-progressSpinner>
       <span>{{t(1417, 'Duplicazione in corso...')}}</span>
     </div>
+    }
   </div>
 
   <ng-template pTemplate="footer">
@@ -2031,26 +2193,34 @@
     <div class="delete-preview" [class.warning]="versionsToDeleteCount > 0" [class.safe]="versionsToDeleteCount === 0">
       <i class="pi" [class.pi-exclamation-triangle]="versionsToDeleteCount > 0" [class.pi-check-circle]="versionsToDeleteCount === 0"></i>
       <div class="preview-text">
-        <span *ngIf="versionsToDeleteCount > 0">
+        @if (versionsToDeleteCount > 0) {
+        <span>
           {{t(1439, 'Saranno eliminate')}} <strong>{{versionsToDeleteCount}}</strong> {{t(1440, 'versioni')}}
         </span>
-        <span *ngIf="versionsToDeleteCount === 0">
+        }
+        @if (versionsToDeleteCount === 0) {
+        <span>
           {{t(1441, 'Nessuna versione sarà eliminata')}}
         </span>
+        }
       </div>
     </div>
 
     <!-- Warning -->
-    <div class="clean-warning" *ngIf="versionsToDeleteCount > 0">
+    @if (versionsToDeleteCount > 0) {
+    <div class="clean-warning">
       <i class="pi pi-info-circle"></i>
       <span>{{t(1442, 'Questa operazione è irreversibile. Le versioni eliminate non potranno essere recuperate.')}}</span>
     </div>
+    }
 
     <!-- Loading -->
-    <div class="clean-loading" *ngIf="cleanVersionsProcessing">
+    @if (cleanVersionsProcessing) {
+    <div class="clean-loading">
       <p-progressSpinner [style]="{width: '30px', height: '30px'}"></p-progressSpinner>
       <span>{{t(1443, 'Pulizia in corso...')}}</span>
     </div>
+    }
   </div>
 
   <ng-template pTemplate="footer">
@@ -2084,10 +2254,12 @@
 
   <div class="versions-dialog-content">
     <!-- Info versione attuale -->
-    <div class="current-version-info" *ngIf="existingTemplate">
+    @if (existingTemplate) {
+    <div class="current-version-info">
       <i class="pi pi-info-circle"></i>
       <span>{{t(1521, 'Versione attuale')}}: <strong>v{{existingTemplate.version}}</strong></span>
     </div>
+    }
 
     <!-- Tabella versioni -->
     <div class="versions-table-container">
@@ -2101,13 +2273,15 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let version of sortedVersions"
-              [class.current-version]="version.version === existingTemplate?.version">
+          @for (version of sortedVersions; track version) {
+          <tr [class.current-version]="version.version === existingTemplate?.version">
             <td class="col-version">
               <span class="version-number">v{{version.version}}</span>
-              <span class="current-badge" *ngIf="version.version === existingTemplate?.version">
+              @if (version.version === existingTemplate?.version) {
+              <span class="current-badge">
                 {{t(1526, 'attuale')}}
               </span>
+              }
             </td>
             <td class="col-date">{{formatVersionDate(version.savedAt || version.createdAt)}}</td>
             <td class="col-author">{{version.savedBy || version.createdBy || '-'}}</td>
@@ -2132,14 +2306,17 @@
               </div>
             </td>
           </tr>
+          }
         </tbody>
       </table>
 
       <!-- Empty state -->
-      <div class="versions-empty" *ngIf="sortedVersions.length === 0">
+      @if (sortedVersions.length === 0) {
+      <div class="versions-empty">
         <i class="pi pi-inbox"></i>
         <p>{{t(1529, 'Nessuna versione precedente disponibile')}}</p>
       </div>
+      }
     </div>
 
   </div>
@@ -2176,10 +2353,12 @@
     </p>
 
     <!-- Loading -->
-    <div class="restore-loading" *ngIf="restoringVersion">
+    @if (restoringVersion) {
+    <div class="restore-loading">
       <p-progressSpinner [style]="{width: '30px', height: '30px'}"></p-progressSpinner>
       <span>{{t(1534, 'Ripristino in corso...')}}</span>
     </div>
+    }
   </div>
 
   <ng-template pTemplate="footer">

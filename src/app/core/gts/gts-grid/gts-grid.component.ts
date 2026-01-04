@@ -77,7 +77,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     this.gridReloadListenerSubs = this.gtsDataService
     .getGridReloadListener()
     .subscribe(async (data) => {
-      this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);      
+      this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
 
       const dataArray = data.split(';');
       const dataSetName = dataArray[0];
@@ -85,7 +85,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         const allowFlags = dataArray[1].split(':');
         if (allowFlags.length > 0) {
           if (allowFlags[0] === 'Edit') {
-            this.allowUpdating = allowFlags[1] === 'true' ? true : false;                 
+            this.allowUpdating = allowFlags[1] === 'true' ? true : false;
           }
           if (allowFlags[0] === 'Insert') {
             this.allowInserting = allowFlags[1] === 'true' ? true : false;
@@ -93,7 +93,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
           if (allowFlags[0] === 'Delete') {
             this.allowDeleting = allowFlags[1] === 'true' ? true : false;
           }
-          
+
           if (allowFlags[0] === 'Idle') {
             this.allowUpdating = false;
             this.allowInserting = false;
@@ -106,21 +106,20 @@ export class GtsGridComponent implements OnInit, OnDestroy {
           } else {
             this.lookUps.forEach((lookUp: any) => {
               this.gridComponent.columnOption(lookUp.name, 'visible', this.allowUpdating || this.allowInserting);
-            });  
-            
+            });
+
             if (this.allowDeleting) {
               this.gridComponent.columnOption('delete', 'visible', true);
-            }            
+            }
           }
-        }        
+        }
       } else {
         if (dataSetName !== undefined ) {
           if (this.metaData !== undefined) {
-            // if (dataSetName !== this.metaData.dataSetName) {
-              await this.prepareGridData();
-            // } else {
-              
-            // }
+            // Attiva il loader prima di ricaricare i dati
+            console.log('[gridReloadListener] Ricevuto reload per:', dataSetName, '- Attivo loader');
+            this.gtsDataService.sendAppLoaderListener(true);
+            await this.prepareGridData();
           }
         }
       }
@@ -256,7 +255,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
   async prepareGridData(): Promise<void> {
     this.gridReady = false;
+    console.log('[prepareGridData] Inizio preparazione dati griglia');
+    // Attiva il loader durante il caricamento dei dati
+    this.gtsDataService.sendAppLoaderListener(true);
     const data: any = await this.gtsGridService.getGridData(this.prjId, this.formId, this.metaData, this.pageData, this.getCustomVerifyResult.bind(this));
+    console.log('[prepareGridData] Dati caricati, rows:', data.gridObject?.dataSet?.length);
     this.dataColumns = data.columns;  
     this.allowDeleting = data.allowDeleting;
     this.lookUps = data.lookUps;
@@ -546,8 +549,14 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
   onKeyDown(e: any) {
     if (e.event.originalEvent.key === 'F2') {
-      console.log('F2 - Show Grid Menu'); 
+      console.log('F2 - Show Grid Menu');
     }
+  }
+
+  onContentReady(e: any) {
+    // Spegni il loader quando la grid ha finito di renderizzare i dati
+    console.log('[onContentReady] Griglia pronta, spengo il loader');
+    this.gtsDataService.sendAppLoaderListener(false);
   }
 
   onAdd = (e: RowDraggingAddEvent) => {

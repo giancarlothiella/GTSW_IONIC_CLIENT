@@ -1,9 +1,11 @@
 <app-gts-loader></app-gts-loader>
 
-<div class="socTopPanel" *ngIf="pageReady">
-  <img class="logo-soc" [src]="socImage" />
-  <div class="socRagioneSociale">{{socRagioneSociale}}</div>
-</div>
+@if (pageReady) {
+  <div class="socTopPanel">
+    <img class="logo-soc" [src]="socImage" />
+    <div class="socRagioneSociale">{{socRagioneSociale}}</div>
+  </div>
+}
 <div>
   <dx-accordion
     [dataSource]="pages"

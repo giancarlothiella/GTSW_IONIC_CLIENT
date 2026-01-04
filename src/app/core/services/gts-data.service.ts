@@ -220,6 +220,7 @@ export class GtsDataService {
   }
 
   sendAppLoaderListener(status: boolean) {
+    console.log('[sendAppLoaderListener]', status ? 'ATTIVO' : 'SPENTO');
     this.appLoaderListener.next(status);
   }
 
