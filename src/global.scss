@@ -302,3 +302,70 @@ ion-item {
     }
   }
 }
+
+/* ============================================
+   GTS Dashboard Grid - Paginatore Compatto
+   ============================================ */
+app-gts-dash-grid {
+  /* Paginatore compatto */
+  .p-paginator {
+    padding: 0.2rem 0.5rem !important;
+    min-height: 1.75rem !important;
+    gap: 0.25rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .p-paginator-first,
+  .p-paginator-prev,
+  .p-paginator-next,
+  .p-paginator-last {
+    min-width: 1.5rem !important;
+    height: 1.5rem !important;
+    padding: 0 !important;
+  }
+
+  .p-paginator-page {
+    min-width: 1.5rem !important;
+    height: 1.5rem !important;
+    padding: 0 !important;
+    font-size: 0.7rem !important;
+  }
+
+  .p-paginator-current {
+    font-size: 0.7rem !important;
+    padding: 0 0.25rem !important;
+  }
+
+  /* Dropdown righe per pagina - PrimeNG 21 usa p-select */
+  .p-paginator .p-select,
+  .p-paginator p-select {
+    height: 1.5rem !important;
+    min-height: 1.5rem !important;
+  }
+
+  .p-paginator .p-select-label {
+    padding: 0 0.35rem !important;
+    font-size: 0.7rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  .p-paginator .p-select-dropdown {
+    width: 1.25rem !important;
+  }
+
+  /* Footer totali - eredita stessi stili delle righe tbody */
+  .p-datatable-tfoot > tr > td,
+  tfoot.p-datatable-tfoot > tr > td,
+  .p-datatable-tfoot tr.totals-row > td {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.85rem !important;
+    border-top: 2px solid var(--primary-color, #2196F3) !important;
+    border-right: 1px solid var(--surface-200, #e9ecef) !important;
+    background: var(--surface-100, #f8f9fa) !important;
+    font-weight: 700 !important;
+
+    &:last-child {
+      border-right: none !important;
+    }
+  }
+}

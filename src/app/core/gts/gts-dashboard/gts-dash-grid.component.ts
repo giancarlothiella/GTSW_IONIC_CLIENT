@@ -200,7 +200,7 @@ import { DashboardItem, DashboardGridColumn } from '../../services/dashboard.ser
 
       /* Paginatore compatto */
       .p-paginator {
-        padding: 0.35rem 0.5rem;
+        padding: 0.15rem 0.5rem;
         font-size: 0.75rem;
         flex-shrink: 0;
         border-top: 1px solid var(--surface-200, #e9ecef);
@@ -213,25 +213,25 @@ import { DashboardItem, DashboardGridColumn } from '../../services/dashboard.ser
       .p-paginator .p-paginator-prev,
       .p-paginator .p-paginator-next,
       .p-paginator .p-paginator-last {
-        min-width: 1.5rem;
-        height: 1.5rem;
+        min-width: 1.25rem;
+        height: 1.25rem;
         padding: 0;
       }
 
       .p-paginator .p-paginator-pages .p-paginator-page {
-        min-width: 1.5rem;
-        height: 1.5rem;
+        min-width: 1.25rem;
+        height: 1.25rem;
         padding: 0;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
       }
 
       /* Dropdown paginatore (p-select in PrimeNG 18+) */
       .p-paginator p-select,
       .p-paginator .p-select,
       .p-paginator .p-dropdown {
-        height: 1.75rem !important;
-        min-height: 1.75rem !important;
-        font-size: 0.75rem;
+        height: 1.4rem !important;
+        min-height: 1.4rem !important;
+        font-size: 0.7rem;
         border: 1px solid var(--surface-300, #dee2e6);
         border-radius: 4px;
         background: var(--surface-0, #ffffff);
@@ -239,32 +239,32 @@ import { DashboardItem, DashboardGridColumn } from '../../services/dashboard.ser
 
       .p-paginator .p-select-label,
       .p-paginator .p-dropdown-label {
-        padding: 0 0.5rem !important;
-        font-size: 0.75rem !important;
-        line-height: 1.75rem !important;
+        padding: 0 0.4rem !important;
+        font-size: 0.7rem !important;
+        line-height: 1.4rem !important;
         display: flex !important;
         align-items: center !important;
       }
 
       .p-paginator .p-select-dropdown,
       .p-paginator .p-dropdown-trigger {
-        width: 1.5rem !important;
+        width: 1.25rem !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
       }
 
       .p-paginator .p-paginator-current {
-        font-size: 0.7rem;
-        padding: 0 0.5rem;
+        font-size: 0.65rem;
+        padding: 0 0.35rem;
       }
 
       .p-paginator .p-paginator-rpp-options {
-        height: 1.75rem;
+        height: 1.4rem;
         margin-left: 0.25rem;
       }
 
-      /* Footer (totali) */
+      /* Footer (totali) - stessa altezza delle righe dati */
       .p-datatable-tfoot {
         background: var(--surface-100, #f8f9fa);
       }
@@ -272,31 +272,31 @@ import { DashboardItem, DashboardGridColumn } from '../../services/dashboard.ser
       .p-datatable-tfoot > tr > td {
         background: var(--surface-100, #f8f9fa) !important;
         border-top: 2px solid var(--primary-color, #2196F3) !important;
-        padding: 0.2rem 0.5rem !important;
+        padding: 0.1rem 0.5rem !important;
         font-weight: 700 !important;
-        font-size: 0.8rem !important;
+        font-size: 0.85rem !important;
+        line-height: 1.15 !important;
       }
     }
 
     :host ::ng-deep .p-datatable .p-datatable-tfoot > tr > td {
       background: var(--surface-100, #f8f9fa);
       border-top: 2px solid var(--primary-color, #2196F3);
-      padding: 0.25rem 0.5rem;
+      padding: 0.1rem 0.5rem;
       font-weight: 700;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
+      line-height: 1.15;
     }
 
     .totals-row td {
       background: var(--surface-100, #f8f9fa);
       border-top: 2px solid var(--primary-color, #2196F3);
-      padding: 0.25rem 0.5rem;
+      padding: 0.1rem 0.5rem;
     }
 
     .total-cell {
       font-weight: 700;
       color: var(--text-color, #212529);
-      display: inline-block;
-      width: 100%;
     }
 
     .empty-message {
