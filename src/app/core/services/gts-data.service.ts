@@ -1272,20 +1272,26 @@ export class GtsDataService {
 
     fields.forEach((field: any) => {
       field.readOnly = true;
+      field.initAsReadOnly = true;
+      field.disabled = false;
+      field.initAsDisabled = false;
     });
   }
   
-  // unset PK form fields from readOnly
+  // unset PK form fields from readOnly and disabled
   pkUnlock(prjId: string, formId: number, clFldGrpId: number) {
     const fields: any[] = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
     .pageData
     .forms
-    .filter((form: any) => form.groupId === clFldGrpId)[0]    
+    .filter((form: any) => form.groupId === clFldGrpId)[0]
     .fields
     .filter((field: any) => field.isPK);
 
     fields.forEach((field: any) => {
       field.readOnly = false;
+      field.initAsReadOnly = false;
+      field.disabled = false;
+      field.initAsDisabled = false;
     });
   }
 
@@ -1927,8 +1933,10 @@ export class GtsDataService {
     };
     const responseData: any = await this.postServerData('db', 'getData', dataReq);
 
+    console.log('Get Data Response:', responseData);
+
     if (responseData.valid) {  
-      if (responseData.data && responseData.data[0].rows !== null && responseData.data[0].rows.length > 0) { 
+      if (responseData.data && responseData.data[0]?.rows && responseData.data[0].rows.length > 0) { 
         responseData.data.forEach((dataSet: any) => {
           if (dataSet.opFieldName !==null ) {
             this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]

@@ -34,6 +34,7 @@ export const COMPONENT_REGISTRY: { [key: string]: () => Promise<any> } = {
   'GTSW/sequences': () => import('../../features/GTSW/sequences/sequences.page').then(m => m.GTSW_SequencesComponent),
   'GTSW/aiInstr': () => import('../../features/GTSW/ai-instr/ai-instr.page').then(m => m.GTSW_AiInstrComponent),
   'GTSW/templateBuilder': () => import('../../features/ai-template-builder/ai-template-builder.component').then(m => m.AiTemplateBuilderComponent),
+  'GTSW/dashboardBuilder': () => import('../../features/GTSW/dashboardBuilder/dashboardBuilder.page').then(m => m.GTSW_DashboardBuilderComponent),
 
   'GTSW/reporttemplates': () => import('../../features/GTSW/report-templates/report-templates.page').then(m => m.GTSW_ReportTemplatesComponent),
   // DCW Components

@@ -221,6 +221,20 @@ export class UserDataService {
   }
 
   // ============================================
+  // LIST EXCEL CACHES
+  // ============================================
+
+  /**
+   * Lista tutte le cache Excel disponibili per un progetto
+   */
+  listExcelCaches(prjId: string): Observable<{
+    success: boolean;
+    caches: { pageCode: string; metadata?: UserDataMetadata; updatedAt?: Date }[];
+  }> {
+    return this.http.get<any>(`${this.apiUrl}/list-caches/${prjId}/excelCache/shared`);
+  }
+
+  // ============================================
   // STATISTICS
   // ============================================
 

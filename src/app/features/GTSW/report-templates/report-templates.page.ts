@@ -1,10 +1,12 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline } from 'ionicons/icons';
 import { AuthService } from '../../../core/services/auth.service';
 import { GtsDataService } from '../../../core/services/gts-data.service';
+import { TranslationService } from '../../../core/services/translation.service';
 import { Subscription } from 'rxjs';
 import {
   mapOracleDataForTemplateBuilder,
@@ -21,11 +23,17 @@ import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component'
 import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component';
 import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';
 
+// PrimeNG
+import { Dialog } from 'primeng/dialog';
+import { InputNumber } from 'primeng/inputnumber';
+import { ButtonModule } from 'primeng/button';
+
 @Component({
   selector: 'app-report-templates',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
 
     // GTS Components
     GtsLoaderComponent,
@@ -34,7 +42,12 @@ import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.c
     GtsGridComponent,
     GtsFormComponent,
     GtsFormPopupComponent,
-    GtsMessageComponent
+    GtsMessageComponent,
+
+    // PrimeNG
+    Dialog,
+    InputNumber,
+    ButtonModule
   ],
   templateUrl: './report-templates.page.html',
   styleUrls: ['./report-templates.page.scss']
@@ -47,6 +60,16 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   public gtsDataService = inject(GtsDataService);
   private router = inject(Router);
+  private ts = inject(TranslationService);
+
+  /**
+   * Ottiene un testo tradotto
+   * @param txtId ID del testo
+   * @param fallback Testo di fallback se non trovato
+   */
+  t(txtId: number, fallback: string = ''): string {
+    return this.ts.getText(txtId, fallback);
+  }
 
   constructor() {
     addIcons({ arrowBackOutline });
@@ -159,6 +182,11 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
   customData: any[] = [];
   toolbarSelectedValue = '';
   pendingRestoreProject: string | null = null;  // Progetto da ripristinare al ritorno dal template builder
+
+  // Session ID Dialog
+  showSessionIdDialog: boolean = false;
+  sessionIdInput: number | null = null;
+  pendingTemplateRow: any = null;  // Template row in attesa di conferma
 
   //========= PAGE FUNCTIONS =================
   async getCustomData(prjId: string, formId: number, customCode: string, actualView: string) {
@@ -337,23 +365,15 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
     }
 
     // GET_TEMPLATE: Apre direttamente il template selezionato dalla grid qTemplates
+    // Opzionalmente chiede un sessionId per caricare dati reali come mock data
     if (customCode === 'GET_TEMPLATE') {
-      console.log('[GET_TEMPLATE] Starting...');
       const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daTemplates', 'qTemplates');
-      console.log('[GET_TEMPLATE] Selected row:', row);
 
       if (row && row.reportCode && row.prjId && row.connCode) {
-        // Naviga al template builder con i dati per caricare il template esistente
-        this.router.navigate(['/GTSW/templateBuilder'], {
-          state: {
-            loadTemplate: {
-              prjId: row.prjId,
-              connCode: row.connCode,
-              reportCode: row.reportCode
-            },
-            returnTo: this.getReturnToState()
-          }
-        });
+        // Salva il row e apri la dialog per chiedere sessionId
+        this.pendingTemplateRow = row;
+        this.sessionIdInput = null;
+        this.showSessionIdDialog = true;
       } else {
         alert('Seleziona un template dalla griglia');
       }
@@ -410,5 +430,125 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
       route: '/GTSW/reporttemplates',
       project: this.toolbarSelectedValue
     };
+  }
+
+  /**
+   * Conferma la selezione del template dalla dialog sessionId
+   */
+  async confirmLoadTemplate(): Promise<void> {
+    this.showSessionIdDialog = false;
+
+    if (!this.pendingTemplateRow) return;
+
+    const row = this.pendingTemplateRow;
+    this.pendingTemplateRow = null;
+
+    if (this.sessionIdInput && this.sessionIdInput > 0) {
+      // Carica dati dalla sessione
+      await this.loadTemplateWithSessionData(row, this.sessionIdInput);
+    } else {
+      // Comportamento normale - usa mock data esistenti
+      this.router.navigate(['/GTSW/templateBuilder'], {
+        state: {
+          loadTemplate: {
+            prjId: row.prjId,
+            connCode: row.connCode,
+            reportCode: row.reportCode
+          },
+          returnTo: this.getReturnToState()
+        }
+      });
+    }
+  }
+
+  /**
+   * Annulla la dialog sessionId
+   */
+  cancelLoadTemplate(): void {
+    this.showSessionIdDialog = false;
+    this.pendingTemplateRow = null;
+    this.sessionIdInput = null;
+  }
+
+  /**
+   * Carica un template con i dati di una sessione specifica come mock data
+   * Utile per debuggare perché il template funziona con mock data ma non con dati reali
+   */
+  private async loadTemplateWithSessionData(templateRow: any, sessionId: number): Promise<void> {
+    this.gtsDataService.sendAppLoaderListener(true);
+
+    // Trova la sessione nella griglia qSessions
+    const sessionsData = this.pageData
+      .filter((element: any) => element.dataAdapter === 'daTemplates')[0]
+      ?.data?.find((d: any) => d.dataSetName === 'qSessions');
+
+    const sessionRow = sessionsData?.rows?.find((r: any) => r.sessionId === sessionId);
+
+    if (!sessionRow) {
+      this.gtsDataService.sendAppLoaderListener(false);
+      alert(`Sessione con ID ${sessionId} non trovata nella griglia`);
+      // Fallback: carica template senza dati sessione
+      this.router.navigate(['/GTSW/templateBuilder'], {
+        state: {
+          loadTemplate: {
+            prjId: templateRow.prjId,
+            connCode: templateRow.connCode,
+            reportCode: templateRow.reportCode
+          },
+          returnTo: this.getReturnToState()
+        }
+      });
+      return;
+    }
+
+    // Carica i dati del report dalla sessione (come in SHOW_AI_BUILDER)
+    const report = {
+      sessionId: sessionRow.sessionId,
+      fieldGrpId: sessionRow.fieldGrpId,
+      reportCode: sessionRow.reportCode,
+      reportName: sessionRow.reportName,
+      sqlId: sessionRow.sqlId,
+    };
+
+    await this.gtsDataService.getOtherPageData(sessionRow.prjId, sessionRow.formId);
+    const reportData = await this.gtsDataService.getReportData(
+      sessionRow.prjId,
+      sessionRow.formId,
+      report,
+      sessionRow.params,
+      sessionRow.connCode,
+      false,
+      false  // skipPdf - non serve il PDF, servono solo i dati
+    );
+
+    if (reportData && reportData.valid) {
+      // Mappa i dati Oracle
+      const oracleData = mapOracleDataForTemplateBuilder(reportData);
+      const oracleMetadata = mapOracleMetadataForTemplateBuilder(reportData);
+      const sessionData = extractSessionData(sessionRow);
+
+      this.gtsDataService.sendAppLoaderListener(false);
+
+      // Naviga al template builder con:
+      // - loadTemplate: per caricare il template selezionato
+      // - oracleData/oracleMetadata: dati reali dalla sessione come mock data
+      this.router.navigate(['/GTSW/templateBuilder'], {
+        state: {
+          loadTemplate: {
+            prjId: templateRow.prjId,
+            connCode: templateRow.connCode,
+            reportCode: templateRow.reportCode
+          },
+          sessionData: sessionData,
+          oracleData: oracleData,
+          oracleMetadata: oracleMetadata,
+          useSessionDataAsMock: true,  // Flag per indicare di usare questi dati come mock
+          returnTo: this.getReturnToState()
+        }
+      });
+    } else {
+      this.gtsDataService.sendAppLoaderListener(false);
+      alert('Errore caricamento dati sessione: ' + (reportData?.message || 'Errore sconosciuto'));
+    }
   }
 }

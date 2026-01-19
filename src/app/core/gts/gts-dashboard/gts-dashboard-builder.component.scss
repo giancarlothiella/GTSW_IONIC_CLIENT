@@ -1,0 +1,922 @@
+.dashboard-builder {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--surface-ground, #f8f9fa);
+  margin: 0;
+  margin-left: 1rem;
+  margin-top: 1rem;
+  width: calc(100% - 2rem);
+  background: var(--surface-card, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--surface-border, #e2e8f0);
+  overflow: hidden;
+}
+
+// ============================================
+// HEADER
+// ============================================
+
+.builder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1.25rem;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-bottom: none;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .builder-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ffffff;
+
+    .dashboard-code {
+      font-weight: 400;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-left: 0.5rem;
+    }
+  }
+}
+
+// Tooltip stile chiaro per header scuro
+// Nota: i tooltip vengono appendati al body, quindi serve ::ng-deep globale
+::ng-deep .p-tooltip {
+  .p-tooltip-text {
+    background: #ffffff !important;
+    color: #334155 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid #e2e8f0 !important;
+    font-size: 0.8rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  &.p-tooltip-top .p-tooltip-arrow {
+    border-top-color: #ffffff !important;
+  }
+
+  &.p-tooltip-bottom .p-tooltip-arrow {
+    border-bottom-color: #ffffff !important;
+  }
+
+  &.p-tooltip-left .p-tooltip-arrow {
+    border-left-color: #ffffff !important;
+  }
+
+  &.p-tooltip-right .p-tooltip-arrow {
+    border-right-color: #ffffff !important;
+  }
+}
+
+// ============================================
+// LOADING
+// ============================================
+
+.builder-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 4rem;
+  color: var(--text-color-secondary, #6c757d);
+}
+
+// ============================================
+// TABS
+// ============================================
+
+:host ::ng-deep {
+  .p-tabs {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: none;
+  }
+
+  .p-tablist {
+    background: var(--surface-50, #f8fafc);
+    border: none;
+    border-bottom: 1px solid var(--surface-border, #dee2e6);
+    padding: 0 1rem;
+  }
+
+  .p-tablist-tab-list {
+    border: none;
+    gap: 0.25rem;
+  }
+
+  .p-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    margin-bottom: -1px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-color-secondary, #64748b);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+
+    &:hover {
+      color: var(--primary-color, #3b82f6);
+      background: transparent;
+      border-bottom-color: rgba(59, 130, 246, 0.3);
+    }
+
+    &[data-p-active="true"],
+    &.p-tab-active {
+      color: var(--primary-color, #3b82f6);
+      background: transparent;
+      border-bottom-color: var(--primary-color, #3b82f6);
+      font-weight: 600;
+    }
+
+    i {
+      font-size: 0.875rem;
+    }
+  }
+
+  .p-tabpanels {
+    flex: 1;
+    overflow: hidden;
+    border: none;
+    border-top: none;
+  }
+
+  .p-tabpanel {
+    height: 100%;
+    overflow: auto;
+    padding: 0;
+    border: none;
+  }
+}
+
+// ============================================
+// TAB CONTENT
+// ============================================
+
+.tab-content {
+  padding: 1.5rem 1.25rem;
+  background: var(--surface-card, #ffffff);
+
+  h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-color, #334155);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+}
+
+// ============================================
+// FORM GRID
+// ============================================
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+
+  &.checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  label {
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--text-color, #212529);
+  }
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.form-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  &.full-width {
+    grid-column: 1 / -1;
+  }
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-color, #212529);
+  }
+
+  input, textarea {
+    width: 100%;
+  }
+}
+
+// ============================================
+// SECTION HEADER
+// ============================================
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+
+  h4 {
+    margin: 0;
+  }
+
+  label {
+    font-weight: 600;
+    color: var(--text-color, #212529);
+  }
+}
+
+// ============================================
+// EMPTY STATE
+// ============================================
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background: var(--surface-50, #f8f9fa);
+  border: 2px dashed var(--surface-border, #dee2e6);
+  border-radius: 8px;
+  text-align: center;
+
+  i {
+    font-size: 3rem;
+    color: var(--text-color-secondary, #6c757d);
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-color, #212529);
+    font-weight: 500;
+  }
+
+  .hint {
+    font-size: 0.875rem;
+    color: var(--text-color-secondary, #6c757d);
+    font-weight: 400;
+    margin-top: 0.5rem;
+  }
+}
+
+// ============================================
+// TABLES
+// ============================================
+
+:host ::ng-deep {
+  .p-datatable {
+    .p-datatable-thead > tr > th {
+      background: var(--surface-50, #f8f9fa);
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .p-datatable-tbody > tr > td {
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.item-type-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &.type-card {
+    background: #e3f2fd;
+    color: #1565c0;
+  }
+
+  &.type-chart {
+    background: #f3e5f5;
+    color: #7b1fa2;
+  }
+
+  &.type-grid {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+}
+
+// ============================================
+// DIALOG FORM
+// ============================================
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  .form-field {
+    label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-color, #212529);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    input, textarea {
+      width: 100%;
+    }
+  }
+
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .form-row-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 1rem;
+
+    &.checkboxes {
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+  }
+}
+
+// ============================================
+// DIALOG GRID 3 COLUMNS
+// ============================================
+
+.dialog-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 100px);
+  gap: 1rem;
+  justify-content: start;
+
+  .form-field {
+    label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-color, #212529);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    input, textarea {
+      width: 100%;
+    }
+
+    // Forza larghezza p-inputNumber
+    :host ::ng-deep p-inputnumber,
+    ::ng-deep p-inputnumber {
+      display: block;
+      width: 100%;
+
+      .p-inputnumber {
+        width: 100%;
+      }
+
+      .p-inputnumber-input {
+        width: 100% !important;
+        max-width: 100px;
+      }
+    }
+  }
+
+  .span-3 {
+    grid-column: span 3;
+    width: calc(300px + 2rem); // 3 colonne + 2 gap
+  }
+
+  .span-2 {
+    grid-column: span 2;
+  }
+}
+
+// ============================================
+// ITEM DIALOG
+// ============================================
+
+.item-dialog {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+// ============================================
+// DIALOG MAX WIDTH
+// ============================================
+
+:host ::ng-deep {
+  .p-dialog {
+    max-width: 700px;
+    width: 95vw;
+  }
+}
+
+// ============================================
+// ITEM DIALOG FORM
+// ============================================
+
+.dialog-form {
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .form-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+
+    &.checkboxes {
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-top: 0.5rem;
+    }
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-color-secondary, #64748b);
+    }
+
+    input, textarea {
+      width: 100%;
+    }
+  }
+
+  h5 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-color, #334155);
+  }
+}
+
+// ============================================
+// ITEM DIALOG TABS
+// ============================================
+
+:host ::ng-deep .item-config-dialog {
+  .p-dialog-content {
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+.item-dialog-tabs {
+  :host ::ng-deep {
+    .p-tabs {
+      border: none;
+    }
+
+    .p-tablist {
+      background: var(--surface-50, #f8fafc);
+      border-bottom: 1px solid var(--surface-border, #dee2e6);
+      padding: 0 0.5rem;
+    }
+
+    .p-tab {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      gap: 0.35rem;
+
+      i {
+        font-size: 0.85rem;
+      }
+    }
+
+    .p-tabpanels {
+      padding: 0;
+    }
+
+    .p-tabpanel {
+      padding: 1rem;
+      max-height: 55vh;
+      overflow-y: auto;
+    }
+  }
+}
+
+// ============================================
+// INLINE EDITABLE TABLE
+// ============================================
+
+:host ::ng-deep {
+  .p-datatable-sm {
+    .p-datatable-table {
+      table-layout: auto;
+    }
+
+    .p-datatable-tbody > tr > td {
+      padding: 0.25rem 0.35rem;
+      vertical-align: middle;
+      height: auto;
+      line-height: 1.2;
+    }
+
+    .p-datatable-thead > tr > th {
+      padding: 0.4rem 0.35rem;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      background: var(--surface-100, #f1f5f9);
+    }
+
+    // Rimuovi overflow nascosto che causa troncamento
+    .p-datatable-wrapper {
+      overflow-x: auto;
+    }
+  }
+
+  // Input compatti nella tabella
+  .inline-edit-input {
+    width: 100%;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.8rem;
+    min-width: 60px;
+
+    &.p-inputtext {
+      height: 28px;
+    }
+  }
+
+  .inline-edit-select {
+    .p-select {
+      width: 100%;
+      min-width: 80px;
+    }
+    .p-select-label {
+      padding: 0.2rem 0.4rem;
+      font-size: 0.8rem;
+      line-height: 1.3;
+    }
+  }
+
+  .inline-edit-number {
+    .p-inputnumber {
+      width: 100%;
+    }
+    .p-inputnumber-input {
+      padding: 0.25rem 0.3rem;
+      font-size: 0.8rem;
+      text-align: center;
+      height: 28px;
+      width: 100%;
+    }
+  }
+
+  // Checkbox centrato
+  .p-datatable-tbody > tr > td .p-checkbox {
+    display: flex;
+    justify-content: center;
+  }
+
+  // Pulsanti azione più compatti
+  .p-datatable-tbody > tr > td .p-button-sm {
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+  }
+
+  // Order cell (up/down buttons)
+  .order-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: center;
+
+    .p-button-sm {
+      width: 1.5rem;
+      height: 1.25rem;
+    }
+  }
+}
+
+// ============================================
+// PANELS (collapsible sections in dialogs)
+// ============================================
+
+:host ::ng-deep {
+  .p-panel {
+    margin-bottom: 1rem;
+    border: 1px solid var(--surface-border, #dee2e6);
+    border-radius: 6px;
+    overflow: hidden;
+
+    .p-panel-header {
+      padding: 0.75rem 1rem;
+      background: var(--surface-100, #f1f5f9);
+      border-bottom: 1px solid var(--surface-border, #dee2e6);
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--text-color, #212529);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .p-panel-title {
+        font-weight: 600;
+      }
+
+      .p-panel-icons {
+        display: flex;
+        gap: 0.25rem;
+      }
+
+      .p-panel-header-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-color-secondary, #6c757d);
+        transition: all 0.2s;
+
+        &:hover {
+          background: var(--surface-200, #e2e8f0);
+          color: var(--text-color, #212529);
+        }
+      }
+    }
+
+    .p-panel-content {
+      padding: 1rem;
+      background: var(--surface-card, #ffffff);
+    }
+
+    &.p-panel-collapsed .p-panel-header {
+      border-bottom: none;
+    }
+  }
+}
+
+// ============================================
+// SERIES / COLUMNS / AGGREGATIONS
+// ============================================
+
+.series-section,
+.columns-section,
+.aggregations-section {
+  .section-header {
+    margin-bottom: 0.75rem;
+  }
+}
+
+.series-row,
+.column-row,
+.aggregation-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: center;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// ============================================
+// JSON EDITOR
+// ============================================
+
+.json-editor {
+  display: flex;
+  flex-direction: column;
+  height: calc(80vh - 150px);
+
+  .json-textarea {
+    flex: 1;
+    width: 100%;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    padding: 1rem;
+    border: 1px solid var(--surface-border, #dee2e6);
+    border-radius: 4px;
+    resize: none;
+    background: var(--surface-0, #ffffff);
+    color: var(--text-color, #212529);
+
+    &:focus {
+      outline: none;
+      border-color: var(--primary-color, #2196F3);
+      box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+    }
+  }
+
+  .json-error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+    background: #ffebee;
+    color: #c62828;
+    border-radius: 4px;
+    font-size: 0.875rem;
+
+    i {
+      font-size: 1rem;
+    }
+  }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+
+@media (max-width: 768px) {
+  .form-row,
+  .form-row-2,
+  .form-row-3,
+  .dialog-form .form-row-2,
+  .dialog-form .form-row-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .builder-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+
+    .header-left,
+    .header-right {
+      justify-content: center;
+    }
+  }
+
+  .series-row,
+  .column-row,
+  .aggregation-row {
+    flex-wrap: wrap;
+  }
+}
+
+// ============================================
+// PREVIEW MAPPING DIALOG
+// ============================================
+
+.preview-mapping-content {
+  min-height: 200px;
+
+  .preview-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 3rem;
+    color: var(--text-color-secondary, #64748b);
+  }
+
+  .mapping-info {
+    margin: 0 0 1.5rem 0;
+    color: var(--text-color-secondary, #64748b);
+    font-size: 0.9rem;
+  }
+
+  .empty-caches {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--surface-50, #f8fafc);
+    border: 1px solid var(--surface-border, #e2e8f0);
+    border-radius: 6px;
+    color: var(--text-color-secondary, #64748b);
+
+    i {
+      font-size: 1.25rem;
+      color: var(--primary-color, #3b82f6);
+    }
+  }
+
+  .mapping-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .mapping-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--surface-50, #f8fafc);
+    border: 1px solid var(--surface-border, #e2e8f0);
+    border-radius: 6px;
+
+    .dataset-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+
+      strong {
+        color: var(--text-color, #334155);
+        font-size: 0.9rem;
+      }
+
+      .dataset-desc {
+        font-size: 0.8rem;
+        color: var(--text-color-secondary, #64748b);
+      }
+    }
+
+    .cache-hint {
+      font-size: 0.75rem;
+      color: var(--text-color-secondary, #94a3b8);
+      font-style: italic;
+    }
+  }
+}
+
+// ============================================
+// PREVIEW DASHBOARD DIALOG
+// ============================================
+
+:host ::ng-deep .preview-dashboard-dialog {
+  .p-dialog-content {
+    padding: 0;
+    overflow: hidden;
+    height: calc(95vh - 60px);
+  }
+
+  app-gts-dashboard {
+    display: block;
+    height: 100%;
+    width: 100%;
+  }
+}

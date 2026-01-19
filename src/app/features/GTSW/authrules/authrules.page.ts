@@ -6,7 +6,8 @@ import { AuthService } from '../../../core/services/auth.service';
 import { GtsDataService } from '../../../core/services/gts-data.service';
 import { GtsLoaderComponent } from '../../../core/gts/gts-loader/gts-loader.component';
 import { GtsToolbarComponent } from '../../../core/gts/gts-toolbar/gts-toolbar.component';
-import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component';
+// import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component'; // DevExtreme version
+import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component'; // AG Grid version ✨
 import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component';
 import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component';
 import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';

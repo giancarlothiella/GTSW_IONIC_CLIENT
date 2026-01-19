@@ -1,0 +1,147 @@
+.gts-tabs {
+  width: 100%;
+  background-color: rgba(132, 177, 235, 0.3);
+  margin-top: 4px;
+  padding: 4px 4px 0 4px;
+  overflow: hidden;
+
+  ion-segment {
+    --background: transparent;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    margin: 0;
+    padding: 0;
+    width: fit-content;
+    overflow: visible !important;
+
+    // Nasconde i controlli di scroll
+    &::part(container) {
+      overflow-x: auto;
+      overflow-y: visible !important;
+      scrollbar-width: none; // Firefox
+      -ms-overflow-style: none; // IE/Edge
+      height: 44px;
+
+      &::-webkit-scrollbar {
+        display: none; // Chrome/Safari
+      }
+    }
+  }
+
+  ion-segment-button {
+    --color: rgba(0, 0, 139, 0.6);
+    --color-checked: #00008b;
+    --indicator-color: transparent;
+    --indicator-height: 0px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+
+    min-width: 120px;
+    max-width: 220px;
+    width: auto;
+    height: 40px !important;
+    max-height: 40px !important;
+    text-transform: none;
+    font-weight: 500;
+    font-size: 14px;
+    background-color: rgba(200, 200, 200, 0.2);
+    border: 1px solid transparent !important; // Bordo sottile invisibile di default
+    border-radius: 6px 6px 0 0;
+    transition: all 0.2s ease;
+    margin: 0 3px;
+    position: relative;
+    top: 0;
+
+    &::part(indicator-background) {
+      display: none;
+    }
+
+    &::part(native) {
+      padding: 10px 16px !important;
+      height: 40px !important;
+      max-height: 40px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px; // Aumentato da 10px a 12px per più spazio tra icona e testo
+      overflow: visible !important;
+    }
+
+    // Tab selezionato - SUPER EVIDENTE CON BORDO SPESSO
+    &.segment-button-checked {
+      background-color: white !important;
+      font-weight: bold;
+      border: 3px solid #00008b !important; // Bordo SPESSO solo sul selezionato
+      border-bottom: none !important;
+      box-shadow:
+        0 -2px 6px rgba(0, 0, 139, 0.3),
+        inset 0 0 0 1px rgba(0, 0, 139, 0.1);
+      z-index: 10;
+      position: relative;
+      top: 0;
+      height: 44px !important;
+      max-height: 44px !important;
+
+      &::part(native) {
+        height: 44px !important;
+        max-height: 44px !important;
+        gap: 12px;
+      }
+
+      ion-label {
+        color: #00008b;
+      }
+    }
+
+    // Hover - bordo sottile
+    &:hover:not(.segment-button-disabled):not(.segment-button-checked) {
+      background-color: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(0, 0, 139, 0.3) !important;
+      border-bottom: none !important;
+    }
+  }
+
+  // Icone SVG
+  .tab-icon {
+    width: 16px;
+    height: 16px;
+    margin: 0 8px 0 0 !important; // Margine a destra per staccare dal testo
+    display: inline-block;
+    vertical-align: middle;
+    filter: brightness(0) saturate(100%) invert(14%) sepia(68%) saturate(2217%) hue-rotate(212deg);
+    opacity: 0.7;
+    transition: all 0.2s ease;
+  }
+
+  ion-segment-button.segment-button-checked .tab-icon {
+    opacity: 1;
+    filter: brightness(0) saturate(100%) invert(14%) sepia(68%) saturate(2217%) hue-rotate(212deg) brightness(1.1);
+  }
+
+  // Ionicons
+  ion-icon {
+    font-size: 16px;
+    margin: 0 8px 0 0 !important; // Margine a destra per staccare dal testo
+    color: rgba(0, 0, 139, 0.7);
+    transition: all 0.2s ease;
+  }
+
+  ion-segment-button.segment-button-checked ion-icon {
+    color: #00008b;
+  }
+
+  // Label
+  ion-label {
+    font-size: 13px;
+    margin: 0;
+    font-weight: inherit;
+    color: rgba(0, 0, 139, 0.7);
+    line-height: 1.2;
+    transition: all 0.2s ease;
+  }
+
+  ion-segment-button.segment-button-checked ion-label {
+    color: #00008b;
+  }
+}

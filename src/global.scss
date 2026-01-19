@@ -369,3 +369,190 @@ app-gts-dash-grid {
     }
   }
 }
+
+/* ============================================
+   GTS Message - Ionic Alert Styling
+   ============================================ */
+
+// Gli Ionic Alert sono componenti globali, quindi gli stili devono essere in un foglio globale
+// Usiamo selettori con alta specificità per sovrascrivere gli stili di default
+
+.gts-message-question {
+  // Bottone Cancel - grigio con bordo
+  .gts-btn-cancel.sc-ion-alert-md {
+    color: #666 !important;
+    border: 1px solid #ddd !important;
+    border-radius: 6px !important;
+    padding: 8px 16px !important;
+    background-color: #f5f5f5 !important;
+  }
+
+  // Bottone OK - blu scuro con bordo
+  .gts-btn-ok.sc-ion-alert-md {
+    color: white !important;
+    border: 1px solid #00008b !important;
+    border-radius: 6px !important;
+    padding: 8px 16px !important;
+    background-color: #00008b !important;
+  }
+}
+
+/* ============================================
+   GTS Toolbar - Ionic Select Popover Styling
+   ============================================ */
+
+// Il popover del select è creato dinamicamente, quindi gli stili devono essere globali
+.select-popover {
+  --width: auto !important;
+  --min-width: 150px !important;
+  --max-width: 300px !important;
+
+  ion-list {
+    padding: 4px !important;
+  }
+
+  ion-item {
+    --padding-start: 12px !important;
+    --padding-end: 12px !important;
+    --min-height: 32px !important;
+    font-size: 12px !important;
+
+    ion-label {
+      font-size: 12px !important;
+      margin: 6px 0 !important;
+    }
+  }
+
+  ion-radio-group ion-item {
+    --min-height: 32px !important;
+  }
+}
+
+/* ============================================
+   GTS Toolbar - Action Menu Popover Styling
+   ============================================ */
+
+// Il popover del menu azioni è creato dinamicamente, quindi gli stili devono essere globali
+.action-menu-popover {
+  --width: auto !important;
+  --min-width: 180px !important;
+  --max-width: 300px !important;
+  --background: #ffffff !important;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  --border-radius: 8px !important;
+}
+
+/* ============================================
+   PrimeNG Compact Theme for Forms
+   ============================================ */
+
+/* Riduci dimensioni degli input */
+.p-component {
+  font-size: 13px !important;
+}
+
+.p-inputtext {
+  padding: 6px 10px !important;
+  font-size: 13px !important;
+  height: 32px !important;
+}
+
+.p-inputtextarea {
+  padding: 6px 10px !important;
+  font-size: 13px !important;
+}
+
+/* FloatLabel più compatto */
+.p-float-label label {
+  font-size: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+.p-float-label input:focus ~ label,
+.p-float-label input.p-filled ~ label,
+.p-float-label textarea:focus ~ label,
+.p-float-label textarea.p-filled ~ label,
+.p-float-label .p-inputwrapper-focus ~ label,
+.p-float-label .p-inputwrapper-filled ~ label {
+  top: -0.5rem !important;
+  font-size: 11px !important;
+  transform: translateY(0) !important;
+}
+
+/* Select più compatto */
+.p-select {
+  min-height: 32px !important;
+}
+
+.p-select .p-select-label {
+  padding: 6px 10px !important;
+  font-size: 13px !important;
+}
+
+.p-select-option {
+  padding: 6px 10px !important;
+  font-size: 13px !important;
+}
+
+/* DatePicker più compatto */
+.p-datepicker .p-inputtext {
+  padding: 6px 10px !important;
+  height: 32px !important;
+}
+
+.p-datepicker-trigger {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+/* Checkbox e Radio più compatti */
+.p-checkbox .p-checkbox-box {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.p-radiobutton .p-radiobutton-box {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Button più compatto */
+.p-button {
+  padding: 6px 12px !important;
+  font-size: 13px !important;
+}
+
+.p-button.p-button-sm {
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+}
+
+.p-button.p-button-icon-only {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+}
+
+/* Message più compatto */
+.p-message {
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  margin-top: 2px !important;
+}
+
+/* Dialog più compatto */
+.p-dialog .p-dialog-header {
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+}
+
+.p-dialog .p-dialog-content {
+  padding: 12px 16px !important;
+}
+
+/* Tooltip più compatto */
+.p-tooltip .p-tooltip-text {
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+}

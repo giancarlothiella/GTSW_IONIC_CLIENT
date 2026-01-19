@@ -1,0 +1,955 @@
+<!-- GTS Dashboard Builder Component -->
+
+@if (visible) {
+  <div class="dashboard-builder">
+
+    <!-- Header -->
+    <div class="builder-header">
+      <div class="header-left">
+        <h2 class="builder-title">
+          {{ dashboard.title || 'Nuova Dashboard' }}
+          <span class="dashboard-code">[{{ dashboard.dashboardCode }}]</span>
+        </h2>
+      </div>
+      <div class="header-right">
+        <button
+          pButton
+          type="button"
+          icon="pi pi-play"
+          class="p-button-text p-button-sm"
+          (click)="openPreviewMapping()"
+          pTooltip="Preview Dashboard"
+          tooltipPosition="bottom">
+        </button>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-code"
+          class="p-button-text p-button-sm"
+          (click)="openJsonEditor()"
+          pTooltip="Editor JSON"
+          tooltipPosition="bottom">
+        </button>
+        <button
+          pButton
+          type="button"
+          label="Salva"
+          icon="pi pi-save"
+          class="p-button-success"
+          (click)="saveDashboard()"
+          [loading]="loading">
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    @if (loading) {
+      <div class="builder-loading">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+        <span>Caricamento...</span>
+      </div>
+    }
+
+    <!-- Tabs -->
+    @if (!loading) {
+      <p-tabs [(value)]="activeTab">
+        <p-tablist>
+          <p-tab [value]="0">
+            <i class="pi pi-info-circle"></i>
+            <span>Generale</span>
+          </p-tab>
+          <p-tab [value]="1">
+            <i class="pi pi-database"></i>
+            <span>Dataset</span>
+          </p-tab>
+          <p-tab [value]="2">
+            <i class="pi pi-th-large"></i>
+            <span>Layout</span>
+          </p-tab>
+          <p-tab [value]="3">
+            <i class="pi pi-objects-column"></i>
+            <span>Items ({{ dashboard.items?.length || 0 }})</span>
+          </p-tab>
+          <p-tab [value]="4">
+            <i class="pi pi-filter"></i>
+            <span>Filtri</span>
+          </p-tab>
+          <p-tab [value]="5">
+            <i class="pi pi-cog"></i>
+            <span>Settings</span>
+          </p-tab>
+        </p-tablist>
+
+        <p-tabpanels>
+          <!-- TAB 0: General Info -->
+          <p-tabpanel [value]="0">
+            <div class="tab-content">
+              <div class="form-grid">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label>Project ID *</label>
+                    <input pInputText [(ngModel)]="dashboard.prjId" [disabled]="!!dashboard._id" />
+                  </div>
+                  <div class="form-field">
+                    <label>Connection Code</label>
+                    <input pInputText [(ngModel)]="dashboard.connCode" [disabled]="!!dashboard._id" />
+                  </div>
+                  <div class="form-field">
+                    <label>Dashboard Code *</label>
+                    <input pInputText [(ngModel)]="dashboard.dashboardCode" [disabled]="!!dashboard._id" />
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-field full-width">
+                    <label>Title *</label>
+                    <input pInputText [(ngModel)]="dashboard.title" placeholder="Dashboard title" />
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-field full-width">
+                    <label>Description</label>
+                    <textarea pTextarea [(ngModel)]="dashboard.description" rows="3" placeholder="Dashboard description"></textarea>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-field">
+                    <label>Status</label>
+                    <p-select [(ngModel)]="dashboard.status" [options]="statusOptions" optionLabel="label" optionValue="value"></p-select>
+                  </div>
+                  <div class="form-field">
+                    <label>Version</label>
+                    <p-inputNumber [(ngModel)]="dashboard.version" [min]="1" [showButtons]="true"></p-inputNumber>
+                  </div>
+                  <div class="form-field">
+                    <label>Author</label>
+                    <input pInputText [(ngModel)]="dashboard.author" placeholder="Author name" />
+                  </div>
+                </div>
+
+                <p-divider></p-divider>
+
+                <h4>Tools</h4>
+                <div class="form-row checkboxes">
+                  <div class="checkbox-item">
+                    <p-checkbox [(ngModel)]="dashboard.tools!.refresh" [binary]="true" inputId="tool-refresh"></p-checkbox>
+                    <label for="tool-refresh">Refresh</label>
+                  </div>
+                  <div class="checkbox-item">
+                    <p-checkbox [(ngModel)]="dashboard.tools!.export" [binary]="true" inputId="tool-export"></p-checkbox>
+                    <label for="tool-export">Export</label>
+                  </div>
+                  <div class="checkbox-item">
+                    <p-checkbox [(ngModel)]="dashboard.tools!.aiAnalyzer" [binary]="true" inputId="tool-ai"></p-checkbox>
+                    <label for="tool-ai">AI Analyzer</label>
+                  </div>
+                  <div class="checkbox-item">
+                    <p-checkbox [(ngModel)]="dashboard.tools!.fullscreen" [binary]="true" inputId="tool-fullscreen"></p-checkbox>
+                    <label for="tool-fullscreen">Fullscreen</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </p-tabpanel>
+
+          <!-- TAB 1: Datasets -->
+          <p-tabpanel [value]="1">
+            <div class="tab-content">
+              <div class="section-header">
+                <h4>Dataset (Data Sources)</h4>
+                <button pButton type="button" icon="pi pi-plus" label="Add Dataset" class="p-button-sm" (click)="addDataset()"></button>
+              </div>
+
+              @if (dashboard.datasets && dashboard.datasets.length > 0) {
+                <p-table [value]="dashboard.datasets" styleClass="p-datatable-sm">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Dataset ID</th>
+                      <th>Adapter Code</th>
+                      <th>DataSet Code</th>
+                      <th>Description</th>
+                      <th>Cache TTL</th>
+                      <th style="width: 100px">Actions</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-ds>
+                    <tr>
+                      <td>{{ ds.datasetId }}</td>
+                      <td>{{ ds.adapterCode }}</td>
+                      <td>{{ ds.dataSetCode }}</td>
+                      <td>{{ ds.description }}</td>
+                      <td>{{ ds.cacheTTL }} days</td>
+                      <td>
+                        <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm" (click)="editDataset(ds)"></button>
+                        <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" (click)="deleteDataset(ds)"></button>
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              } @else {
+                <div class="empty-state">
+                  <i class="pi pi-database"></i>
+                  <p>Nessun dataset configurato</p>
+                  <p class="hint">Aggiungi un dataset per collegare i dati alla dashboard</p>
+                </div>
+              }
+            </div>
+          </p-tabpanel>
+
+          <!-- TAB 2: Layout -->
+          <p-tabpanel [value]="2">
+            <div class="tab-content">
+              <h4>Global Layout</h4>
+              <div class="form-grid">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label>Columns</label>
+                    <p-inputNumber [(ngModel)]="dashboard.layout!.columns" [min]="1" [max]="4" [showButtons]="true"></p-inputNumber>
+                  </div>
+                  <div class="form-field">
+                    <label>Gap (px)</label>
+                    <p-inputNumber [(ngModel)]="dashboard.layout!.gap" [min]="0" [max]="50" [showButtons]="true"></p-inputNumber>
+                  </div>
+                  <div class="form-field">
+                    <label>Base Row Height (px)</label>
+                    <p-inputNumber [(ngModel)]="dashboard.layout!.baseRowHeight" [min]="50" [max]="500" [showButtons]="true"></p-inputNumber>
+                  </div>
+                </div>
+
+                <p-divider></p-divider>
+
+                <h4>Responsive Breakpoints</h4>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label>Mobile (columns)</label>
+                    <p-inputNumber [(ngModel)]="dashboard.layout!.responsive!.mobile" [min]="1" [max]="4" [showButtons]="true"></p-inputNumber>
+                  </div>
+                  <div class="form-field">
+                    <label>Tablet (columns)</label>
+                    <p-inputNumber [(ngModel)]="dashboard.layout!.responsive!.tablet" [min]="1" [max]="4" [showButtons]="true"></p-inputNumber>
+                  </div>
+                  <div class="form-field">
+                    <label>Desktop (columns)</label>
+                    <p-inputNumber [(ngModel)]="dashboard.layout!.responsive!.desktop" [min]="1" [max]="6" [showButtons]="true"></p-inputNumber>
+                  </div>
+                </div>
+              </div>
+
+              <p-divider></p-divider>
+
+              <div class="section-header">
+                <h4>Sections</h4>
+                <button pButton type="button" icon="pi pi-plus" label="Add Section" class="p-button-sm" (click)="addSection()"></button>
+              </div>
+
+              @if (getLayoutSections().length > 0) {
+                <p-table [value]="getLayoutSections()" styleClass="p-datatable-sm">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Section ID</th>
+                      <th>Title</th>
+                      <th>Columns</th>
+                      <th>Row Height</th>
+                      <th>Items</th>
+                      <th style="width: 100px">Actions</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-section>
+                    <tr>
+                      <td>{{ section.sectionId }}</td>
+                      <td>{{ section.title || '-' }}</td>
+                      <td>{{ section.columns }}</td>
+                      <td>{{ section.rowHeight }}x</td>
+                      <td>{{ section.items?.length || 0 }}</td>
+                      <td>
+                        <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm" (click)="editSection(section)"></button>
+                        <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" (click)="deleteSection(section)"></button>
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              } @else {
+                <div class="empty-state">
+                  <i class="pi pi-th-large"></i>
+                  <p>Nessuna sezione configurata</p>
+                  <p class="hint">Le sezioni organizzano gli items in gruppi</p>
+                </div>
+              }
+            </div>
+          </p-tabpanel>
+
+          <!-- TAB 3: Items -->
+          <p-tabpanel [value]="3">
+            <div class="tab-content">
+              <div class="section-header">
+                <h4>Dashboard Items</h4>
+                <button pButton type="button" icon="pi pi-plus" label="Add Item" class="p-button-sm" (click)="addItem()"></button>
+              </div>
+
+              @if (dashboard.items && dashboard.items.length > 0) {
+                <p-table [value]="dashboard.items" styleClass="p-datatable-sm">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th style="width: 50px">Order</th>
+                      <th style="width: 100px">Item ID</th>
+                      <th style="width: 80px">Type</th>
+                      <th style="width: 120px">Title</th>
+                      <th style="width: 120px">Dataset</th>
+                      <th style="width: 50px">Level</th>
+                      <th style="width: 120px">Parent</th>
+                      <th style="width: 50px">Vis</th>
+                      <th style="width: 100px">Actions</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-item let-index="rowIndex">
+                    <tr>
+                      <td class="order-cell">
+                        <button pButton type="button" icon="pi pi-chevron-up" class="p-button-text p-button-sm" (click)="moveItemUp(index)" [disabled]="index === 0" pTooltip="Move up"></button>
+                        <button pButton type="button" icon="pi pi-chevron-down" class="p-button-text p-button-sm" (click)="moveItemDown(index)" [disabled]="index === dashboard.items!.length - 1" pTooltip="Move down"></button>
+                      </td>
+                      <td>
+                        <input pInputText [(ngModel)]="item.itemId" class="p-inputtext-sm inline-edit-input" />
+                      </td>
+                      <td>
+                        <p-select [(ngModel)]="item.type" [options]="itemTypes" optionLabel="label" optionValue="value" class="inline-edit-select" [style]="{'width': '100%'}"></p-select>
+                      </td>
+                      <td>
+                        <input pInputText [(ngModel)]="item.title" class="p-inputtext-sm inline-edit-input" placeholder="Title" />
+                      </td>
+                      <td>
+                        <p-select [(ngModel)]="item.datasetId" [options]="getDatasetOptions()" optionLabel="label" optionValue="value" class="inline-edit-select" [style]="{'width': '100%'}" placeholder="Select"></p-select>
+                      </td>
+                      <td>
+                        <p-inputNumber [(ngModel)]="item.level" [min]="0" [max]="3" [showButtons]="false" class="inline-edit-number" [style]="{'width': '100%'}"></p-inputNumber>
+                      </td>
+                      <td>
+                        <p-select [(ngModel)]="item.parentItemId" [options]="getParentItemOptions(item)" optionLabel="label" optionValue="value" class="inline-edit-select" [style]="{'width': '100%'}" placeholder="None"></p-select>
+                      </td>
+                      <td style="text-align: center;">
+                        <p-checkbox [(ngModel)]="item.visible" [binary]="true"></p-checkbox>
+                      </td>
+                      <td>
+                        <button pButton type="button" icon="pi pi-cog" class="p-button-text p-button-sm" (click)="editItem(item)" pTooltip="Configure"></button>
+                        <button pButton type="button" icon="pi pi-copy" class="p-button-text p-button-sm" (click)="duplicateItem(item)" pTooltip="Duplicate"></button>
+                        <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" (click)="deleteItem(item)" pTooltip="Delete"></button>
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              } @else {
+                <div class="empty-state">
+                  <i class="pi pi-objects-column"></i>
+                  <p>Nessun item configurato</p>
+                  <p class="hint">Gli items sono card, chart o grid che mostrano i dati</p>
+                </div>
+              }
+            </div>
+          </p-tabpanel>
+
+          <!-- TAB 4: Filters -->
+          <p-tabpanel [value]="4">
+            <div class="tab-content">
+              <div class="section-header">
+                <h4>Dashboard Filters</h4>
+                <button pButton type="button" icon="pi pi-plus" label="Add Filter" class="p-button-sm" (click)="addFilter()"></button>
+              </div>
+
+              @if (dashboard.filters && dashboard.filters.length > 0) {
+                <p-table [value]="dashboard.filters" styleClass="p-datatable-sm">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Field</th>
+                      <th>Dataset</th>
+                      <th>Type</th>
+                      <th>Label</th>
+                      <th>Depends On</th>
+                      <th style="width: 100px">Actions</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-filter>
+                    <tr>
+                      <td>{{ filter.field }}</td>
+                      <td>{{ filter.datasetId }}</td>
+                      <td>{{ filter.type }}</td>
+                      <td>{{ filter.label }}</td>
+                      <td>{{ filter.dependsOn || '-' }}</td>
+                      <td>
+                        <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm" (click)="editFilter(filter)"></button>
+                        <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" (click)="deleteFilter(filter)"></button>
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              } @else {
+                <div class="empty-state">
+                  <i class="pi pi-filter"></i>
+                  <p>Nessun filtro configurato</p>
+                  <p class="hint">I filtri permettono di filtrare i dati della dashboard</p>
+                </div>
+              }
+            </div>
+          </p-tabpanel>
+
+          <!-- TAB 5: Settings -->
+          <p-tabpanel [value]="5">
+            <div class="tab-content">
+              <h4>Display Settings</h4>
+              <div class="form-grid">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label>Locale</label>
+                    <input pInputText [(ngModel)]="dashboard.settings!.locale" placeholder="it-IT" />
+                  </div>
+                  <div class="form-field">
+                    <label>Currency</label>
+                    <input pInputText [(ngModel)]="dashboard.settings!.currency" placeholder="EUR" />
+                  </div>
+                  <div class="form-field">
+                    <label>Date Format</label>
+                    <input pInputText [(ngModel)]="dashboard.settings!.dateFormat" placeholder="dd/MM/yyyy" />
+                  </div>
+                </div>
+
+                <p-divider></p-divider>
+
+                <h4>Number Format</h4>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label>Min Fraction Digits</label>
+                    <p-inputNumber [(ngModel)]="dashboard.settings!.numberFormat!.minimumFractionDigits" [min]="0" [max]="10" [showButtons]="true"></p-inputNumber>
+                  </div>
+                  <div class="form-field">
+                    <label>Max Fraction Digits</label>
+                    <p-inputNumber [(ngModel)]="dashboard.settings!.numberFormat!.maximumFractionDigits" [min]="0" [max]="10" [showButtons]="true"></p-inputNumber>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </p-tabpanel>
+        </p-tabpanels>
+      </p-tabs>
+    }
+
+  </div>
+}
+
+<!-- Dataset Dialog -->
+<p-dialog
+  [(visible)]="showDatasetDialog"
+  header="Dataset Configuration"
+  [modal]="true"
+  [style]="{ width: '500px' }"
+  [closable]="true">
+  @if (selectedDataset) {
+    <div class="dialog-form">
+      <div class="form-field">
+        <label>Dataset ID *</label>
+        <input pInputText [(ngModel)]="selectedDataset.datasetId" placeholder="es. sales" />
+      </div>
+      <div class="form-field">
+        <label>Adapter Code *</label>
+        <input pInputText [(ngModel)]="selectedDataset.adapterCode" placeholder="es. daDummy" />
+      </div>
+      <div class="form-field">
+        <label>DataSet Code *</label>
+        <input pInputText [(ngModel)]="selectedDataset.dataSetCode" placeholder="es. qSales" />
+      </div>
+      <div class="form-field">
+        <label>Description</label>
+        <input pInputText [(ngModel)]="selectedDataset.description" placeholder="Dataset description" />
+      </div>
+      <div class="form-field">
+        <label>Cache TTL (days)</label>
+        <p-inputNumber [(ngModel)]="selectedDataset.cacheTTL" [min]="0" [max]="365" [showButtons]="true"></p-inputNumber>
+      </div>
+    </div>
+  }
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showDatasetDialog = false"></button>
+    <button pButton type="button" label="Save" icon="pi pi-check" (click)="saveDataset()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- Section Dialog -->
+<p-dialog
+  [(visible)]="showSectionDialog"
+  header="Section Configuration"
+  [modal]="true"
+  [style]="{ width: '400px' }"
+  [closable]="true">
+  @if (selectedSection) {
+    <div class="dialog-grid-3">
+      <div class="form-field span-3">
+        <label>Section ID *</label>
+        <input pInputText [(ngModel)]="selectedSection.sectionId" placeholder="es. main-kpis" />
+      </div>
+      <div class="form-field span-3">
+        <label>Title</label>
+        <input pInputText [(ngModel)]="selectedSection.title" placeholder="Section title" />
+      </div>
+      <div class="form-field">
+        <label>Columns</label>
+        <p-inputNumber [(ngModel)]="selectedSection.columns" [min]="1" [max]="12" [showButtons]="true"></p-inputNumber>
+      </div>
+      <div class="form-field">
+        <label>Row Height</label>
+        <p-inputNumber [(ngModel)]="selectedSection.rowHeight" [min]="1" [max]="10" [showButtons]="true"></p-inputNumber>
+      </div>
+      <div class="form-field">
+        <label>Min Width</label>
+        <p-inputNumber [(ngModel)]="selectedSection.minItemWidth" [min]="0" [showButtons]="true"></p-inputNumber>
+      </div>
+      <div class="form-field span-3">
+        <label>Items</label>
+        <p-multiselect
+          [(ngModel)]="selectedSection.items"
+          [options]="getAvailableItemsForSection()"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select items"
+          [showClear]="true"
+          [filter]="true"
+          filterPlaceholder="Search items...">
+        </p-multiselect>
+      </div>
+    </div>
+  }
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showSectionDialog = false"></button>
+    <button pButton type="button" label="Save" icon="pi pi-check" (click)="saveSection()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- Filter Dialog -->
+<p-dialog
+  [(visible)]="showFilterDialog"
+  header="Filter Configuration"
+  [modal]="true"
+  [style]="{ width: '500px' }"
+  [closable]="true">
+  @if (selectedFilter) {
+    <div class="dialog-form">
+      <div class="form-row-2">
+        <div class="form-field">
+          <label>Field *</label>
+          <input pInputText [(ngModel)]="selectedFilter.field" placeholder="es. anno" />
+        </div>
+        <div class="form-field">
+          <label>Dataset *</label>
+          <p-select [(ngModel)]="selectedFilter.datasetId" [options]="getDatasetOptions()" optionLabel="label" optionValue="value" placeholder="Select dataset"></p-select>
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-field">
+          <label>Type</label>
+          <p-select [(ngModel)]="selectedFilter.type" [options]="filterTypes" optionLabel="label" optionValue="value"></p-select>
+        </div>
+        <div class="form-field">
+          <label>Label *</label>
+          <input pInputText [(ngModel)]="selectedFilter.label" placeholder="Filter label" />
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-field">
+          <label>Depends On</label>
+          <input pInputText [(ngModel)]="selectedFilter.dependsOn" placeholder="es. anno" />
+        </div>
+        <div class="form-field">
+          <label>Placeholder</label>
+          <input pInputText [(ngModel)]="selectedFilter.placeholder" placeholder="Placeholder text" />
+        </div>
+      </div>
+    </div>
+  }
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showFilterDialog = false"></button>
+    <button pButton type="button" label="Save" icon="pi pi-check" (click)="saveFilter()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- Item Dialog -->
+<p-dialog
+  [(visible)]="showItemDialog"
+  header="Item Configuration"
+  [modal]="true"
+  [style]="{ width: '850px', maxHeight: '80vh' }"
+  [closable]="true"
+  styleClass="item-config-dialog">
+  @if (selectedItem) {
+    <p-tabs [(value)]="itemDialogTab" class="item-dialog-tabs">
+      <p-tablist>
+        <p-tab [value]="0"><i class="pi pi-info-circle"></i> Generale</p-tab>
+        <p-tab [value]="1"><i class="pi pi-cog"></i> {{selectedItem.type === 'card' ? 'Card' : selectedItem.type === 'chart' ? 'Chart' : 'Grid'}}</p-tab>
+        <p-tab [value]="2"><i class="pi pi-sliders-h"></i> Avanzate</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <!-- Tab Generale -->
+        <p-tabpanel [value]="0">
+          <div class="dialog-form">
+            <div class="form-row-3">
+              <div class="form-field">
+                <label>Item ID *</label>
+                <input pInputText [(ngModel)]="selectedItem.itemId" />
+              </div>
+              <div class="form-field">
+                <label>Type *</label>
+                <p-select [(ngModel)]="selectedItem.type" [options]="itemTypes" optionLabel="label" optionValue="value" (onChange)="onItemTypeChange()"></p-select>
+              </div>
+              <div class="form-field">
+                <label>Dataset</label>
+                <p-select [(ngModel)]="selectedItem.datasetId" [options]="getDatasetOptions()" optionLabel="label" optionValue="value" [showClear]="true" placeholder="Select"></p-select>
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>Title</label>
+                <input pInputText [(ngModel)]="selectedItem.title" placeholder="Item title" />
+              </div>
+              <div class="form-field">
+                <label>Subtitle</label>
+                <input pInputText [(ngModel)]="selectedItem.subtitle" placeholder="Item subtitle" />
+              </div>
+            </div>
+            <div class="form-row checkboxes">
+              <p-checkbox [(ngModel)]="selectedItem.visible" [binary]="true" label="Visible"></p-checkbox>
+              <p-checkbox [(ngModel)]="selectedItem.refreshOnFilter" [binary]="true" label="Refresh on Filter"></p-checkbox>
+            </div>
+          </div>
+        </p-tabpanel>
+
+        <!-- Tab Type Config (Card/Chart/Grid) -->
+        <p-tabpanel [value]="1">
+          <div class="dialog-form">
+            <!-- Card Config -->
+            @if (selectedItem.type === 'card' && selectedItem.cardConfig) {
+              <div class="form-row-3">
+                <div class="form-field">
+                  <label>Value Field *</label>
+                  <input pInputText [(ngModel)]="selectedItem.cardConfig.valueField" placeholder="es. totale" />
+                </div>
+                <div class="form-field">
+                  <label>Format</label>
+                  <p-select [(ngModel)]="selectedItem.cardConfig.format" [options]="cardFormats" optionLabel="label" optionValue="value"></p-select>
+                </div>
+                <div class="form-field">
+                  <label>Decimals</label>
+                  <p-inputNumber [(ngModel)]="selectedItem.cardConfig.decimals" [min]="0" [max]="6" [showButtons]="true"></p-inputNumber>
+                </div>
+              </div>
+              <div class="form-row-3">
+                <div class="form-field">
+                  <label>Label</label>
+                  <input pInputText [(ngModel)]="selectedItem.cardConfig.label" placeholder="Card label" />
+                </div>
+                <div class="form-field">
+                  <label>Icon</label>
+                  <input pInputText [(ngModel)]="selectedItem.cardConfig.icon" placeholder="pi pi-chart-bar" />
+                </div>
+                <div class="form-field">
+                  <label>Accent Color</label>
+                  <input pInputText [(ngModel)]="selectedItem.cardConfig.accentColor" placeholder="#2196F3" />
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-field">
+                  <label>Subtitle Field</label>
+                  <input pInputText [(ngModel)]="selectedItem.cardConfig.subtitleField" placeholder="es. variazione" />
+                </div>
+                <div class="form-field">
+                  <label>Trend Field</label>
+                  <input pInputText [(ngModel)]="selectedItem.cardConfig.trendField" placeholder="es. trend" />
+                </div>
+              </div>
+              <div class="form-row checkboxes">
+                <p-checkbox [(ngModel)]="selectedItem.cardConfig.showTrend" [binary]="true" label="Show Trend"></p-checkbox>
+              </div>
+            }
+
+            <!-- Chart Config -->
+            @if (selectedItem.type === 'chart' && selectedItem.chartConfig) {
+              <div class="form-row-3">
+                <div class="form-field">
+                  <label>Chart Type</label>
+                  <p-select [(ngModel)]="selectedItem.chartConfig.chartType" [options]="chartTypes" optionLabel="label" optionValue="value"></p-select>
+                </div>
+                <div class="form-field">
+                  <label>Height (px)</label>
+                  <p-inputNumber [(ngModel)]="selectedItem.chartConfig.height" [min]="100" [max]="800" [showButtons]="true"></p-inputNumber>
+                </div>
+                <div class="form-field">
+                  <label>Legend Position</label>
+                  <p-select [(ngModel)]="selectedItem.chartConfig.legendPosition" [options]="legendPositions" optionLabel="label" optionValue="value"></p-select>
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-field">
+                  <label>X Axis Field</label>
+                  <input pInputText [(ngModel)]="selectedItem.chartConfig.xAxis!.field" placeholder="es. mese" />
+                </div>
+                <div class="form-field">
+                  <label>X Axis Label</label>
+                  <input pInputText [(ngModel)]="selectedItem.chartConfig.xAxis!.label" placeholder="X axis label" />
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-field">
+                  <label>Label Field (pie)</label>
+                  <input pInputText [(ngModel)]="selectedItem.chartConfig.labelField" placeholder="es. categoria" />
+                </div>
+                <div class="form-field">
+                  <label>Value Field (pie)</label>
+                  <input pInputText [(ngModel)]="selectedItem.chartConfig.valueField" placeholder="es. valore" />
+                </div>
+              </div>
+              <div class="form-row checkboxes">
+                <p-checkbox [(ngModel)]="selectedItem.chartConfig.showLegend" [binary]="true" label="Legend"></p-checkbox>
+                <p-checkbox [(ngModel)]="selectedItem.chartConfig.showGrid" [binary]="true" label="Grid"></p-checkbox>
+                <p-checkbox [(ngModel)]="selectedItem.chartConfig.stacked" [binary]="true" label="Stacked"></p-checkbox>
+              </div>
+              <p-divider></p-divider>
+              <div class="series-section">
+                <div class="section-header">
+                  <label>Series</label>
+                  <button pButton type="button" icon="pi pi-plus" class="p-button-text p-button-sm" (click)="addChartSeries()"></button>
+                </div>
+                @for (series of selectedItem.chartConfig.series || []; track $index; let i = $index) {
+                  <div class="series-row">
+                    <input pInputText [(ngModel)]="series.field" placeholder="Field" />
+                    <input pInputText [(ngModel)]="series.label" placeholder="Label" />
+                    <input pInputText [(ngModel)]="series.color" placeholder="Color" />
+                    <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" (click)="removeChartSeries(i)"></button>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Grid Config -->
+            @if (selectedItem.type === 'grid' && selectedItem.gridConfig) {
+              <div class="form-row-2">
+                <div class="form-field">
+                  <label>Page Size</label>
+                  <p-inputNumber [(ngModel)]="selectedItem.gridConfig.pageSize" [min]="5" [max]="100" [showButtons]="true"></p-inputNumber>
+                </div>
+                <div class="form-field">
+                  <label>Height</label>
+                  <input pInputText [(ngModel)]="selectedItem.gridConfig.height" placeholder="auto or 300px" />
+                </div>
+              </div>
+              <div class="form-row checkboxes">
+                <p-checkbox [(ngModel)]="selectedItem.gridConfig.showPagination" [binary]="true" label="Pagination"></p-checkbox>
+                <p-checkbox [(ngModel)]="selectedItem.gridConfig.showTotals" [binary]="true" label="Totals"></p-checkbox>
+                <p-checkbox [(ngModel)]="selectedItem.gridConfig.rowClickable" [binary]="true" label="Row Click"></p-checkbox>
+              </div>
+              <p-divider></p-divider>
+              <div class="columns-section">
+                <div class="section-header">
+                  <label>Columns</label>
+                  <button pButton type="button" icon="pi pi-plus" class="p-button-text p-button-sm" (click)="addGridColumn()"></button>
+                </div>
+                @for (col of selectedItem.gridConfig.columns || []; track $index; let i = $index) {
+                  <div class="column-row">
+                    <input pInputText [(ngModel)]="col.field" placeholder="Field" />
+                    <input pInputText [(ngModel)]="col.header" placeholder="Header" />
+                    <p-select [(ngModel)]="col.format" [options]="columnFormats" optionLabel="label" optionValue="value" [style]="{ width: '90px' }"></p-select>
+                    <p-select [(ngModel)]="col.align" [options]="alignOptions" optionLabel="label" optionValue="value" [style]="{ width: '70px' }"></p-select>
+                    <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" (click)="removeGridColumn(i)"></button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </p-tabpanel>
+
+        <!-- Tab Avanzate -->
+        <p-tabpanel [value]="2">
+          <div class="dialog-form">
+            <h5>Position</h5>
+            <div class="form-row-3">
+              <div class="form-field">
+                <label>Order</label>
+                <p-inputNumber [(ngModel)]="selectedItem.position!.order" [min]="0" [showButtons]="true"></p-inputNumber>
+              </div>
+              <div class="form-field">
+                <label>Col Span</label>
+                <p-inputNumber [(ngModel)]="selectedItem.position!.colSpan" [min]="1" [max]="4" [showButtons]="true"></p-inputNumber>
+              </div>
+              <div class="form-field">
+                <label>Row Span</label>
+                <p-inputNumber [(ngModel)]="selectedItem.position!.rowSpan" [min]="1" [max]="4" [showButtons]="true"></p-inputNumber>
+              </div>
+            </div>
+
+            <p-divider></p-divider>
+            <h5>Drill-Down</h5>
+            <div class="form-row-3">
+              <div class="form-field">
+                <label>Level</label>
+                <p-inputNumber [(ngModel)]="selectedItem.level" [min]="0" [showButtons]="true"></p-inputNumber>
+              </div>
+              <div class="form-field">
+                <label>Parent Item</label>
+                <p-select [(ngModel)]="selectedItem.parentItemId" [options]="getParentItemOptions()" optionLabel="label" optionValue="value" [showClear]="true" placeholder="None"></p-select>
+              </div>
+              <div class="form-field">
+                <label>Filter Field</label>
+                <input pInputText [(ngModel)]="selectedItem.drillDownFilter" placeholder="es. prodotto" />
+              </div>
+            </div>
+
+            <p-divider></p-divider>
+            <h5>Aggregation</h5>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>Group By</label>
+                <input pInputText [ngModel]="getGroupByString()" (ngModelChange)="parseGroupBy($event)" placeholder="es. prodotto, cliente" />
+              </div>
+              <div class="form-field">
+                <label>Limit</label>
+                <p-inputNumber [ngModel]="getAggregationLimit()" (ngModelChange)="setAggregationLimit($event)" [min]="0" [showButtons]="true"></p-inputNumber>
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-field">
+                <label>Sort By</label>
+                <input pInputText [ngModel]="getSortByField()" (ngModelChange)="setSortByField($event)" placeholder="es. totale" />
+              </div>
+              <div class="form-field">
+                <label>Sort Order</label>
+                <p-select [ngModel]="getSortByOrder()" (ngModelChange)="setSortByOrder($event)" [options]="[{label: 'Asc', value: 'asc'}, {label: 'Desc', value: 'desc'}]" optionLabel="label" optionValue="value"></p-select>
+              </div>
+            </div>
+            <div class="aggregations-section">
+              <div class="section-header">
+                <label>Aggregations</label>
+                <button pButton type="button" icon="pi pi-plus" class="p-button-text p-button-sm" (click)="addAggregation()"></button>
+              </div>
+              @for (agg of selectedItem.aggregationRule?.aggregations || []; track $index; let i = $index) {
+                <div class="aggregation-row">
+                  <input pInputText [(ngModel)]="agg.field" placeholder="Field" />
+                  <p-select [(ngModel)]="agg.operation" [options]="aggregationOperations" optionLabel="label" optionValue="value" [style]="{ width: '100px' }"></p-select>
+                  <input pInputText [(ngModel)]="agg.alias" placeholder="Alias" />
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" (click)="removeAggregation(i)"></button>
+                </div>
+              }
+            </div>
+          </div>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  }
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showItemDialog = false"></button>
+    <button pButton type="button" label="Save" icon="pi pi-check" (click)="saveItem()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- JSON Editor Dialog -->
+<p-dialog
+  [(visible)]="showJsonDialog"
+  header="JSON Editor"
+  [modal]="true"
+  [style]="{ width: '80vw', height: '80vh' }"
+  [closable]="true">
+  <div class="json-editor">
+    <textarea
+      [(ngModel)]="jsonContent"
+      class="json-textarea"
+      spellcheck="false">
+    </textarea>
+    @if (jsonError) {
+      <div class="json-error">
+        <i class="pi pi-exclamation-triangle"></i>
+        {{ jsonError }}
+      </div>
+    }
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Copy" icon="pi pi-copy" class="p-button-text" (click)="copyJson()"></button>
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showJsonDialog = false"></button>
+    <button pButton type="button" label="Apply" icon="pi pi-check" (click)="applyJson()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- Preview Mapping Dialog -->
+<p-dialog
+  [(visible)]="showPreviewMappingDialog"
+  header="Preview Dashboard - Mapping Dataset"
+  [modal]="true"
+  [style]="{ width: '600px' }"
+  [closable]="true">
+  <div class="preview-mapping-content">
+    @if (previewLoading) {
+      <div class="preview-loading">
+        <i class="pi pi-spin pi-spinner" style="font-size: 1.5rem"></i>
+        <span>Caricamento cache disponibili...</span>
+      </div>
+    } @else {
+      <p class="mapping-info">
+        Collega ogni dataset del dashboard a una cache dati disponibile per visualizzare il preview.
+      </p>
+      @if (availableCaches.length === 0) {
+        <div class="empty-caches">
+          <i class="pi pi-info-circle"></i>
+          <span>Nessuna cache disponibile. Carica prima dei dati nelle pagine del progetto.</span>
+        </div>
+      } @else {
+        <div class="mapping-list">
+          @for (mapping of previewDatasetMappings; track mapping.datasetId) {
+            <div class="mapping-row">
+              <div class="dataset-info">
+                <strong>{{ mapping.datasetId }}</strong>
+                @if (mapping.description) {
+                  <span class="dataset-desc">{{ mapping.description }}</span>
+                }
+              </div>
+              <div class="cache-input-row">
+                <p-select
+                  [(ngModel)]="mapping.cacheKey"
+                  [options]="availableCaches"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Seleziona cache..."
+                  [style]="{ width: '100%' }"
+                  [editable]="true">
+                </p-select>
+              </div>
+              <small class="cache-hint">Es: salesDashboard_51, woolAuctions_data</small>
+            </div>
+          }
+        </div>
+      }
+    }
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Annulla" class="p-button-text" (click)="showPreviewMappingDialog = false"></button>
+    <button pButton type="button" label="Avvia Preview" icon="pi pi-play" (click)="startPreview()" [disabled]="previewLoading"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- Preview Dashboard Dialog (Fullscreen) -->
+<p-dialog
+  [(visible)]="showPreviewDialog"
+  [header]="'Preview: ' + dashboard.title"
+  [modal]="true"
+  [style]="{ width: '98vw', height: '95vh', maxWidth: '100vw' }"
+  [closable]="true"
+  [maximizable]="true"
+  styleClass="preview-dashboard-dialog"
+  (onHide)="closePreview()">
+  @if (showPreviewDialog && previewDashboardConfig) {
+    <app-gts-dashboard
+      [config]="previewDashboardConfig"
+      [visible]="true"
+      [overrideConfig]="$any(dashboard)"
+      (onDataRequest)="onPreviewDataRequest($event)">
+    </app-gts-dashboard>
+  }
+</p-dialog>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>
+
+<!-- Toast -->
+<p-toast position="top-right"></p-toast>

@@ -73,3 +73,44 @@
     [formId]="formId"
   ></app-gts-message>
 </div>
+
+<!-- Dialog per Session ID -->
+<p-dialog
+  [header]="t(700, 'Carica Template')"
+  [(visible)]="showSessionIdDialog"
+  [modal]="true"
+  [style]="{ width: '400px' }"
+  [closable]="true"
+  (onHide)="cancelLoadTemplate()"
+>
+  <div class="flex flex-column gap-3">
+    <p class="m-0 text-sm text-color-secondary">
+      {{ t(701, 'Inserisci un Session ID per caricare i dati reali come mock data. Lascia vuoto per usare i mock data esistenti nel template.') }}
+    </p>
+
+    <div class="flex flex-column gap-2">
+      <label for="sessionId" class="font-medium">{{ t(702, 'Session ID (opzionale)') }}</label>
+      <p-inputNumber
+        id="sessionId"
+        [(ngModel)]="sessionIdInput"
+        [useGrouping]="false"
+        placeholder="Es. 12345"
+        [style]="{ width: '100%' }"
+      ></p-inputNumber>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="flex justify-content-end gap-2">
+      <p-button
+        [label]="t(703, 'Annulla')"
+        severity="secondary"
+        (onClick)="cancelLoadTemplate()"
+      ></p-button>
+      <p-button
+        [label]="t(704, 'Carica')"
+        (onClick)="confirmLoadTemplate()"
+      ></p-button>
+    </div>
+  </ng-template>
+</p-dialog>

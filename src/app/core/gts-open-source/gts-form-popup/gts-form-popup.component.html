@@ -1,0 +1,17 @@
+<p-dialog
+  [(visible)]="visible"
+  [header]="formTitle"
+  [modal]="!actionsDebugActive"
+  [closable]="false"
+  [draggable]="true"
+  [resizable]="false"
+  [style]="{width: formWidth + 'px', height: formHeight + 'px'}"
+  [baseZIndex]="1000"
+  (onShow)="onShow()"
+  (onHide)="onHide()">
+  <app-gts-form
+    [prjId]="prjId"
+    [formId]="formId"
+    [objectName]="objectName">
+  </app-gts-form>
+</p-dialog>

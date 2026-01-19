@@ -1,0 +1,506 @@
+// GTS Form - PrimeNG styling
+
+// Form Title
+.form001Title {
+  height: 40px;
+  width: 100%;
+  border-top: solid 1px #a5a3a392;
+  border-left: solid 1px #a5a3a392;
+  border-right: solid 1px #a5a3a392;
+  text-align: center;
+  line-height: 40px;
+  font-size: 16px;
+  font-weight: 500;
+  background-color: rgb(171, 195, 243);
+  color: rgb(16, 16, 179);
+}
+
+// Form Body
+.form001Body {
+  border: solid 1px #a5a3a392;
+  background-color: rgb(252, 246, 246);
+  padding: 10px 5px;
+  font-weight: normal;
+}
+
+// Form Toolbar
+.form001Toolbar {
+  width: 100%;
+  padding-right: 5px;
+}
+
+// Form Fields
+.form001Field {
+  width: 100%;
+  background-color: rgb(234, 235, 247);
+  font-weight: normal;
+  margin-bottom: 3px;
+
+  input,
+  textarea,
+  .p-select,
+  .p-datepicker {
+    width: 100%;
+    background-color: rgb(234, 235, 247);
+  }
+
+  p-floatLabel {
+    display: block;
+    width: 100%;
+  }
+}
+
+// Field Error State
+.form001FieldError {
+  width: 100%;
+  background-color: #ffebee;
+  font-weight: normal;
+  margin-bottom: 3px;
+
+  input,
+  textarea,
+  .p-select,
+  .p-datepicker {
+    background-color: #ffebee;
+    border-color: #d32f2f !important;
+  }
+
+  p-floatLabel {
+    display: block;
+    width: 100%;
+
+    label {
+      color: #d32f2f;
+    }
+  }
+}
+
+// Primary Key Fields (read-only with special styling)
+.form001PKField {
+  width: 100%;
+  background-color: rgb(187, 214, 240);
+  font-weight: normal;
+  margin-bottom: 3px;
+
+  input,
+  textarea {
+    background-color: rgb(187, 214, 240);
+    color: rgb(23, 36, 155);
+    font-weight: 500;
+  }
+
+  p-floatLabel {
+    display: block;
+    width: 100%;
+  }
+}
+
+// LookUp Fields
+.form001LookUpField {
+  background-color: rgb(234, 235, 247);
+  font-weight: normal;
+  margin-bottom: 3px;
+}
+
+.form001LookUpPKField {
+  background-color: rgb(187, 214, 240);
+  font-weight: normal;
+  margin-bottom: 3px;
+
+  input {
+    background-color: rgb(187, 214, 240);
+    color: rgb(23, 36, 155);
+    font-weight: 500;
+  }
+}
+
+// LookUp field wrapper (input + button)
+.lookup-field-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+
+  p-floatLabel {
+    flex: 1;
+    display: block;
+
+    .lookup-input {
+      width: 100%;
+    }
+  }
+
+  p-button {
+    flex-shrink: 0;
+    margin-top: 0;
+  }
+}
+
+// Radio Group
+.form001RadioGroup {
+  background-color: rgb(234, 235, 247);
+  padding: 6px;
+  margin-bottom: 4px;
+
+  .form-field-label {
+    display: block;
+    font-size: 12px;
+    color: #333;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+
+  .radio-group-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .radio-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .radio-label {
+    margin: 0;
+    cursor: pointer;
+    font-size: 12px;
+  }
+}
+
+.form001RadioGroupPKField {
+  background-color: rgb(187, 214, 240);
+  padding: 6px;
+  margin-bottom: 4px;
+
+  .form-field-label {
+    display: block;
+    font-size: 12px;
+    color: rgb(23, 36, 155);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .radio-group-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .radio-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .radio-label {
+    margin: 0;
+    cursor: pointer;
+    font-size: 12px;
+    color: rgb(23, 36, 155);
+  }
+}
+
+// Group Header - use ::ng-deep for stronger specificity
+:host ::ng-deep .form001GroupHdr {
+  background-color: rgb(86, 99, 126) !important;
+  text-align: center !important;
+  color: whitesmoke !important;
+  height: auto !important;
+  min-height: 22px !important;
+  line-height: 22px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  margin-bottom: 3px !important;
+  padding: 2px 6px !important;
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  z-index: 1 !important;
+}
+
+// Checkbox
+.checkbox-label {
+  margin-left: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+// PrimeNG Overrides for GTS styling
+:host ::ng-deep {
+  // Input fields
+  .p-inputtext {
+    padding: 4px 6px;
+    font-size: 12px;
+    height: 26px;
+    border: 1px solid #ced4da;
+    border-radius: 2px;
+    box-sizing: border-box;
+
+    &::placeholder {
+      color: #6c757d;
+      opacity: 0.7;
+    }
+
+    &:enabled:focus {
+      border-color: #00008b;
+      box-shadow: 0 0 0 0.1rem rgba(0, 0, 139, 0.15);
+    }
+
+    &:disabled,
+    &[readonly] {
+      background-color: rgb(191, 215, 238);
+      color: rgb(7, 0, 0);
+      opacity: 1;
+    }
+  }
+
+  // Textarea
+  .p-inputtextarea {
+    padding: 4px 6px;
+    font-size: 12px;
+    border: 1px solid #ced4da;
+    border-radius: 2px;
+    resize: vertical;
+    box-sizing: border-box;
+
+    &::placeholder {
+      color: #6c757d;
+      opacity: 0.7;
+    }
+
+    &:enabled:focus {
+      border-color: #00008b;
+      box-shadow: 0 0 0 0.1rem rgba(0, 0, 139, 0.15);
+    }
+  }
+
+  // Select (Dropdown)
+  .p-select {
+    min-height: 26px;
+    font-size: 12px;
+    border: 1px solid #ced4da;
+    border-radius: 2px;
+
+    .p-select-label {
+      padding: 4px 6px;
+      font-size: 12px;
+
+      &.p-placeholder {
+        color: #6c757d;
+        opacity: 0.7;
+      }
+    }
+
+    &:not(.p-disabled):hover {
+      border-color: #00008b;
+    }
+
+    &.p-focus {
+      border-color: #00008b;
+      box-shadow: 0 0 0 0.1rem rgba(0, 0, 139, 0.15);
+    }
+  }
+
+  // DatePicker (Calendar)
+  .p-datepicker {
+    .p-datepicker-input-icon-container {
+      width: 26px;
+
+      button {
+        width: 26px;
+        height: 26px;
+        padding: 0;
+
+        .p-icon {
+          font-size: 11px;
+        }
+      }
+    }
+
+    .p-inputtext {
+      padding: 4px 6px;
+      height: 26px;
+    }
+
+    &:not(.p-disabled):hover {
+      .p-inputtext {
+        border-color: #00008b;
+      }
+    }
+  }
+
+  // Checkbox
+  .p-checkbox {
+    .p-checkbox-box {
+      border: 2px solid #ced4da;
+      border-radius: 2px;
+      width: 16px;
+      height: 16px;
+
+      &.p-highlight {
+        background-color: #00008b;
+        border-color: #00008b;
+      }
+
+      &:not(.p-disabled):hover {
+        border-color: #00008b;
+      }
+
+      .p-checkbox-icon {
+        font-size: 10px;
+      }
+    }
+  }
+
+  // Radio Button
+  .p-radiobutton {
+    .p-radiobutton-box {
+      border: 2px solid #ced4da;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &.p-highlight {
+        border-color: #00008b;
+        background-color: white;
+
+        .p-radiobutton-icon {
+          background-color: #00008b;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          transform: scale(1);
+        }
+      }
+
+      &:not(.p-disabled):hover {
+        border-color: #00008b;
+      }
+
+      .p-radiobutton-icon {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        transform: scale(0);
+        transition: transform 0.2s;
+      }
+    }
+  }
+
+  // FloatLabel - custom positioning inside field like DevExtreme
+  .p-floatlabel {
+    margin-bottom: 0;
+    position: relative;
+
+    // Base label style - centered inside field when empty
+    label {
+      position: absolute;
+      left: 7px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      color: #6c757d;
+      background: transparent;
+      padding: 0 2px;
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    // Label moves to top inside field when focused or filled
+    &:has(input:focus) label,
+    &:has(input.p-filled) label,
+    &:has(input:-webkit-autofill) label,
+    &:has(textarea:focus) label,
+    &:has(textarea.p-filled) label,
+    &:has(.p-inputwrapper-focus) label,
+    &:has(.p-inputwrapper-filled) label {
+      top: 0px;
+      left: 5px;
+      font-size: 9px;
+      color: #00008b;
+      background: inherit;
+      transform: translateY(0);
+      line-height: 1;
+    }
+
+    // Adjust input padding when label is at top
+    &:has(input:focus) input,
+    &:has(input.p-filled) input,
+    &:has(input:-webkit-autofill) input,
+    &:has(textarea:focus) textarea,
+    &:has(textarea.p-filled) textarea {
+      padding-top: 13px;
+      padding-bottom: 2px;
+    }
+
+    // Label for readonly/disabled fields
+    &:has(input:disabled) label,
+    &:has(input[readonly]) label {
+      color: #6c757d;
+    }
+  }
+
+  // Validation Messages
+  .p-message {
+    margin-top: 2px;
+    padding: 3px 6px;
+    font-size: 11px;
+
+    &.p-message-error {
+      background-color: #ffebee;
+      border: 1px solid #d32f2f;
+      color: #d32f2f;
+    }
+  }
+
+  // Buttons
+  .p-button {
+    font-size: 13px;
+
+    &.p-button-secondary {
+      background-color: #6c757d;
+      border-color: #6c757d;
+
+      &:hover {
+        background-color: #5a6268;
+        border-color: #545b62;
+      }
+
+      // Icon color for secondary buttons
+      .p-button-icon {
+        color: white;
+      }
+    }
+
+    &.p-button-sm,
+    &.p-button-small {
+      padding: 0.25rem 0.5rem;
+      font-size: 11px;
+      min-width: 26px;
+      height: 26px;
+
+      .p-button-icon {
+        font-size: 11px;
+        color: white;
+      }
+    }
+
+    &.p-button-icon-only {
+      width: 26px;
+      height: 26px;
+      padding: 0;
+
+      .p-button-icon {
+        color: white;
+      }
+    }
+  }
+}

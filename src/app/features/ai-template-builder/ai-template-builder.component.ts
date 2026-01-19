@@ -313,6 +313,11 @@ export class AiTemplateBuilderComponent implements OnInit {
   /** Info per tornare alla pagina chiamante con lo stato corretto */
   private returnTo: { route: string; project: string } | null = null;
 
+  /** Dati sessione pendenti per GET_TEMPLATE + sessionId (usati come mock data al posto di quelli del template) */
+  private pendingSessionOracleData: OracleData | null = null;
+  private pendingSessionMetadata: OracleMetadata | null = null;
+  private pendingSessionData: SessionData | null = null;
+
   /** Indica se siamo arrivati da una pagina esterna (per nascondere opzione "Load Existing") */
   get hasReturnTo(): boolean {
     return this.returnTo !== null;
@@ -771,8 +776,21 @@ export class AiTemplateBuilderComponent implements OnInit {
       console.log('[checkRouteState] Saved returnTo:', this.returnTo);
     }
 
-    // Caso 1: Dati da log report/sessions - modalità fromReport
-    if (state && state.sessionData) {
+    // Caso 1: Carica template con dati sessione reali come mock data (GET_TEMPLATE + sessionId)
+    // Questo caso deve essere prima degli altri perché ha sia loadTemplate che sessionData
+    if (state && state.loadTemplate && state.useSessionDataAsMock && state.oracleData) {
+      const { prjId, connCode, reportCode } = state.loadTemplate;
+      console.log('[checkRouteState] Loading template with session data as mock:', prjId, connCode, reportCode);
+      // Salva i dati sessione per usarli dopo il caricamento del template
+      this.pendingSessionOracleData = state.oracleData;
+      this.pendingSessionMetadata = state.oracleMetadata;
+      this.pendingSessionData = state.sessionData;
+      this.loadTemplateByKey(prjId, connCode, reportCode, true);
+      return true;
+    }
+
+    // Caso 2: Dati da log report/sessions - modalità fromReport
+    if (state && state.sessionData && !state.loadTemplate) {
       this.mode = 'fromReport';
       this.modeSelected = true;
       this.currentStep = 'upload';
@@ -780,7 +798,7 @@ export class AiTemplateBuilderComponent implements OnInit {
       return true;
     }
 
-    // Caso 2: Carica template esistente direttamente (GET_TEMPLATE)
+    // Caso 3: Carica template esistente direttamente (GET_TEMPLATE)
     if (state && state.loadTemplate) {
       const { prjId, connCode, reportCode } = state.loadTemplate;
       console.log('[checkRouteState] Loading template directly:', prjId, connCode, reportCode);
@@ -806,8 +824,9 @@ export class AiTemplateBuilderComponent implements OnInit {
 
   /**
    * Carica un template direttamente tramite la sua chiave
+   * @param useSessionData Se true, usa i dati sessione pendenti invece dei mockData del template
    */
-  private loadTemplateByKey(prjId: string, connCode: string, reportCode: string): void {
+  private loadTemplateByKey(prjId: string, connCode: string, reportCode: string, useSessionData: boolean = false): void {
     this.loading = true;
     this.loadingMessage = 'Caricamento template...';
 
@@ -846,18 +865,36 @@ export class AiTemplateBuilderComponent implements OnInit {
         this.templateHtml = fullTemplate.template?.html || '';
         this.aggregationRulesJson = JSON.stringify(fullTemplate.aggregationRules || {}, null, 2);
 
-        // Popola oracleData con i mockData del template
-        this.oracleData = fullTemplate.mockData;
-        this.mockDataJson = JSON.stringify(fullTemplate.mockData || { main: [] }, null, 2);
+        // Determina quale mock data usare:
+        // - Se useSessionData è true e abbiamo dati sessione pendenti, usa quelli
+        // - Altrimenti usa i mockData del template
+        let mockDataToUse: OracleData;
+        let usedSessionData = false;
+        if (useSessionData && this.pendingSessionOracleData) {
+          mockDataToUse = this.pendingSessionOracleData;
+          this.oracleMetadata = this.pendingSessionMetadata;
+          this.sessionData = this.pendingSessionData;
+          usedSessionData = true;
+          console.log('[loadTemplateByKey] Using session data as mock data');
+          // Pulisci i dati pendenti
+          this.pendingSessionOracleData = null;
+          this.pendingSessionMetadata = null;
+          this.pendingSessionData = null;
+        } else {
+          mockDataToUse = fullTemplate.mockData;
+        }
 
-        // Popola aiResult per la preview
+        this.oracleData = mockDataToUse;
+        this.mockDataJson = JSON.stringify(mockDataToUse || { main: [] }, null, 2);
+
+        // Popola aiResult per la preview (usa mockDataToUse per coerenza con i dati sessione)
         this.aiResult = {
           template: {
             html: fullTemplate.template?.html || '',
             description: fullTemplate.template?.description || ''
           },
           aggregationRules: fullTemplate.aggregationRules,
-          mockData: fullTemplate.mockData,
+          mockData: mockDataToUse,
           analysis: ''
         };
 
@@ -888,7 +925,8 @@ export class AiTemplateBuilderComponent implements OnInit {
         // Genera preview
         this.updatePreview();
 
-        this.showSuccess(`Template "${reportCode}" caricato con successo`);
+        const sessionDataMsg = usedSessionData ? ' (con dati sessione reali)' : '';
+        this.showSuccess(`Template "${reportCode}" caricato${sessionDataMsg}`);
       },
       error: (err) => {
         console.error('[loadTemplateByKey] Error loading template:', err);

@@ -1,8 +1,6 @@
-import { Component, OnInit, OnDestroy, Input, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GtsDataService } from '../../services/gts-data.service';
-import { PageService } from '../../services/pages.service';
-import { Subscription } from 'rxjs';
 import { DxDataGridModule, DxRadioGroupModule, DxTabsModule, DxToolbarModule } from 'devextreme-angular';
 import { GtsLoaderComponent } from '../gts-loader/gts-loader.component';
 import DataSource from 'devextreme/data/data_source';
@@ -30,7 +28,7 @@ import { NgxExtendedPdfViewerModule } from 'ngx-extended-pdf-viewer';
 })
 export class GtsReportsComponent implements OnInit,  OnDestroy {
   constructor(
-    private gtsDataService: GtsDataService,
+    private gtsDataService: GtsDataService
   ) { }
 
   @Input()
@@ -148,30 +146,51 @@ export class GtsReportsComponent implements OnInit,  OnDestroy {
     if (Object.keys(this.report).length !== 0) {
       await this.showReportData(this.report);
       this.showReport = true;
-    } else {    
+    } else {
       this.reportsGroups.itemsList = [];
       this.reportsGroups.itemsList.push({
         id: 'reportOkBtn',
         name: 'reportOkBtn',
         widget: 'dxButton',
         location: 'before',
-        visible: true,  
+        visible: true,
         options: {
-          stylingMode: 'contained',            
-          text: 'PRINT',        
+          stylingMode: 'contained',
+          text: 'PRINT',
           icon: '/assets/icons/stdImage_43.png',
           type: 'normal',
           onClick: async (el: any) => {
             this.gtsDataService.sendAppLoaderListener(true);
-            this.selectedReport = this.metaData.reports.filter((report: any) => {return report.reportDescr === this.selectedValue;})[0];          
-            const reportResponse = await this.gtsDataService.getReportData(this.prjId, this.formId, this.selectedReport, this.params, this.connCode);
-            if (reportResponse !== undefined && reportResponse !== null && reportResponse.valid === true) {   
-              await this.showReportData(reportResponse);       
-            }     
-            this.gtsDataService.sendAppLoaderListener(false);        
+            this.selectedReport = this.metaData.reports.filter((report: any) => {return report.reportDescr === this.selectedValue;})[0];
+
+            try {
+              await this.generateReport();
+            } catch (error) {
+              console.error('Error generating report:', error);
+            }
+
+            this.gtsDataService.sendAppLoaderListener(false);
           }
-        }            
+        }
       });
+    }
+  }
+
+  /**
+   * Genera il report - il server decide automaticamente se usare Fast Report o HTML Template
+   * basandosi sulla configurazione del reportServiceName
+   */
+  async generateReport(): Promise<void> {
+    const reportResponse = await this.gtsDataService.getReportData(
+      this.prjId,
+      this.formId,
+      this.selectedReport,
+      this.params,
+      this.connCode
+    );
+
+    if (reportResponse !== undefined && reportResponse !== null && reportResponse.valid === true) {
+      await this.showReportData(reportResponse);
     }
   }
 

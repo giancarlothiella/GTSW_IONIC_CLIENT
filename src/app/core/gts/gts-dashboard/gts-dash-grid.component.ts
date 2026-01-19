@@ -19,7 +19,12 @@ import { DashboardItem, DashboardGridColumn } from '../../services/dashboard.ser
       @if (item.title) {
         <div class="grid-header">
           <h3 class="grid-title">{{ item.title }}</h3>
-          @if (item.subtitle) {
+          @if (drillDownLabel) {
+            <span class="grid-breadcrumb">{{ drillDownLabel }}</span>
+          }
+          @if (hasChildren) {
+            <span class="grid-subtitle clickable-hint">Click for details</span>
+          } @else if (item.subtitle) {
             <span class="grid-subtitle">{{ item.subtitle }}</span>
           }
           @if (data.length > 0) {
@@ -142,6 +147,23 @@ import { DashboardItem, DashboardGridColumn } from '../../services/dashboard.ser
     .grid-subtitle {
       font-size: 0.8rem;
       color: var(--text-color-secondary, #6c757d);
+    }
+
+    .grid-subtitle.clickable-hint {
+      color: var(--primary-color, #2196F3);
+      font-style: italic;
+    }
+
+    .grid-breadcrumb {
+      font-size: 0.75rem;
+      color: var(--primary-color, #2196F3);
+      background: var(--primary-50, #e3f2fd);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 400px;
     }
 
     .grid-count {
@@ -325,6 +347,8 @@ export class GtsDashGridComponent implements OnChanges {
 
   @Input() item!: DashboardItem;
   @Input() data: any[] = [];
+  @Input() hasChildren: boolean = false;  // True se esistono items figli per drill-down
+  @Input() drillDownLabel: string = '';  // Breadcrumb del drill-down (es. "prodotto: X → cliente: Y")
   @Output() onRowClick = new EventEmitter<any>();
 
   columns: DashboardGridColumn[] = [];

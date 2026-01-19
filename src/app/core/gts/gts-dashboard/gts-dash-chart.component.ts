@@ -19,7 +19,9 @@ import { DashboardItem } from '../../services/dashboard.service';
       @if (item.title) {
         <div class="chart-header">
           <h3 class="chart-title">{{ item.title }}{{ drillDownLabel ? ': ' + drillDownLabel : '' }}</h3>
-          @if (item.subtitle) {
+          @if (hasChildren) {
+            <span class="chart-subtitle clickable-hint">Click for details</span>
+          } @else if (item.subtitle) {
             <span class="chart-subtitle">{{ item.subtitle }}</span>
           }
         </div>
@@ -77,6 +79,11 @@ import { DashboardItem } from '../../services/dashboard.service';
       color: var(--text-color-secondary, #6c757d);
     }
 
+    .chart-subtitle.clickable-hint {
+      color: var(--primary-color, #2196F3);
+      font-style: italic;
+    }
+
     .chart-container {
       flex: 1;
       position: relative;
@@ -121,6 +128,7 @@ export class GtsDashChartComponent implements OnChanges {
   @Input() item!: DashboardItem;
   @Input() data: any[] = [];
   @Input() drillDownLabel: string = '';  // Label del dato selezionato nel drill-down
+  @Input() hasChildren: boolean = false;  // True se esistono items figli per drill-down
   @Output() onElementClick = new EventEmitter<any>();
 
   chartType: 'bar' | 'line' | 'pie' | 'doughnut' | 'scatter' | 'bubble' | 'polarArea' | 'radar' = 'bar';

@@ -5,12 +5,18 @@ import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { GtsDataService } from '../../../core/services/gts-data.service';
 import { GtsLoaderComponent } from '../../../core/gts/gts-loader/gts-loader.component';
-import { GtsToolbarComponent } from '../../../core/gts/gts-toolbar/gts-toolbar.component';
-import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component';
-import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component';
-import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component';
-import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';
-import { GtsTabsComponent } from '../../../core/gts/gts-tabs/gts-tabs.component';
+// import { GtsToolbarComponent } from '../../../core/gts/gts-toolbar/gts-toolbar.component'; // DevExtreme version
+import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component'; // Ionic version ✨
+// import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component'; // DevExtreme version
+import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component'; // AG Grid version ✨
+// import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component'; // DevExtreme version
+import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component'; // PrimeNG version ✨
+// import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component'; // DevExtreme version
+import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component'; // PrimeNG version ✨
+// import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component'; // DevExtreme version
+import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component'; // Ionic version ✨
+// import { GtsTabsComponent } from '../../../core/gts/gts-tabs/gts-tabs.component'; // DevExtreme version
+import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component'; // Ionic version ✨
 import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.component';
 import { GtsFileUploaderComponent } from '../../../core/gts/gts-file-uploader/gts-file-uploader.component';
 

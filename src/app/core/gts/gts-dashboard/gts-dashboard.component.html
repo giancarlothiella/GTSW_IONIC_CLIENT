@@ -164,7 +164,8 @@
                   <app-gts-dash-chart
                     [item]="item"
                     [data]="getItemData(item.itemId)"
-                    [drillDownLabel]="getDrillDownLabel(section.sectionId, $any(item)._positionIndex ?? i)"
+                    [hasChildren]="hasChildItems(item.itemId)"
+                    [drillDownLabel]="getDrillDownBreadcrumb(section.sectionId, $any(item)._positionIndex ?? i)"
                     (onElementClick)="onDrillDown(item, $event, section.sectionId, $any(item)._positionIndex ?? i)">
                   </app-gts-dash-chart>
                 }
@@ -174,6 +175,8 @@
                   <app-gts-dash-grid
                     [item]="item"
                     [data]="getItemData(item.itemId)"
+                    [hasChildren]="hasChildItems(item.itemId)"
+                    [drillDownLabel]="getDrillDownBreadcrumb(section.sectionId, $any(item)._positionIndex ?? i)"
                     (onRowClick)="onDrillDown(item, $event, section.sectionId, $any(item)._positionIndex ?? i)">
                   </app-gts-dash-grid>
                 }

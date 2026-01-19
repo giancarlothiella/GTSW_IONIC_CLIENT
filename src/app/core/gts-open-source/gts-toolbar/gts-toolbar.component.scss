@@ -1,0 +1,243 @@
+// GTS Toolbar - Ionic Version
+// Stili per toolbar con bottoni, titoli, campi e dropdown
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+// Toolbar principale
+ion-toolbar {
+  --background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  --color: white;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --min-height: 44px;
+
+  &.main-toolbar {
+    --background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    --min-height: 44px;
+
+    ion-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      color: white;
+    }
+
+    // Bottoni con sfondo bianco e testo scuro
+    ion-buttons ion-button {
+      background: white;
+      color: #333;
+      border: 1px solid #ddd;
+
+      .button-icon {
+        filter: none; // Icone con colore originale
+      }
+
+      &:hover:not([disabled]) {
+        background: #f0f0f0;
+        border-color: #bbb;
+      }
+    }
+
+    // Field con sfondo bianco
+    .toolbar-field {
+      background: white;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    // Dropdown con sfondo bianco
+    ion-select {
+      background: white;
+      color: #333;
+      border: 1px solid #ddd;
+      --placeholder-color: #666;
+
+      &::part(label) {
+        color: #333;
+      }
+
+      &::part(text) {
+        color: #333;
+      }
+    }
+  }
+
+  &.default-toolbar {
+    --background: #f4f5f8;
+    --color: #333;
+    --border-color: #ddd;
+    --min-height: 40px;
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
+// Titolo
+ion-title {
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+// Bottoni
+ion-buttons {
+  ion-button {
+    --color: #333;
+    --border-radius: 6px;
+    --padding-start: 10px;
+    --padding-end: 10px;
+    font-size: 12px;
+    text-transform: none;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    height: 32px;
+    margin: 0 4px;
+    background: white;
+    border: 1px solid #ddd;
+    color: #333;
+
+    // Icone nei bottoni
+    ion-icon {
+      margin-right: 6px;
+      font-size: 16px;
+    }
+
+    .button-icon {
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+      filter: none; // Icone con colore originale
+    }
+
+    &:hover:not([disabled]) {
+      background: #f0f0f0;
+      border-color: #bbb;
+    }
+
+    &[disabled] {
+      opacity: 0.4;
+    }
+  }
+}
+
+// Toolbar chiara - icone scure e bordi
+ion-toolbar.default-toolbar {
+  ion-buttons ion-button {
+    border: 1px solid #ddd;
+    --color: #333;
+
+    .button-icon {
+      filter: none; // Icone con colore originale per toolbar chiara
+    }
+
+    &:hover:not([disabled]) {
+      background: rgba(0, 0, 0, 0.05);
+      border-color: #bbb;
+    }
+  }
+
+  // Campi e dropdown per toolbar chiara
+  .toolbar-field {
+    background: #fff;
+    border: 1px solid #ddd;
+    color: #333;
+  }
+
+  ion-select {
+    background: #fff;
+    border: 1px solid #ddd;
+    color: #333;
+    --placeholder-color: #666;
+
+    &::part(label) {
+      color: #333;
+    }
+  }
+}
+
+// Campi read-only
+.toolbar-field {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin: 0 4px;
+  height: 32px;
+  color: #333;
+  font-weight: 600; // Il valore è bold
+
+  strong {
+    margin-right: 6px;
+    font-weight: 400; // La label è normale
+  }
+}
+
+// Dropdown/Select
+ion-select {
+  --padding-start: 8px;
+  --padding-end: 4px;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --height: 32px;
+  font-size: 12px;
+  min-width: 120px;
+  max-width: 250px;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin: 0 4px;
+  color: #333;
+  line-height: 32px;
+
+  &::part(container) {
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+  }
+
+  &::part(label) {
+    font-weight: 400 !important;
+    font-size: 11px !important;
+    color: #666 !important;
+    margin-right: 4px !important;
+    line-height: 32px !important;
+  }
+
+  &::part(text) {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #333 !important;
+    line-height: 32px !important;
+  }
+
+  &::part(icon) {
+    font-size: 14px !important;
+    color: #666 !important;
+  }
+}
+
+// Responsive: su schermi piccoli nascondi testi dei bottoni
+@media (max-width: 768px) {
+  ion-buttons ion-button {
+    font-size: 0; // Nascondi testo
+
+    ion-icon,
+    .button-icon {
+      margin-right: 0; // Rimuovi margine quando non c'è testo
+    }
+  }
+
+  .toolbar-field {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+}

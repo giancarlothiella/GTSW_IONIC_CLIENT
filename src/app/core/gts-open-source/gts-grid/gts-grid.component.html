@@ -1,0 +1,68 @@
+<div class="gts-grid-wrapper">
+  <div class="gts-grid-container"
+       [style.width]="gridObject?.width ? gridObject.width + 'px' : '100%'">
+    @if (showTitle) {
+      <div class="gts-grid-title">
+        {{ gridTitle }}
+      </div>
+    }
+
+    @if (gridReady && gridObject?.visible && gridKey) {
+      <!-- Toolbar for editing, filters, and export -->
+      @if ((allowUpdating && editedRows.size > 0) || hasActiveFilters || gridObject?.exportFlag) {
+        <div class="gts-grid-toolbar">
+          @if (allowUpdating && editedRows.size > 0) {
+            <button class="gts-grid-toolbar-btn save-btn" (click)="saveEdits()">
+              <span class="btn-icon">✓</span>
+              Save
+            </button>
+            <button class="gts-grid-toolbar-btn revert-btn" (click)="cancelEdits()">
+              <span class="btn-icon">↺</span>
+              Revert
+            </button>
+          }
+          @if (hasActiveFilters) {
+            <button class="gts-grid-toolbar-btn clear-filters-btn" (click)="clearAllFilters()">
+              <span class="btn-icon">✕</span>
+              Clear Filters
+            </button>
+          }
+          @if (gridObject?.exportFlag) {
+            <button class="gts-grid-toolbar-btn export-btn" (click)="exportToExcel()">
+              <span class="btn-icon">📊</span>
+              Export to Excel
+            </button>
+          }
+        </div>
+      }
+
+      <ag-grid-angular
+        class="gts-grid"
+        [theme]="theme"
+        [rowData]="rowData"
+        [columnDefs]="columnDefs"
+        [defaultColDef]="defaultColDef"
+        [rowSelection]="rowSelection"
+        [pagination]="enablePagination"
+        [paginationPageSize]="paginationPageSize"
+        [paginationPageSizeSelector]="paginationPageSizeSelector"
+        [domLayout]="'normal'"
+        [suppressCellFocus]="false"
+        [suppressRowClickSelection]="true"
+        [stopEditingWhenCellsLoseFocus]="false"
+        (gridReady)="onGridReady($event)"
+        (selectionChanged)="onSelectionChanged($event)"
+        (rowDoubleClicked)="onRowDoubleClicked($event)"
+        (cellValueChanged)="onCellValueChanged($event)"
+        (cellClicked)="onCellClicked($event)"
+      >
+      </ag-grid-angular>
+    }
+    @else if (!gridReady) {
+      <div style="padding: 20px; text-align: center;">
+        <ion-spinner></ion-spinner>
+        <p>Loading grid data...</p>
+      </div>
+    }
+  </div>
+</div>

@@ -10,13 +10,17 @@ import { Subscription } from 'rxjs';
 
 // Import GTS Components
 import { GtsLoaderComponent } from '../../../core/gts/gts-loader/gts-loader.component';
-import { GtsToolbarComponent } from '../../../core/gts/gts-toolbar/gts-toolbar.component';
-import { GtsTabsComponent } from '../../../core/gts/gts-tabs/gts-tabs.component';
-import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component';
+// import { GtsToolbarComponent } from '../../../core/gts/gts-toolbar/gts-toolbar.component'; // DevExtreme version
+import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component'; // Ionic version ✨
+// import { GtsTabsComponent } from '../../../core/gts/gts-tabs/gts-tabs.component'; // DevExtreme version
+import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component'; // Ionic version ✨
+// import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component'; // DevExtreme version
+import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component'; // AG Grid version ✨
 import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component';
 import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component';
 import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.component';
-import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';
+// import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component'; // DevExtreme version
+import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component'; // Ionic version ✨
 import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts/gts-ai-analyzer/gts-ai-analyzer.component';
 
 @Component({
@@ -357,18 +361,16 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
   filterCompany(objectName: string, selectedValue: any) {
     const filterData = this.companyFilterFunc(selectedValue)
 
-    this.metaData.grids
-    .filter((element: any) => element.objectName === objectName)[0]
-    .filterRule = filterData;
+    // Update filter rule in metadata
+    const grid = this.metaData.grids.filter((element: any) => element.objectName === objectName)[0];
+    if (grid) {
+      grid.filterRule = filterData;
 
-    this.metaData.grids
-    .filter((element: any) => element.objectName === objectName)[0]
-    .data.dataSource.filter(filterData);
-
-    this.metaData.grids
-    .filter((element: any) => element.objectName === objectName)[0]
-    .data.dataSource.load();
-
+      // TODO: AG Grid filtering needs to be implemented differently
+      // For now, just trigger a grid reload with the new filter
+      console.log('[GTR Fatture] Filter applied:', filterData);
+      this.gtsDataService.sendGridReload(`${grid.dataSetName};reload`);
+    }
   }
 
   goBack() {

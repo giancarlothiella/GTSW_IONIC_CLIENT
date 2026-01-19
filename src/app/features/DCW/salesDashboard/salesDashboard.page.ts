@@ -343,7 +343,6 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
       // Il loader verrà attivato dentro loadCachedData() prima della chiamata MongoDB
       // e verrà spento dalla griglia quando avrà finito di renderizzare
       if (this.hasCachedData) {
-        console.log('[LOAD_CACHED] Chiamo loadCachedData()');
         this.loadCachedData();
       }
     }
@@ -613,31 +612,35 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Carica i dati dalla cache
+   * Carica i dati dalla cache (resta sulla griglia, non apre la dashboard)
    */
   loadCachedData(): void {
-    if (!this.hasCachedData) return;
+    if (!this.hasCachedData) {
+      this.showWarning(this.t(1548, 'Nessun dato in cache'));
+      return;
+    }
 
     const pageCode = `salesDashboard_${this.formId}`;
 
     this.cacheLoading = true;
+    this.gtsDataService.sendAppLoaderListener(true);
 
-    // Piccolo timeout per permettere all'action di finire e spegnere il loader
-    // poi lo riattiviamo prima di iniziare il caricamento da MongoDB
-    setTimeout(() => {
-      console.log('[loadCachedData] Attivo loader PRIMA della chiamata MongoDB');
-      this.gtsDataService.sendAppLoaderListener(true);
-
-      // Cache condivisa tra tutti gli utenti (userId = 'shared')
-      this.userDataService.loadExcelCache<ExcelRow[]>(this.prjId, pageCode, 'shared').subscribe({
+    // Cache condivisa tra tutti gli utenti (userId = 'shared')
+    this.userDataService.loadExcelCache<ExcelRow[]>(this.prjId, pageCode, 'shared').subscribe({
       next: (response) => {
         if (response.success && response.data) {
-          // Processa i dati come se fossero stati caricati da Excel
-          this.processExcelData(response.data);
+          const rawData = response.data;
 
-          // Popola anche la grid se necessario
-          const validData = response.data.filter((row: ExcelRow) => row.kg != null && row.valore != null);
-          const gridRows = validData.map((row: ExcelRow, index: number) => {
+          // Filter valid rows
+          const validData = rawData.filter(row => row.kg != null && row.valore != null);
+
+          if (validData.length === 0) {
+            this.showWarning(this.t(1520, 'Nessun dato valido trovato nella cache.'));
+            return;
+          }
+
+          // Transform data for grid display (come in onExcelFileSelected)
+          const gridRows = validData.map((row, index) => {
             let dataDate: Date | null = null;
             let dataStr = '';
 
@@ -647,14 +650,14 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
               } else if (typeof row.data === 'number') {
                 dataDate = this.excelDateToJS(row.data);
               } else if (row.data) {
-                dataDate = new Date(row.data as string);
+                dataDate = new Date(row.data);
               }
 
               if (dataDate && !isNaN(dataDate.getTime())) {
                 dataStr = dataDate.toISOString().split('T')[0];
               }
             } catch {
-              // Invalid date
+              // Invalid date, leave empty
             }
 
             return {
@@ -674,6 +677,7 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
             };
           });
 
+          // Inject data into pageData for the GTS grid
           this.gtsDataService.setPageDataSet(
             this.prjId,
             this.formId,
@@ -688,12 +692,15 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
             this.formId,
             'daDummy',
             'qSales',
-            response.data
+            rawData
           );
 
-          console.log('[loadCachedData] Dati caricati da MongoDB, chiamo sendGridReload');
+          // Trigger grid reload to display the new data
           this.gtsDataService.sendGridReload('qDummy');
-          this.cacheLoading = false;
+
+          // Processa i dati per dashboard (popola rawExcelData)
+          this.processExcelData(rawData);
+          // NON apre la dashboard - c'è un bottone separato per quello
         }
       },
       error: (err) => {
@@ -701,9 +708,12 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
         this.showError(this.t(1551, 'Errore nel caricamento dei dati dalla cache'));
         this.cacheLoading = false;
         this.gtsDataService.sendAppLoaderListener(false);
+      },
+      complete: () => {
+        this.cacheLoading = false;
+        // NON spegnere il loader qui - la griglia lo spegnerà quando avrà finito di renderizzare
       }
-      });
-    }, 100); // Timeout di 100ms per permettere all'action di completarsi
+    });
   }
 
   /**

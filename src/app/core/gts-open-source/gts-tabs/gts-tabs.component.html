@@ -1,0 +1,31 @@
+<div class="gts-tabs">
+  <ion-segment
+    [value]="selectedTabId"
+    (ionChange)="onTabChange($event)"
+    mode="md"
+    [scrollable]="true"
+  >
+    @for (tab of tabsList; track $index) {
+      @if (isTabVisible(tab)) {
+        <ion-segment-button
+          [value]="tab.id"
+          [disabled]="tab.disabled"
+          layout="icon-start"
+          (click)="onTabClick(tab.id)"
+        >
+          @if (tab.iconPath) {
+            <img
+              [src]="tab.iconPath"
+              alt=""
+              class="tab-icon"
+            />
+          }
+          @if (tab.ionIcon) {
+            <ion-icon [name]="tab.ionIcon" slot="start"></ion-icon>
+          }
+          <ion-label>{{ tab.text }}</ion-label>
+        </ion-segment-button>
+      }
+    }
+  </ion-segment>
+</div>

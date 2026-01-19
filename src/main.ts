@@ -4,7 +4,10 @@ import { RouteReuseStrategy, provideRouter } from '@angular/router';
 import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular/standalone';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
 import { importProvidersFrom, provideZoneChangeDetection } from '@angular/core';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { IonicStorageModule } from '@ionic/storage-angular';
+import { providePrimeNG } from 'primeng/config';
+import Aura from '@primeng/themes/aura';
 import { addIcons } from 'ionicons';
 import {
   downloadOutline,
@@ -33,8 +36,12 @@ import { authInterceptor } from './app/core/interceptors/auth.interceptor';
 
 import config from 'devextreme/core/config';
 import { licenseKey } from './devextreme-license';
+import { pdfDefaultOptions } from 'ngx-extended-pdf-viewer';
 
 config({ licenseKey });
+
+// Silenzia i log di PDF.js
+pdfDefaultOptions.verbosity = 0;
 
 // Registra le icone Ionicons
 addIcons({
@@ -72,6 +79,20 @@ bootstrapApplication(AppComponent, {
       withFetch(),  // Abilita Fetch API (richiesto in Angular 20)
       withInterceptors([authInterceptor])
     ),
+    provideAnimationsAsync(),
+    providePrimeNG({
+      theme: {
+        preset: Aura,
+        options: {
+          darkModeSelector: false,  // Disabilita dark mode per coerenza con DevExtreme
+          cssLayer: {
+            name: 'primeng',
+            order: 'tailwind-base, primeng, tailwind-utilities'
+          }
+        }
+      },
+      ripple: true
+    }),
     importProvidersFrom(
       IonicStorageModule.forRoot()
     )

@@ -45,13 +45,26 @@ export interface DashboardConfig {
 }
 
 /**
+ * Singolo filtro nella catena drill-down
+ */
+interface DrillDownFilter {
+  field: string;
+  value: any;
+  itemId: string;  // ID dell'item che ha generato questo filtro
+  itemTitle?: string;  // Titolo dell'item per il breadcrumb
+}
+
+/**
  * Drill-down per posizione: ogni posizione nella sezione può avere il proprio livello
  * Key: "sectionId:position" (es. "rankings-bar:0")
- * Value: { level, filterField, filterValue, parentItemId }
+ * Value: { level, filters (catena cumulativa), parentItemId }
  */
 interface PositionDrillDownState {
   level: number;
   parentItemId: string | null;
+  // Catena cumulativa di filtri (ogni livello aggiunge un filtro)
+  filters: DrillDownFilter[];
+  // Mantenuti per retrocompatibilità - rappresentano l'ultimo filtro
   filterField: string | null;
   filterValue: any;
 }
@@ -90,6 +103,10 @@ export class GtsDashboardComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input() config!: DashboardConfig;
   @Input() visible: boolean = true;
+
+  // Override config: se fornito, usa questa configurazione invece di caricarla dal server
+  // Utile per il preview nel dashboard builder
+  @Input() overrideConfig: Dashboard | null = null;
 
   // Raw data con setter per normalizzazione automatica
   private _rawData: any[] = [];
@@ -198,6 +215,34 @@ export class GtsDashboardComponent implements OnInit, OnDestroy, OnChanges {
   // ============================================
 
   async loadDashboard(): Promise<void> {
+    // Se overrideConfig è fornito, usalo direttamente senza caricare dal server
+    if (this.overrideConfig) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        this.dashboard = this.overrideConfig as Dashboard;
+
+        console.log('Dashboard loaded from overrideConfig:', this.dashboard?.title);
+        console.log('Datasets:', this.dashboard?.datasets);
+
+        // Richiedi i dati alla pagina padre
+        if (this.dashboard?.datasets && this.dashboard.datasets.length > 0) {
+          this.requestDatasets();
+        } else if (this.dashboard && this.rawData.length > 0) {
+          this.processAllItems();
+        }
+      } catch (err: any) {
+        console.error('Error loading dashboard from override:', err);
+        this.error = err.message || 'Error loading dashboard';
+        this.showError(this.error!);
+      } finally {
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
+      return;
+    }
+
     if (!this.config?.prjId || !this.config?.dashboardCode) {
       this.error = 'Configuration missing: prjId and dashboardCode required';
       return;
@@ -706,9 +751,45 @@ export class GtsDashboardComponent implements OnInit, OnDestroy, OnChanges {
       }
     }
 
-    // Applica drill-down filter se presente
+    // Applica drill-down filter se presente (singolo filtro - retrocompatibilità)
     if (filterField && filterValue !== null) {
       sourceData = sourceData.filter(row => row[filterField!] === filterValue);
+    }
+
+    // Applica TUTTI i filtri cumulativi della catena drill-down
+    if (sectionId) {
+      const section = this.dashboard?.layout?.sections?.find(s => s.sectionId === sectionId);
+      if (section) {
+        const posIdx = section.items.indexOf(item.itemId);
+        // Cerca anche negli items figli
+        let foundPosIdx = posIdx;
+        if (foundPosIdx < 0) {
+          // Item figlio: trova la posizione del parent originale
+          for (let i = 0; i < section.items.length; i++) {
+            const posKey = `${sectionId}:${i}`;
+            const posState = this.drillDown.positions.get(posKey);
+            if (posState && posState.parentItemId) {
+              // Verifica se questo item è nella catena di drill-down di questa posizione
+              const childItems = this.getChildItemsChain(posState.parentItemId);
+              if (childItems.includes(item.itemId)) {
+                foundPosIdx = i;
+                break;
+              }
+            }
+          }
+        }
+
+        if (foundPosIdx >= 0) {
+          const posKey = `${sectionId}:${foundPosIdx}`;
+          const posState = this.drillDown.positions.get(posKey);
+          if (posState && posState.filters && posState.filters.length > 0) {
+            // Applica tutti i filtri della catena
+            posState.filters.forEach(f => {
+              sourceData = sourceData.filter(row => row[f.field] === f.value);
+            });
+          }
+        }
+      }
     }
 
     if (!item.aggregationRule) {
@@ -792,20 +873,37 @@ export class GtsDashboardComponent implements OnInit, OnDestroy, OnChanges {
     const currentState = this.drillDown.positions.get(posKey) || {
       level: 0,
       parentItemId: null,
+      filters: [],
       filterField: null,
       filterValue: null
     };
 
-    // Salva stato corrente nella history per questa posizione
+    // Salva stato corrente nella history per questa posizione (deep copy dei filtri)
     if (!this.drillDown.history.has(posKey)) {
       this.drillDown.history.set(posKey, []);
     }
-    this.drillDown.history.get(posKey)!.push({ ...currentState });
+    this.drillDown.history.get(posKey)!.push({
+      ...currentState,
+      filters: [...(currentState.filters || [])]
+    });
+
+    // Costruisci la nuova catena di filtri (mantieni quelli esistenti + aggiungi il nuovo)
+    const newFilters: DrillDownFilter[] = [...(currentState.filters || [])];
+    if (item.drillDownFilter && clickedData) {
+      newFilters.push({
+        field: item.drillDownFilter,
+        value: clickedData[item.drillDownFilter],
+        itemId: item.itemId,
+        itemTitle: item.title
+      });
+    }
 
     // Aggiorna stato drill-down per questa posizione
     const newState: PositionDrillDownState = {
       level: currentState.level + 1,
       parentItemId: item.itemId,
+      filters: newFilters,
+      // Retrocompatibilità: ultimo filtro
       filterField: item.drillDownFilter || null,
       filterValue: item.drillDownFilter && clickedData ? clickedData[item.drillDownFilter] : null
     };
@@ -944,6 +1042,53 @@ export class GtsDashboardComponent implements OnInit, OnDestroy, OnChanges {
       return String(posState.filterValue);
     }
     return '';
+  }
+
+  /**
+   * Verifica se un item ha figli (items con parentItemId = itemId)
+   * Usato per mostrare dinamicamente "Click for details" solo se c'è drill-down disponibile
+   */
+  hasChildItems(itemId: string): boolean {
+    if (!this.dashboard?.items) return false;
+    return this.dashboard.items.some(item => item.parentItemId === itemId);
+  }
+
+  /**
+   * Ottiene la catena di itemId figli a partire da un parentItemId
+   * Usato per trovare a quale posizione appartiene un item figlio
+   */
+  private getChildItemsChain(parentItemId: string): string[] {
+    if (!this.dashboard?.items) return [];
+    const result: string[] = [];
+    const children = this.dashboard.items.filter(i => i.parentItemId === parentItemId);
+    children.forEach(child => {
+      result.push(child.itemId);
+      // Ricorsione per figli di figli
+      result.push(...this.getChildItemsChain(child.itemId));
+    });
+    return result;
+  }
+
+  /**
+   * Ottiene il breadcrumb completo per una posizione (tutti i filtri della catena)
+   * Formato: "Prodotto: NEBRASKA → Cliente: MARIO CUCCHETTI"
+   */
+  getDrillDownBreadcrumb(sectionId: string, positionIndex: number): string {
+    const posKey = `${sectionId}:${positionIndex}`;
+    const posState = this.drillDown.positions.get(posKey);
+    if (!posState || !posState.filters || posState.filters.length === 0) {
+      return '';
+    }
+    return posState.filters.map(f => `${f.field}: ${f.value}`).join(' → ');
+  }
+
+  /**
+   * Ottiene i filtri della catena drill-down per una posizione
+   */
+  getDrillDownFilters(sectionId: string, positionIndex: number): DrillDownFilter[] {
+    const posKey = `${sectionId}:${positionIndex}`;
+    const posState = this.drillDown.positions.get(posKey);
+    return posState?.filters || [];
   }
 
   // ============================================

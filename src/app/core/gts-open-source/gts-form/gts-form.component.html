@@ -1,0 +1,273 @@
+@if (formReady) {
+  <div>
+    @if (showTitle && !showPopUp) {
+      <div
+        [class]="formCSSTitle"
+        [style]="formTitleStyle">
+        {{ formTitle }}
+      </div>
+    }
+    <div [style]="formStyle">
+      <div
+        [class]="formCSSBody"
+        [style]="formLayout">
+        @for (element of formData; track element.objectName) {
+          <!-- GroupHdr (section header) -->
+          @if (element.editorType === 'GroupHdr') {
+            <div
+              [style]="element.style"
+              [class]="element.cssClass">
+              {{ element.value }}
+            </div>
+          }
+
+          <!-- RadioGroup -->
+          @if (element.editorType === 'RadioGroup' && element.visible) {
+            <div
+              [style]="element.style"
+              [class]="element.cssClass">
+              <label class="form-field-label">{{ element.label }}</label>
+              <div class="radio-group-container">
+                @for (option of element.radioValues; track option.id) {
+                  <div class="radio-item">
+                    <p-radioButton
+                      [inputId]="element.objectName + '_' + option.id"
+                      [name]="element.objectName"
+                      [value]="option.value"
+                      [(ngModel)]="element.value"
+                      [disabled]="element.readOnly || element.disabled"
+                      (ngModelChange)="onFieldDataChanged(element, $event)">
+                    </p-radioButton>
+                    <label [for]="element.objectName + '_' + option.id" class="radio-label">
+                      {{ option.text }}
+                    </label>
+                  </div>
+                }
+              </div>
+              @if (element.validationMessage) {
+                <p-message severity="error" [text]="element.validationMessage"></p-message>
+              }
+            </div>
+          }
+
+          <!-- TextBox -->
+          @if (element.editorType === 'TextBox' && element.visible) {
+            <div [style]="element.style" [class]="element.cssClass">
+              <p-floatLabel>
+                <input
+                  pInputText
+                  [id]="element.fieldId"
+                  [(ngModel)]="element.value"
+                  [disabled]="element.disabled"
+                  [readonly]="element.readOnly"
+                  [type]="element.mode || 'text'"
+                  [style]="element.forceUpperCase ? 'text-transform: uppercase' : ''"
+                  (input)="onFieldInput($event, element)"
+                  (ngModelChange)="onFieldDataChanged(element, $event)"
+                  (blur)="onFieldFocusOut(element)"
+                  (keydown)="onFieldKeyDown($event, element)"
+                  #inputElement
+                />
+                <label [for]="element.fieldId">{{ element.label }}</label>
+              </p-floatLabel>
+              @if (element.validationMessage) {
+                <p-message severity="error" [text]="element.validationMessage"></p-message>
+              }
+            </div>
+          }
+
+          <!-- TextBoxRO (read-only text) -->
+          @if (element.editorType === 'TextBoxRO' && element.visible) {
+            <div [style]="element.style" [class]="element.cssClass">
+              <p-floatLabel>
+                <input
+                  pInputText
+                  [id]="element.fieldId"
+                  [(ngModel)]="element.value"
+                  [disabled]="element.disabled"
+                  readonly
+                  #inputElement
+                />
+                <label [for]="element.fieldId">{{ element.label }}</label>
+              </p-floatLabel>
+            </div>
+          }
+
+          <!-- CheckBox -->
+          @if (element.editorType === 'CheckBox' && element.visible) {
+            <div [style]="element.style" [class]="element.cssClass">
+              <p-checkbox
+                [inputId]="element.fieldId"
+                [(ngModel)]="element.value"
+                [binary]="true"
+                [disabled]="element.disabled || element.readOnly"
+                (ngModelChange)="onFieldDataChanged(element, $event)"
+                (onBlur)="onFieldFocusOut(element)">
+              </p-checkbox>
+              <label [for]="element.fieldId" class="checkbox-label">{{ element.label }}</label>
+              @if (element.validationMessage) {
+                <p-message severity="error" [text]="element.validationMessage"></p-message>
+              }
+            </div>
+          }
+
+          <!-- DateBox -->
+          @if (element.editorType === 'DateBox' && element.visible) {
+            <div [style]="element.style" [class]="element.cssClass">
+              <p-floatLabel>
+                <p-datePicker
+                  [inputId]="element.fieldId"
+                  [(ngModel)]="element.value"
+                  dateFormat="dd/mm/yy"
+                  [disabled]="element.disabled"
+                  [readonlyInput]="element.readOnly"
+                  (ngModelChange)="onFieldDataChanged(element, $event)"
+                  [showIcon]="true">
+                </p-datePicker>
+                <label [for]="element.fieldId">{{ element.label }}</label>
+              </p-floatLabel>
+              @if (element.validationMessage) {
+                <p-message severity="error" [text]="element.validationMessage"></p-message>
+              }
+            </div>
+          }
+
+          <!-- TextArea -->
+          @if (element.editorType === 'TextArea' && element.visible) {
+            <div [style]="element.style" [class]="element.cssClass">
+              <p-floatLabel>
+                <textarea
+                  pTextarea
+                  [id]="element.fieldId"
+                  [(ngModel)]="element.value"
+                  [disabled]="element.disabled"
+                  [readonly]="element.readOnly"
+                  [rows]="element.areaHeight ? element.areaHeight / 20 : 5"
+                  (input)="onFieldInput($event, element)"
+                  (ngModelChange)="onFieldDataChanged(element, $event)"
+                  (blur)="onFieldFocusOut(element)"
+                  #inputElement>
+                </textarea>
+                <label [for]="element.fieldId">{{ element.label }}</label>
+              </p-floatLabel>
+              @if (element.validationMessage) {
+                <p-message severity="error" [text]="element.validationMessage"></p-message>
+              }
+            </div>
+          }
+
+          <!-- DropDownBox -->
+          @if (element.editorType === 'DropDownBox' && element.visible) {
+            <div [style]="element.style" [class]="element.cssClass">
+              <p-floatLabel>
+                <p-select
+                  [inputId]="element.fieldId"
+                  [(ngModel)]="element.value"
+                  [options]="element.dropDown"
+                  optionLabel="text"
+                  optionValue="code"
+                  [disabled]="element.disabled"
+                  [readonly]="element.readOnly"
+                  (ngModelChange)="onFieldDataChanged(element, $event)"
+                  (onBlur)="onFieldFocusOut(element)"
+                  [style]="{'width': '100%'}">
+                </p-select>
+                <label [for]="element.fieldId">{{ element.label }}</label>
+              </p-floatLabel>
+              @if (element.validationMessage) {
+                <p-message severity="error" [text]="element.validationMessage"></p-message>
+              }
+            </div>
+          }
+
+          <!-- LookUpBox (Input + Button) -->
+          @if (element.editorType === 'LookUpBox' && element.visible) {
+            <div [style]="element.style" [class]="element.cssClass + ' lookup-field-wrapper'">
+              <p-floatLabel>
+                <input
+                  pInputText
+                  [id]="element.fieldId"
+                  [(ngModel)]="element.value"
+                  [disabled]="element.disabled"
+                  [readonly]="element.readOnly"
+                  [style]="element.forceUpperCase ? 'text-transform: uppercase' : ''"
+                  (input)="onFieldInput($event, element)"
+                  (ngModelChange)="onFieldDataChanged(element, $event)"
+                  (blur)="onFieldFocusOut(element)"
+                  (keydown)="onFieldKeyDown($event, element)"
+                  class="lookup-input"
+                  #inputElement
+                />
+                <label [for]="element.fieldId">{{ element.label }}</label>
+              </p-floatLabel>
+              <p-button
+                icon="pi pi-search"
+                [disabled]="element.disabled || element.readOnly"
+                (onClick)="onLookUpButtonClick(element)"
+                severity="secondary"
+                size="small">
+              </p-button>
+              @if (element.validationMessage) {
+                <p-message severity="error" [text]="element.validationMessage"></p-message>
+              }
+            </div>
+          }
+
+          <!-- TextButtonBox (Input + Custom Button) -->
+          @if (element.editorType === 'TextButtonBox' && element.visible) {
+            <div [style]="element.style" [class]="element.cssClass + ' lookup-field-wrapper'">
+              <p-floatLabel>
+                <input
+                  pInputText
+                  [id]="element.fieldId"
+                  [(ngModel)]="element.value"
+                  [disabled]="element.disabled"
+                  [readonly]="element.readOnly"
+                  [type]="element.mode || 'text'"
+                  [style]="element.forceUpperCase ? 'text-transform: uppercase' : ''"
+                  (input)="onFieldInput($event, element)"
+                  (ngModelChange)="onFieldDataChanged(element, $event)"
+                  (blur)="onFieldFocusOut(element)"
+                  class="lookup-input"
+                  #inputElement
+                />
+                <label [for]="element.fieldId">{{ element.label }}</label>
+              </p-floatLabel>
+              <p-button
+                [icon]="element.buttonIcon ? '' : 'pi pi-cog'"
+                [disabled]="element.disabled"
+                (onClick)="onActionButtonClick(element)"
+                [pTooltip]="element.buttonText"
+                severity="secondary"
+                size="small">
+                @if (element.buttonIcon) {
+                  <img [src]="element.buttonIcon" [alt]="element.buttonText" style="width: 16px; height: 16px;" />
+                }
+              </p-button>
+              @if (element.validationMessage) {
+                <p-message severity="error" [text]="element.validationMessage"></p-message>
+              }
+            </div>
+          }
+        }
+      </div>
+
+      @if (showToolbar) {
+        <app-gts-toolbar
+          style="grid-area: toolbar;"
+          [customCssClass]="formCSSToolbar"
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="objectName"
+          (newValueEvent)="toolbarSubmitEvent($event)">
+        </app-gts-toolbar>
+      }
+    </div>
+
+    <app-gts-lookup
+      [prjId]="prjId"
+      [formId]="formId"
+      (newLookUpEvent)="lookUpSubmitEvent($event)">
+    </app-gts-lookup>
+  </div>
+}
