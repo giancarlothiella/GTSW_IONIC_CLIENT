@@ -11,7 +11,7 @@
       <div
         [class]="formCSSBody"
         [style]="formLayout">
-        @for (element of formData; track element.objectName) {
+        @for (element of formData; track $index) {
           <!-- GroupHdr (section header) -->
           @if (element.editorType === 'GroupHdr') {
             <div
@@ -56,7 +56,7 @@
               <p-floatLabel>
                 <input
                   pInputText
-                  [id]="element.fieldId"
+                  [id]="objectName + '_' + element.fieldId"
                   [(ngModel)]="element.value"
                   [disabled]="element.disabled"
                   [readonly]="element.readOnly"
@@ -68,7 +68,7 @@
                   (keydown)="onFieldKeyDown($event, element)"
                   #inputElement
                 />
-                <label [for]="element.fieldId">{{ element.label }}</label>
+                <label [for]="objectName + '_' + element.fieldId">{{ element.label }}</label>
               </p-floatLabel>
               @if (element.validationMessage) {
                 <span class="validation-error">{{ element.validationMessage }}</span>
@@ -82,13 +82,13 @@
               <p-floatLabel>
                 <input
                   pInputText
-                  [id]="element.fieldId"
+                  [id]="objectName + '_' + element.fieldId"
                   [(ngModel)]="element.value"
                   [disabled]="element.disabled"
                   readonly
                   #inputElement
                 />
-                <label [for]="element.fieldId">{{ element.label }}</label>
+                <label [for]="objectName + '_' + element.fieldId">{{ element.label }}</label>
               </p-floatLabel>
             </div>
           }
@@ -97,14 +97,14 @@
           @if (element.editorType === 'CheckBox' && element.visible) {
             <div [style]="element.style" [class]="element.cssClass">
               <p-checkbox
-                [inputId]="element.fieldId"
+                [inputId]="objectName + '_' + element.fieldId"
                 [(ngModel)]="element.value"
                 [binary]="true"
                 [disabled]="element.disabled || element.readOnly"
                 (ngModelChange)="onFieldDataChanged(element, $event)"
                 (onBlur)="onFieldFocusOut(element)">
               </p-checkbox>
-              <label [for]="element.fieldId" class="checkbox-label">{{ element.label }}</label>
+              <label [for]="objectName + '_' + element.fieldId" class="checkbox-label">{{ element.label }}</label>
               @if (element.validationMessage) {
                 <span class="validation-error">{{ element.validationMessage }}</span>
               }
@@ -116,14 +116,14 @@
             <div [style]="element.style" [class]="element.cssClass">
               <p-floatLabel>
                 <p-datePicker
-                  [inputId]="element.fieldId"
+                  [inputId]="objectName + '_' + element.fieldId"
                   [(ngModel)]="element.value"
                   dateFormat="dd/mm/yy"
                   [disabled]="element.disabled || element.readOnly"
                   (ngModelChange)="onFieldDataChanged(element, $event)"
                   [showIcon]="!(element.disabled || element.readOnly)">
                 </p-datePicker>
-                <label [for]="element.fieldId">{{ element.label }}</label>
+                <label [for]="objectName + '_' + element.fieldId">{{ element.label }}</label>
               </p-floatLabel>
               @if (element.validationMessage) {
                 <span class="validation-error">{{ element.validationMessage }}</span>
@@ -137,7 +137,7 @@
               <p-floatLabel>
                 <textarea
                   pTextarea
-                  [id]="element.fieldId"
+                  [id]="objectName + '_' + element.fieldId"
                   [(ngModel)]="element.value"
                   [disabled]="element.disabled"
                   [readonly]="element.readOnly"
@@ -147,7 +147,7 @@
                   (blur)="onFieldFocusOut(element)"
                   #inputElement>
                 </textarea>
-                <label [for]="element.fieldId">{{ element.label }}</label>
+                <label [for]="objectName + '_' + element.fieldId">{{ element.label }}</label>
               </p-floatLabel>
               @if (element.validationMessage) {
                 <span class="validation-error">{{ element.validationMessage }}</span>
@@ -160,7 +160,7 @@
             <div [style]="element.style" [class]="element.cssClass">
               <p-floatLabel>
                 <p-select
-                  [inputId]="element.fieldId"
+                  [inputId]="objectName + '_' + element.fieldId"
                   [(ngModel)]="element.value"
                   [options]="element.dropDown"
                   optionLabel="text"
@@ -171,7 +171,7 @@
                   (onBlur)="onFieldFocusOut(element)"
                   [style]="{'width': '100%'}">
                 </p-select>
-                <label [for]="element.fieldId">{{ element.label }}</label>
+                <label [for]="objectName + '_' + element.fieldId">{{ element.label }}</label>
               </p-floatLabel>
               @if (element.validationMessage) {
                 <span class="validation-error">{{ element.validationMessage }}</span>
@@ -185,7 +185,7 @@
               <p-floatLabel>
                 <input
                   pInputText
-                  [id]="element.fieldId"
+                  [id]="objectName + '_' + element.fieldId"
                   [(ngModel)]="element.value"
                   [disabled]="element.disabled"
                   [readonly]="element.readOnly"
@@ -197,7 +197,7 @@
                   class="lookup-input"
                   #inputElement
                 />
-                <label [for]="element.fieldId">{{ element.label }}</label>
+                <label [for]="objectName + '_' + element.fieldId">{{ element.label }}</label>
               </p-floatLabel>
               <p-button
                 icon="pi pi-search"
@@ -219,7 +219,7 @@
               <p-floatLabel>
                 <input
                   pInputText
-                  [id]="element.fieldId"
+                  [id]="objectName + '_' + element.fieldId"
                   [(ngModel)]="element.value"
                   [disabled]="element.disabled"
                   [readonly]="element.readOnly"
@@ -231,7 +231,7 @@
                   class="lookup-input"
                   #inputElement
                 />
-                <label [for]="element.fieldId">{{ element.label }}</label>
+                <label [for]="objectName + '_' + element.fieldId">{{ element.label }}</label>
               </p-floatLabel>
               <p-button
                 [icon]="element.buttonIcon ? '' : 'pi pi-cog'"

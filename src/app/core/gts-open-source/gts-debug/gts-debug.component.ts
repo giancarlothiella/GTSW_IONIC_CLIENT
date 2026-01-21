@@ -13,8 +13,19 @@ import {
   IonSegmentButton,
   IonLabel
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { playCircle, stopCircle, codeOutline, documentTextOutline, copyOutline } from 'ionicons/icons';
 import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
+
+// Register icons
+addIcons({
+  'play-circle': playCircle,
+  'stop-circle': stopCircle,
+  'code-outline': codeOutline,
+  'document-text-outline': documentTextOutline,
+  'copy-outline': copyOutline
+});
 
 /**
  * GTS Debug Component - Open Source Version
