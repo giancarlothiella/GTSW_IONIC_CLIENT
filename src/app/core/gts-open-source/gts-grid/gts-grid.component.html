@@ -9,30 +9,39 @@
 
     @if (gridReady && gridObject?.visible && gridKey) {
       <!-- Toolbar for editing, filters, and export -->
-      @if ((allowUpdating && editedRows.size > 0) || hasActiveFilters || gridObject?.exportFlag) {
+      @if (allowUpdating || hasActiveFilters || gridObject?.exportFlag) {
         <div class="gts-grid-toolbar">
-          @if (allowUpdating && editedRows.size > 0) {
-            <button class="gts-grid-toolbar-btn save-btn" (click)="saveEdits()">
-              <span class="btn-icon">✓</span>
-              Save
-            </button>
-            <button class="gts-grid-toolbar-btn revert-btn" (click)="cancelEdits()">
-              <span class="btn-icon">↺</span>
-              Revert
-            </button>
-          }
-          @if (hasActiveFilters) {
-            <button class="gts-grid-toolbar-btn clear-filters-btn" (click)="clearAllFilters()">
-              <span class="btn-icon">✕</span>
-              Clear Filters
-            </button>
-          }
-          @if (gridObject?.exportFlag) {
-            <button class="gts-grid-toolbar-btn export-btn" (click)="exportToExcel()">
-              <span class="btn-icon">📊</span>
-              Export to Excel
-            </button>
-          }
+          <!-- Left side buttons -->
+          <div class="gts-grid-toolbar-left">
+            @if (allowUpdating) {
+              <button class="gts-grid-toolbar-btn save-btn"
+                      (click)="saveEdits()"
+                      [disabled]="editedRows.size === 0">
+                <span class="btn-icon">✓</span>
+                Save
+              </button>
+              <button class="gts-grid-toolbar-btn revert-btn"
+                      (click)="cancelEdits()">
+                <span class="btn-icon">↺</span>
+                Cancel
+              </button>
+            }
+            @if (hasActiveFilters) {
+              <button class="gts-grid-toolbar-btn clear-filters-btn" (click)="clearAllFilters()">
+                <span class="btn-icon">✕</span>
+                Clear Filters
+              </button>
+            }
+          </div>
+          <!-- Right side buttons -->
+          <div class="gts-grid-toolbar-right">
+            @if (gridObject?.exportFlag) {
+              <button class="gts-grid-toolbar-btn export-btn" (click)="exportToExcel()">
+                <span class="btn-icon">📊</span>
+                Export to Excel
+              </button>
+            }
+          </div>
         </div>
       }
 
@@ -48,7 +57,6 @@
         [paginationPageSizeSelector]="paginationPageSizeSelector"
         [domLayout]="'normal'"
         [suppressCellFocus]="false"
-        [suppressRowClickSelection]="true"
         [stopEditingWhenCellsLoseFocus]="false"
         (gridReady)="onGridReady($event)"
         (selectionChanged)="onSelectionChanged($event)"

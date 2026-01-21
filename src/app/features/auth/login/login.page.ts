@@ -1,7 +1,8 @@
 // src/app/features/auth/login/login.page.ts
-import { Component, inject, ViewChild, AfterViewInit, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import {
   IonContent,
   IonCard,
@@ -12,20 +13,30 @@ import {
   IonText,
   IonFooter,
   IonToolbar,
+  IonInput,
+  IonIcon,
   LoadingController,
   ToastController,
   ViewWillEnter
 } from '@ionic/angular/standalone';
-import { DxFormModule, DxButtonModule, DxFormComponent } from 'devextreme-angular';
+import { addIcons } from 'ionicons';
+import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
 import { AuthService, LoginCredentials } from '../../../core/services/auth.service';
 import { TranslationService, Language } from '../../../core/services/translation.service';
 import { environment, webInfo } from '../../../../environments/environment';
+
+// Register icons
+addIcons({
+  'eye-outline': eyeOutline,
+  'eye-off-outline': eyeOffOutline
+});
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     IonContent,
     IonCard,
     IonCardHeader,
@@ -35,8 +46,8 @@ import { environment, webInfo } from '../../../../environments/environment';
     IonText,
     IonFooter,
     IonToolbar,
-    DxFormModule,
-    DxButtonModule
+    IonInput,
+    IonIcon
   ],
   template: `
     <ion-content class="login-content">
@@ -72,43 +83,56 @@ import { environment, webInfo } from '../../../../environments/environment';
           </ion-card-header>
 
           <ion-card-content>
-            <dx-form
-              #loginForm
-              [(formData)]="formData"
-              [colCount]="1"
-              [showColonAfterLabel]="false"
-              labelLocation="top">
+            <!-- Email Field -->
+            <div class="input-section">
+              <ion-text color="dark">
+                <p class="input-label">{{ getText(3) }}</p>
+              </ion-text>
+              <ion-input
+                type="email"
+                inputmode="email"
+                autocomplete="username"
+                [(ngModel)]="formData.email"
+                [placeholder]="getText(4)"
+                class="custom-input"
+                [disabled]="isLoading">
+              </ion-input>
+              @if (emailError) {
+                <ion-text color="danger">
+                  <p class="field-error">{{ emailError }}</p>
+                </ion-text>
+              }
+            </div>
 
-              <dxi-item
-                [label]="{text: getText(3)}"
-                dataField="email"
-                [editorOptions]="{
-                  placeholder: getText(4),
-                  mode: 'email',
-                  inputAttr: { autocomplete: 'username' }
-                }">
-                <dxi-validation-rule
-                  type="required"
-                  [message]="getText(3) + ' obbligatoria'">
-                </dxi-validation-rule>
-                <dxi-validation-rule
-                  type="email"
-                  message="Email non valida">
-                </dxi-validation-rule>
-              </dxi-item>
-
-              <dxi-item
-                [label]="{text: getText(5)}"
-                dataField="password"
-                editorType="dxTextBox"
-                [editorOptions]="passwordEditorOptions">
-                <dxi-validation-rule
-                  type="required"
-                  [message]="getText(5) + ' obbligatoria'">
-                </dxi-validation-rule>
-              </dxi-item>
-
-            </dx-form>
+            <!-- Password Field -->
+            <div class="input-section">
+              <ion-text color="dark">
+                <p class="input-label">{{ getText(5) }}</p>
+              </ion-text>
+              <div class="password-input-wrapper">
+                <ion-input
+                  [type]="passwordVisible ? 'text' : 'password'"
+                  autocomplete="current-password"
+                  [(ngModel)]="formData.password"
+                  [placeholder]="getText(6)"
+                  class="custom-input password-input"
+                  [disabled]="isLoading">
+                </ion-input>
+                <button
+                  type="button"
+                  class="password-toggle-btn"
+                  (click)="togglePasswordVisibility()"
+                  [disabled]="isLoading"
+                  tabindex="-1">
+                  <ion-icon [name]="passwordVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                </button>
+              </div>
+              @if (passwordError) {
+                <ion-text color="danger">
+                  <p class="field-error">{{ passwordError }}</p>
+                </ion-text>
+              }
+            </div>
 
             <!-- Messaggio di errore -->
             @if (errorMessage) {
@@ -310,9 +334,66 @@ import { environment, webInfo } from '../../../../environments/environment';
     }
 
     /* Form styling */
-    dx-form {
-      margin-top: 20px;
+    .input-section {
       margin-bottom: 20px;
+    }
+
+    .input-section:first-child {
+      margin-top: 15px;
+    }
+
+    .input-label {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      display: block;
+      color: #555;
+    }
+
+    .custom-input {
+      --background: var(--ion-color-light);
+      --padding-start: 15px;
+      --padding-end: 15px;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    .password-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .password-input {
+      flex: 1;
+      --padding-end: 45px;
+    }
+
+    .password-toggle-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      color: var(--ion-color-medium);
+      z-index: 10;
+    }
+
+    .password-toggle-btn:hover {
+      color: var(--ion-color-primary);
+    }
+
+    .password-toggle-btn ion-icon {
+      font-size: 20px;
+    }
+
+    .field-error {
+      font-size: 12px;
+      margin: 5px 0 0 0;
+      padding-left: 2px;
     }
 
     /* Messaggi di errore */
@@ -525,9 +606,7 @@ import { environment, webInfo } from '../../../../environments/environment';
     }
   `]
 })
-export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
-  @ViewChild('loginForm') loginFormComponent!: DxFormComponent;
-
+export class LoginPage implements OnInit, ViewWillEnter {
   private authService = inject(AuthService);
   private translationService = inject(TranslationService);
   private router = inject(Router);
@@ -552,7 +631,10 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
 
   // Controllo visibilità password
   passwordVisible = false;
-  passwordEditorOptions: any;
+
+  // Validazione campi
+  emailError = '';
+  passwordError = '';
 
   // Multi-lingua
   availableLanguages: Language[] = [];
@@ -562,35 +644,11 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
   fromLanding = false;
 
   constructor() {
-    // Inizializza le opzioni del campo password
-    this.updatePasswordEditorOptions();
-
     // Controlla se arriviamo dalla landing page
     const navigation = this.router.getCurrentNavigation();
     if (navigation?.extras?.state) {
       this.fromLanding = navigation.extras.state['fromLanding'] || false;
     }
-  }
-
-  private updatePasswordEditorOptions() {
-    this.passwordEditorOptions = {
-      placeholder: this.getText(6),
-      mode: 'password',
-      inputAttr: { autocomplete: 'current-password' },
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          tabIndex: -1,
-          onClick: () => {
-            this.togglePasswordVisibility();
-          }
-        }
-      }]
-    };
   }
 
   async ngOnInit() {
@@ -614,13 +672,9 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
       // Force change detection after async operation
       this.cdr.detectChanges();
 
-      // Aggiorna le opzioni dopo che i testi sono caricati
-      this.updatePasswordEditorOptions();
-
       // Sottoscrivi ai cambiamenti di lingua
       this.translationService.currentLanguage$.subscribe(lang => {
         this.currentLanguage = lang;
-        this.updatePasswordEditorOptions();
       });
     } catch (error) {
       console.error('Error initializing translations:', error);
@@ -629,10 +683,6 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
       this.textsLoaded = true;
       this.cdr.detectChanges();
     }
-  }
-
-  ngAfterViewInit() {
-    // Form is now available
   }
 
   async ionViewWillEnter() {
@@ -662,65 +712,44 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
       };
     }
     this.errorMessage = '';
+    this.emailError = '';
+    this.passwordError = '';
     this.passwordVisible = false;
-
-    // Reset delle opzioni del campo password
-    this.passwordEditorOptions = {
-      ...this.passwordEditorOptions,
-      mode: 'password',
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          tabIndex: -1,
-          onClick: () => {
-            this.togglePasswordVisibility();
-          }
-        }
-      }]
-    };
-
-    // Ripulisci anche il form component se disponibile
-    if (this.loginFormComponent) {
-      this.loginFormComponent.instance.resetValues();
-    }
   }
 
   togglePasswordVisibility() {
     this.passwordVisible = !this.passwordVisible;
+  }
 
-    // Aggiorna le opzioni del campo password
-    this.passwordEditorOptions = {
-      ...this.passwordEditorOptions,
-      mode: this.passwordVisible ? 'text' : 'password',
-      inputAttr: { autocomplete: 'current-password' },
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: this.passwordVisible ? 'eyeopen' : 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          tabIndex: -1,
-          onClick: () => {
-            this.togglePasswordVisibility();
-          }
-        }
-      }]
-    };
+  /**
+   * Valida il form prima del login
+   */
+  private validateForm(): boolean {
+    this.emailError = '';
+    this.passwordError = '';
 
-    // Forza il repaint del componente
-    if (this.loginFormComponent) {
-      this.loginFormComponent.instance.repaint();
+    if (!this.formData.email) {
+      this.emailError = this.getText(3) + ' obbligatoria';
+      return false;
     }
+
+    // Validazione email con regex semplice
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.formData.email)) {
+      this.emailError = 'Email non valida';
+      return false;
+    }
+
+    if (!this.formData.password) {
+      this.passwordError = this.getText(5) + ' obbligatoria';
+      return false;
+    }
+
+    return true;
   }
 
   async onLogin() {
-    if (!this.formData.email || !this.formData.password) {
-      this.errorMessage = 'Compila tutti i campi';
+    if (!this.validateForm()) {
       return;
     }
 
@@ -874,14 +903,6 @@ export class LoginPage implements OnInit, AfterViewInit, ViewWillEnter {
       // Normalizza il languageId in maiuscolo per i testi
       const normalizedLangId = languageId.toUpperCase();
       await this.translationService.setLanguage(normalizedLangId);
-
-      // Aggiorna le opzioni del campo password con i nuovi testi
-      this.updatePasswordEditorOptions();
-
-      // Forza il repaint del form
-      if (this.loginFormComponent) {
-        this.loginFormComponent.instance.repaint();
-      }
     } catch (error) {
       console.error('Error changing language:', error);
     }

@@ -45,9 +45,11 @@
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "ngx-extended-pdf-viewer": "^25.6.0-alpha.3",
+    "ngx-quill": "^30.0.1",
     "primeicons": "^7.0.0",
     "primeng": "^21.0.0",
     "puppeteer": "^24.32.0",
+    "quill": "^2.0.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"

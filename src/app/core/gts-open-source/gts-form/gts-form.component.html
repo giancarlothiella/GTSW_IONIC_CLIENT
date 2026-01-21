@@ -1,5 +1,5 @@
 @if (formReady) {
-  <div>
+  <div class="gts-form-wrapper">
     @if (showTitle && !showPopUp) {
       <div
         [class]="formCSSTitle"
@@ -45,7 +45,7 @@
                 }
               </div>
               @if (element.validationMessage) {
-                <p-message severity="error" [text]="element.validationMessage"></p-message>
+                <span class="validation-error">{{ element.validationMessage }}</span>
               }
             </div>
           }
@@ -71,7 +71,7 @@
                 <label [for]="element.fieldId">{{ element.label }}</label>
               </p-floatLabel>
               @if (element.validationMessage) {
-                <p-message severity="error" [text]="element.validationMessage"></p-message>
+                <span class="validation-error">{{ element.validationMessage }}</span>
               }
             </div>
           }
@@ -106,7 +106,7 @@
               </p-checkbox>
               <label [for]="element.fieldId" class="checkbox-label">{{ element.label }}</label>
               @if (element.validationMessage) {
-                <p-message severity="error" [text]="element.validationMessage"></p-message>
+                <span class="validation-error">{{ element.validationMessage }}</span>
               }
             </div>
           }
@@ -119,15 +119,14 @@
                   [inputId]="element.fieldId"
                   [(ngModel)]="element.value"
                   dateFormat="dd/mm/yy"
-                  [disabled]="element.disabled"
-                  [readonlyInput]="element.readOnly"
+                  [disabled]="element.disabled || element.readOnly"
                   (ngModelChange)="onFieldDataChanged(element, $event)"
-                  [showIcon]="true">
+                  [showIcon]="!(element.disabled || element.readOnly)">
                 </p-datePicker>
                 <label [for]="element.fieldId">{{ element.label }}</label>
               </p-floatLabel>
               @if (element.validationMessage) {
-                <p-message severity="error" [text]="element.validationMessage"></p-message>
+                <span class="validation-error">{{ element.validationMessage }}</span>
               }
             </div>
           }
@@ -151,7 +150,7 @@
                 <label [for]="element.fieldId">{{ element.label }}</label>
               </p-floatLabel>
               @if (element.validationMessage) {
-                <p-message severity="error" [text]="element.validationMessage"></p-message>
+                <span class="validation-error">{{ element.validationMessage }}</span>
               }
             </div>
           }
@@ -175,7 +174,7 @@
                 <label [for]="element.fieldId">{{ element.label }}</label>
               </p-floatLabel>
               @if (element.validationMessage) {
-                <p-message severity="error" [text]="element.validationMessage"></p-message>
+                <span class="validation-error">{{ element.validationMessage }}</span>
               }
             </div>
           }
@@ -203,12 +202,13 @@
               <p-button
                 icon="pi pi-search"
                 [disabled]="element.disabled || element.readOnly"
+                [tabindex]="-1"
                 (onClick)="onLookUpButtonClick(element)"
                 severity="secondary"
                 size="small">
               </p-button>
               @if (element.validationMessage) {
-                <p-message severity="error" [text]="element.validationMessage"></p-message>
+                <span class="validation-error">{{ element.validationMessage }}</span>
               }
             </div>
           }
@@ -235,7 +235,8 @@
               </p-floatLabel>
               <p-button
                 [icon]="element.buttonIcon ? '' : 'pi pi-cog'"
-                [disabled]="element.disabled"
+                [disabled]="element.disabled || element.readOnly"
+                [tabindex]="-1"
                 (onClick)="onActionButtonClick(element)"
                 [pTooltip]="element.buttonText"
                 severity="secondary"
@@ -245,7 +246,7 @@
                 }
               </p-button>
               @if (element.validationMessage) {
-                <p-message severity="error" [text]="element.validationMessage"></p-message>
+                <span class="validation-error">{{ element.validationMessage }}</span>
               }
             </div>
           }

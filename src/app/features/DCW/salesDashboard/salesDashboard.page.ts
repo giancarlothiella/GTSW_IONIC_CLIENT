@@ -18,15 +18,15 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 // Import GTS Components
-import { GtsToolbarComponent } from '../../../core/gts/gts-toolbar/gts-toolbar.component';
-import { GtsTabsComponent } from '../../../core/gts/gts-tabs/gts-tabs.component';
-import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component';
-import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component';
-import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component';
-import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';
-import { GtsLoaderComponent } from '../../../core/gts/gts-loader/gts-loader.component';
-import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts/gts-ai-analyzer/gts-ai-analyzer.component';
-import { GtsDashboardComponent, DashboardConfig } from '../../../core/gts/gts-dashboard/gts-dashboard.component';
+import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component';
+import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component';
+import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component';
+import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
+import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
+import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
+import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
+import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts-open-source/gts-ai-analyzer/gts-ai-analyzer.component';
+import { GtsDashboardComponent, DashboardConfig } from '../../../core/gts-open-source/gts-dashboard/gts-dashboard.component';
 
 // PrimeNG
 import { ButtonModule } from 'primeng/button';

@@ -1,0 +1,191 @@
+// GTS Actions Debug - Open Source Version
+// Stili per il componente di debug delle azioni
+
+::ng-deep .actions-debug-dialog {
+  .p-dialog-content {
+    padding: 1rem;
+    overflow: auto;
+  }
+}
+
+// Rimuove completamente il backdrop/mask per permettere l'interazione con la pagina sottostante
+::ng-deep .p-dialog-mask {
+  background-color: transparent !important;
+  pointer-events: none !important;
+  backdrop-filter: none !important;
+
+  .p-dialog {
+    pointer-events: auto !important;
+  }
+}
+
+// Rimuove lo sfocamento/blur dal body quando il dialog è aperto
+::ng-deep body.p-overflow-hidden {
+  filter: none !important;
+  -webkit-filter: none !important;
+}
+
+.debug-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+
+  ion-button {
+    --border-radius: 6px;
+    font-size: 14px;
+    text-transform: none;
+    margin: 0;
+
+    ion-icon {
+      font-size: 18px;
+    }
+  }
+
+  .debug-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-left: 20px;
+
+    .info-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+  }
+
+  .debug-status {
+    margin-left: auto;
+
+    .status-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0066cc;
+      padding: 6px 12px;
+      background: #e3f2fd;
+      border-radius: 4px;
+    }
+  }
+}
+
+.actions-grid {
+  margin-bottom: 20px;
+
+  ::ng-deep {
+    .p-datatable {
+      font-size: 13px;
+
+      .p-datatable-header {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 8px;
+      }
+
+      .p-datatable-thead > tr > th {
+        background: #e9ecef;
+        color: #495057;
+        font-weight: 600;
+        padding: 8px;
+        border: 1px solid #dee2e6;
+      }
+
+      .p-datatable-tbody > tr > td {
+        padding: 6px 8px;
+        border: 1px solid #dee2e6;
+      }
+
+      // Row styling basato sullo status
+      .row-executed {
+        background-color: #d0f0c0 !important;
+
+        &:hover {
+          background-color: #c0e8b0 !important;
+        }
+      }
+
+      .row-pending {
+        background-color: #ffeb9c !important;
+
+        &:hover {
+          background-color: #ffe08c !important;
+        }
+      }
+
+      .row-locked {
+        background-color: #ffcccb !important;
+
+        &:hover {
+          background-color: #ffbcbb !important;
+        }
+      }
+    }
+  }
+}
+
+.rules-grid {
+  h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #333;
+  }
+
+  ::ng-deep {
+    .p-datatable {
+      font-size: 12px;
+      max-width: 200px;
+
+      .p-datatable-thead > tr > th {
+        background: #e9ecef;
+        color: #495057;
+        font-weight: 600;
+        padding: 6px 8px;
+        border: 1px solid #dee2e6;
+      }
+
+      .p-datatable-tbody > tr > td {
+        padding: 6px 8px;
+        border: 1px solid #dee2e6;
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  ::ng-deep .actions-debug-dialog {
+    width: 98vw !important;
+    max-width: 100vw !important;
+  }
+
+  .debug-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .debug-info {
+      margin-left: 0;
+      width: 100%;
+    }
+
+    .debug-status {
+      margin-left: 0;
+      width: 100%;
+    }
+  }
+
+  .actions-grid,
+  .rules-grid {
+    ::ng-deep .p-datatable {
+      font-size: 11px;
+
+      .p-datatable-thead > tr > th,
+      .p-datatable-tbody > tr > td {
+        padding: 4px 6px;
+      }
+    }
+  }
+}

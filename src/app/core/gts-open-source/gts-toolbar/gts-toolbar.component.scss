@@ -8,14 +8,14 @@
 
 // Toolbar principale
 ion-toolbar {
-  --background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  --background: #475569;
   --color: white;
   --padding-start: 8px;
   --padding-end: 8px;
   --min-height: 44px;
 
   &.main-toolbar {
-    --background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    --background: #475569;
     --min-height: 44px;
 
     ion-title {
@@ -66,8 +66,8 @@ ion-toolbar {
   }
 
   &.default-toolbar {
-    --background: #f4f5f8;
-    --color: #333;
+    --background: #475569;
+    --color: white;
     --border-color: #ddd;
     --min-height: 40px;
     border-bottom: 1px solid var(--border-color);
@@ -122,36 +122,41 @@ ion-buttons {
   }
 }
 
-// Toolbar chiara - icone scure e bordi
+// Toolbar scura di default - stili come main-toolbar
 ion-toolbar.default-toolbar {
   ion-buttons ion-button {
+    background: white;
+    color: #333;
     border: 1px solid #ddd;
-    --color: #333;
 
     .button-icon {
-      filter: none; // Icone con colore originale per toolbar chiara
+      filter: none; // Icone con colore originale
     }
 
     &:hover:not([disabled]) {
-      background: rgba(0, 0, 0, 0.05);
+      background: #f0f0f0;
       border-color: #bbb;
     }
   }
 
-  // Campi e dropdown per toolbar chiara
+  // Campi e dropdown per toolbar scura
   .toolbar-field {
-    background: #fff;
-    border: 1px solid #ddd;
+    background: white;
     color: #333;
+    border: 1px solid #ddd;
   }
 
   ion-select {
-    background: #fff;
-    border: 1px solid #ddd;
+    background: white;
     color: #333;
+    border: 1px solid #ddd;
     --placeholder-color: #666;
 
     &::part(label) {
+      color: #333;
+    }
+
+    &::part(text) {
       color: #333;
     }
   }
@@ -239,5 +244,25 @@ ion-select {
   .toolbar-field {
     font-size: 12px;
     padding: 6px 8px;
+  }
+}
+
+// Special styling for form toolbars (with OK/Cancel buttons)
+ion-toolbar.form001Toolbar {
+  --background: rgb(171, 195, 243) !important;
+  --color: rgb(16, 16, 179) !important;
+  --opacity: 1 !important;
+
+  // Force on native element and remove any transparency
+  &::part(native) {
+    background: rgb(171, 195, 243) !important;
+    opacity: 1 !important;
+  }
+
+  // Also target toolbar-background class that Ionic might use
+  ::ng-deep .toolbar-background {
+    background: rgb(171, 195, 243) !important;
+    opacity: 1 !important;
+    --opacity: 1 !important;
   }
 }

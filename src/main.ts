@@ -43,6 +43,17 @@ config({ licenseKey });
 // Silenzia i log di PDF.js
 pdfDefaultOptions.verbosity = 0;
 
+// Silenzia il warning di Inferno (usato internamente da AG Grid)
+// Il warning appare perché AG Grid è distribuito in production build mentre Angular è in dev mode
+const originalWarn = console.warn;
+console.warn = function(...args: any[]) {
+  const message = args[0]?.toString() || '';
+  if (message.includes('production build of Inferno') || message.includes('dev:module entry point')) {
+    return; // Ignora questo warning specifico
+  }
+  originalWarn.apply(console, args);
+};
+
 // Registra le icone Ionicons
 addIcons({
   'download-outline': downloadOutline,

@@ -1,7 +1,8 @@
 // src/app/features/auth/register/register.page.ts
-import { Component, inject, ViewChild, AfterViewInit, ChangeDetectorRef, OnInit } from '@angular/core';
+import { Component, inject, AfterViewInit, ChangeDetectorRef, OnInit } from '@angular/core';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import {
   IonContent,
   IonCard,
@@ -17,12 +18,12 @@ import {
   IonList,
   IonItem,
   IonLabel,
+  IonInput,
   LoadingController,
   ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { informationCircleOutline, checkmarkCircle, closeCircle, arrowBackOutline, mailOutline } from 'ionicons/icons';
-import { DxFormModule, DxButtonModule, DxFormComponent, DxLinearGaugeModule } from 'devextreme-angular';
+import { informationCircleOutline, checkmarkCircle, closeCircle, arrowBackOutline, mailOutline, eyeOutline, eyeOffOutline } from 'ionicons/icons';
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslationService, Language } from '../../../core/services/translation.service';
 import { environment, webInfo } from '../../../../environments/environment';
@@ -33,7 +34,9 @@ addIcons({
   'checkmark-circle': checkmarkCircle,
   'close-circle': closeCircle,
   'arrow-back-outline': arrowBackOutline,
-  'mail-outline': mailOutline
+  'mail-outline': mailOutline,
+  'eye-outline': eyeOutline,
+  'eye-off-outline': eyeOffOutline
 });
 
 interface RegisterFormData {
@@ -49,6 +52,7 @@ interface RegisterFormData {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     RouterLink,
     IonContent,
     IonCard,
@@ -64,9 +68,7 @@ interface RegisterFormData {
     IonList,
     IonItem,
     IonLabel,
-    DxFormModule,
-    DxButtonModule,
-    DxLinearGaugeModule
+    IonInput
   ],
   template: `
     <ion-content class="register-content">
@@ -100,38 +102,37 @@ interface RegisterFormData {
             <!-- Pagina 1: Activation Key -->
             @if (page === 1) {
               <div class="form-section">
-                <dx-form
-                  #authKeyForm
-                  [(formData)]="formData"
-                  [colCount]="1"
-                  [showColonAfterLabel]="false"
-                  labelLocation="top">
+                <!-- Activation Key Field -->
+                <div class="input-section">
+                  <ion-text color="dark">
+                    <p class="input-label">{{ getText(100) }}</p>
+                  </ion-text>
+                  <ion-input
+                    type="text"
+                    [(ngModel)]="formData.authKey"
+                    [placeholder]="getText(102)"
+                    class="custom-input"
+                    [disabled]="isLoading"
+                    (ionBlur)="onAuthKeyBlur()">
+                  </ion-input>
+                  @if (authKeyError) {
+                    <ion-text color="danger">
+                      <p class="field-error">{{ authKeyError }}</p>
+                    </ion-text>
+                  }
+                  @if (isValidatingKey) {
+                    <ion-text color="medium">
+                      <p class="field-info">Verifica in corso...</p>
+                    </ion-text>
+                  }
+                </div>
 
-                  <dxi-item
-                    dataField="authKey"
-                    editorType="dxTextBox"
-                    [editorOptions]="{
-                      placeholder: getText(102),
-                      mode: 'text'
-                    }">
-                    <dxi-validation-rule
-                      type="required"
-                      [message]="getText(103)">
-                    </dxi-validation-rule>
-                    <dxi-validation-rule
-                      type="async"
-                      [message]="errorMessage"
-                      [validationCallback]="asyncKeyValidation">
-                    </dxi-validation-rule>
-                  </dxi-item>
-                </dx-form>
-
-                <!-- Bottone Avanti (fuori dal form DevExtreme) -->
+                <!-- Bottone Avanti -->
                 <div class="button-container">
                   <ion-button
                     expand="block"
                     (click)="onNextPage()"
-                    [disabled]="!isKeyValid || isLoading"
+                    [disabled]="!isKeyValid || isLoading || isValidatingKey"
                     class="register-button">
                     {{ isLoading ? getText(104) : getText(105) }}
                   </ion-button>
@@ -149,87 +150,111 @@ interface RegisterFormData {
 
             <!-- Pagina 2: Dati Utente -->
             @if (page === 2) {
-              <dx-form
-                #registerForm
-                [(formData)]="formData"
-                [colCount]="1"
-                [showColonAfterLabel]="false"
-                labelLocation="top">
+              <div class="form-section">
+                <!-- Nome Field -->
+                <div class="input-section">
+                  <ion-text color="dark">
+                    <p class="input-label">{{ getText(106) || 'Nome' }}</p>
+                  </ion-text>
+                  <ion-input
+                    type="text"
+                    [(ngModel)]="formData.name"
+                    [placeholder]="getText(106)"
+                    class="custom-input"
+                    [disabled]="isLoading">
+                  </ion-input>
+                  @if (nameError) {
+                    <ion-text color="danger">
+                      <p class="field-error">{{ nameError }}</p>
+                    </ion-text>
+                  }
+                </div>
 
-                <!-- Nome -->
-                <dxi-item
-                  dataField="name"
-                  editorType="dxTextBox"
-                  [editorOptions]="{
-                    placeholder: getText(106),
-                    mode: 'text'
-                  }">
-                  <dxi-validation-rule
-                    type="required"
-                    [message]="getText(107)">
-                  </dxi-validation-rule>
-                </dxi-item>
-
-                <!-- Email -->
-                <dxi-item
-                  dataField="email"
-                  editorType="dxTextBox"
-                  [editorOptions]="{
-                    placeholder: 'Email',
-                    mode: 'email'
-                  }">
-                  <dxi-validation-rule
-                    type="required"
-                    message="Email obbligatoria">
-                  </dxi-validation-rule>
-                  <dxi-validation-rule
+                <!-- Email Field -->
+                <div class="input-section">
+                  <ion-text color="dark">
+                    <p class="input-label">Email</p>
+                  </ion-text>
+                  <ion-input
                     type="email"
-                    [message]="getText(108)">
-                  </dxi-validation-rule>
-                  <dxi-validation-rule
-                    type="async"
-                    [message]="errorMessage"
-                    [validationCallback]="asyncMailValidation">
-                  </dxi-validation-rule>
-                </dxi-item>
+                    inputmode="email"
+                    [(ngModel)]="formData.email"
+                    placeholder="Email"
+                    class="custom-input"
+                    [disabled]="isLoading"
+                    (ionBlur)="onEmailBlur()">
+                  </ion-input>
+                  @if (emailError) {
+                    <ion-text color="danger">
+                      <p class="field-error">{{ emailError }}</p>
+                    </ion-text>
+                  }
+                  @if (isValidatingEmail) {
+                    <ion-text color="medium">
+                      <p class="field-info">Verifica email...</p>
+                    </ion-text>
+                  }
+                </div>
 
-                <!-- Password -->
-                <dxi-item
-                  dataField="password"
-                  editorType="dxTextBox"
-                  [editorOptions]="passwordEditorOptions">
-                  <dxi-validation-rule
-                    type="required"
-                    [message]="getText(109)">
-                  </dxi-validation-rule>
-                  <dxi-validation-rule
-                    type="custom"
-                    message="Password non conforme alle regole!"
-                    [validationCallback]="checkPassword">
-                  </dxi-validation-rule>
-                  <dxi-validation-rule
-                    type="custom"
-                    [validationCallback]="cleanConfirmPassword">
-                  </dxi-validation-rule>
-                </dxi-item>
+                <!-- Password Field -->
+                <div class="input-section">
+                  <ion-text color="dark">
+                    <p class="input-label">Password</p>
+                  </ion-text>
+                  <div class="password-input-wrapper">
+                    <ion-input
+                      [type]="passwordVisible ? 'text' : 'password'"
+                      [(ngModel)]="formData.password"
+                      placeholder="Password"
+                      class="custom-input password-input"
+                      [disabled]="isLoading"
+                      (ionInput)="onPasswordInput()">
+                    </ion-input>
+                    <button
+                      type="button"
+                      class="password-toggle-btn"
+                      (click)="togglePasswordVisibility()"
+                      [disabled]="isLoading"
+                      tabindex="-1">
+                      <ion-icon [name]="passwordVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                    </button>
+                  </div>
+                  @if (passwordError) {
+                    <ion-text color="danger">
+                      <p class="field-error">{{ passwordError }}</p>
+                    </ion-text>
+                  }
+                </div>
 
-                <!-- Conferma Password -->
-                <dxi-item
-                  dataField="confirmedPassword"
-                  editorType="dxTextBox"
-                  [editorOptions]="confirmPasswordEditorOptions">
-                  <dxi-validation-rule
-                    type="required"
-                    [message]="getText(110)">
-                  </dxi-validation-rule>
-                  <dxi-validation-rule
-                    type="custom"
-                    [message]="getText(111)"
-                    [validationCallback]="confirmPassword">
-                  </dxi-validation-rule>
-                </dxi-item>
-
-              </dx-form>
+                <!-- Confirm Password Field -->
+                <div class="input-section">
+                  <ion-text color="dark">
+                    <p class="input-label">{{ getText(110) || 'Conferma Password' }}</p>
+                  </ion-text>
+                  <div class="password-input-wrapper">
+                    <ion-input
+                      [type]="passwordVisible ? 'text' : 'password'"
+                      [(ngModel)]="formData.confirmedPassword"
+                      [placeholder]="getText(110) || 'Conferma Password'"
+                      class="custom-input password-input"
+                      [disabled]="isLoading">
+                    </ion-input>
+                    <button
+                      type="button"
+                      class="password-toggle-btn"
+                      (click)="togglePasswordVisibility()"
+                      [disabled]="isLoading"
+                      tabindex="-1">
+                      <ion-icon [name]="passwordVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                    </button>
+                  </div>
+                  @if (confirmPasswordError) {
+                    <ion-text color="danger">
+                      <p class="field-error">{{ confirmPasswordError }}</p>
+                    </ion-text>
+                  }
+                </div>
+              </div>
 
               <!-- Info Password Rules -->
               <div class="password-info-container">
@@ -517,8 +542,73 @@ interface RegisterFormData {
       margin-top: 20px;
     }
 
-    dx-form {
+    .input-section {
       margin-bottom: 20px;
+    }
+
+    .input-section:first-child {
+      margin-top: 15px;
+    }
+
+    .input-label {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      display: block;
+      color: #555;
+    }
+
+    .custom-input {
+      --background: var(--ion-color-light);
+      --padding-start: 15px;
+      --padding-end: 15px;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    .password-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .password-input {
+      flex: 1;
+      --padding-end: 45px;
+    }
+
+    .password-toggle-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      color: var(--ion-color-medium);
+      z-index: 10;
+    }
+
+    .password-toggle-btn:hover {
+      color: var(--ion-color-primary);
+    }
+
+    .password-toggle-btn ion-icon {
+      font-size: 20px;
+    }
+
+    .field-error {
+      font-size: 12px;
+      margin: 5px 0 0 0;
+      padding-left: 2px;
+    }
+
+    .field-info {
+      font-size: 12px;
+      margin: 5px 0 0 0;
+      padding-left: 2px;
+      font-style: italic;
     }
 
     /* Link torna al login */
@@ -904,9 +994,6 @@ interface RegisterFormData {
   `]
 })
 export class RegisterPage implements OnInit, AfterViewInit {
-  @ViewChild('registerForm') registerFormComponent?: DxFormComponent;
-  @ViewChild('authKeyForm') authKeyFormComponent?: DxFormComponent;
-
   authService = inject(AuthService); // public per accesso nel template
   private translationService = inject(TranslationService);
   private router = inject(Router);
@@ -937,15 +1024,24 @@ export class RegisterPage implements OnInit, AfterViewInit {
 
   // Password visibility
   passwordVisible = false;
-  passwordEditorOptions: any;
-  confirmPasswordEditorOptions: any;
+
+  // Validation errors
+  authKeyError = '';
+  nameError = '';
+  emailError = '';
+  passwordError = '';
+  confirmPasswordError = '';
+
+  // Async validation states
+  isValidatingKey = false;
+  isValidatingEmail = false;
+  isEmailValid = false;
 
   // Multi-lingua
   availableLanguages: Language[] = [];
   currentLanguage: string = environment.languageId;
 
   constructor() {
-    this.initializePasswordOptions();
   }
 
   async ngOnInit() {
@@ -1056,197 +1152,169 @@ export class RegisterPage implements OnInit, AfterViewInit {
     };
   }
 
-  private initializePasswordOptions() {
-    this.passwordEditorOptions = {
-      placeholder: 'Password',
-      mode: 'password',
-      onValueChanged: (e: any) => {
-        this.checkPassword({ value: e.value });
-      },
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          tabIndex: -1,
-          onClick: () => {
-            this.togglePasswordVisibility();
-          }
-        }
-      }]
-    };
-
-    this.confirmPasswordEditorOptions = {
-      placeholder: 'Conferma password',
-      mode: 'password',
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          tabIndex: -1,
-          onClick: () => {
-            this.togglePasswordVisibility();
-          }
-        }
-      }]
-    };
-  }
-
   togglePasswordVisibility() {
     this.passwordVisible = !this.passwordVisible;
-    const mode = this.passwordVisible ? 'text' : 'password';
-    const icon = this.passwordVisible ? 'eyeopen' : 'eyeclose';
+  }
 
-    // Aggiorna entrambi i campi password
-    this.passwordEditorOptions = {
-      ...this.passwordEditorOptions,
-      mode: mode,
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: icon,
-          type: 'default',
-          stylingMode: 'text',
-          tabIndex: -1,
-          onClick: () => {
-            this.togglePasswordVisibility();
-          }
-        }
-      }]
-    };
+  /**
+   * Validazione chiave di attivazione al blur
+   */
+  async onAuthKeyBlur() {
+    if (!this.formData.authKey) {
+      this.authKeyError = this.getText(103) || 'Chiave di attivazione obbligatoria';
+      this.isKeyValid = false;
+      return;
+    }
 
-    this.confirmPasswordEditorOptions = {
-      ...this.confirmPasswordEditorOptions,
-      mode: mode,
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: icon,
-          type: 'default',
-          stylingMode: 'text',
-          tabIndex: -1,
-          onClick: () => {
-            this.togglePasswordVisibility();
-          }
-        }
-      }]
-    };
+    this.isValidatingKey = true;
+    this.authKeyError = '';
 
-    // Forza il repaint
-    if (this.registerFormComponent) {
-      this.registerFormComponent.instance.repaint();
+    try {
+      const response = await this.authService.checkAuthKey(this.formData.authKey);
+
+      if (response.valid) {
+        this.isKeyValid = true;
+        this.authKeyError = '';
+      } else {
+        this.isKeyValid = false;
+        this.authKeyError = response.message;
+      }
+    } catch (error: any) {
+      this.isKeyValid = false;
+      this.authKeyError = error.message || 'Errore nella validazione della chiave';
+    }
+
+    this.isValidatingKey = false;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Validazione email al blur
+   */
+  async onEmailBlur() {
+    if (!this.formData.email) {
+      this.emailError = 'Email obbligatoria';
+      this.isEmailValid = false;
+      return;
+    }
+
+    // Validazione formato email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.formData.email)) {
+      this.emailError = this.getText(108) || 'Email non valida';
+      this.isEmailValid = false;
+      return;
+    }
+
+    this.isValidatingEmail = true;
+    this.emailError = '';
+
+    try {
+      const response = await this.authService.checkEmail(this.formData.authKey || '', this.formData.email);
+
+      if (response.valid) {
+        this.isEmailValid = true;
+        this.emailError = '';
+      } else {
+        this.isEmailValid = false;
+        this.emailError = response.message;
+      }
+    } catch (error: any) {
+      this.isEmailValid = false;
+      this.emailError = error.message || 'Errore nella validazione email';
+    }
+
+    this.isValidatingEmail = false;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Chiamato quando cambia la password
+   */
+  onPasswordInput() {
+    this.passwordError = '';
+    this.confirmPasswordError = '';
+    this.formData.confirmedPassword = ''; // Resetta conferma password
+
+    if (this.formData.password && this.authService.psswPolicy) {
+      const level = this.authService.getPasswStrength(this.formData.password);
+      this.pwStrengthLevel = level;
+    } else {
+      this.pwStrengthLevel = 0;
     }
   }
 
   /**
-   * Validazione asincrona della chiave di attivazione
+   * Valida il form della pagina 2
    */
-  asyncKeyValidation = async (e: { value: string }) => {
-    const response = await this.authService.checkAuthKey(e.value);
+  private validateRegistrationForm(): boolean {
+    this.nameError = '';
+    this.emailError = '';
+    this.passwordError = '';
+    this.confirmPasswordError = '';
 
-    // DevExtreme richiede che la Promise venga rigettata se non valido
-    if (response.valid) {
-      this.errorMessage = ''; // Pulisci il messaggio se valido
-      this.isKeyValid = true; // Chiave valida, abilita il bottone
-      this.cdr.detectChanges();
-      return true;
+    let isValid = true;
+
+    // Validazione nome
+    if (!this.formData.name) {
+      this.nameError = this.getText(107) || 'Nome obbligatorio';
+      isValid = false;
+    }
+
+    // Validazione email
+    if (!this.formData.email) {
+      this.emailError = 'Email obbligatoria';
+      isValid = false;
     } else {
-      this.errorMessage = response.message;
-      this.isKeyValid = false; // Chiave non valida, disabilita il bottone
-      this.cdr.detectChanges();
-      return Promise.reject(response.message);
-    }
-  };
-
-  /**
-   * Validazione asincrona dell'email
-   */
-  asyncMailValidation = async (e: { value: string }) => {
-    const response = await this.authService.checkEmail(this.formData.authKey || '', e.value);
-
-    // DevExtreme richiede che la Promise venga rigettata se non valido
-    if (response.valid) {
-      this.errorMessage = ''; // Pulisci il messaggio se valido
-      return true;
-    } else {
-      this.errorMessage = response.message;
-      return Promise.reject(response.message);
-    }
-  };
-
-  /**
-   * Validazione password con policy
-   */
-  checkPassword = (e: { value: string }): boolean => {
-    if (!this.authService.psswPolicy) {
-      return false;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(this.formData.email)) {
+        this.emailError = this.getText(108) || 'Email non valida';
+        isValid = false;
+      }
     }
 
-    const level = this.authService.getPasswStrength(e.value);
-    this.pwStrengthLevel = level;
+    // Validazione password
+    if (!this.formData.password) {
+      this.passwordError = this.getText(109) || 'Password obbligatoria';
+      isValid = false;
+    } else if (this.authService.psswPolicy) {
+      const valid = this.authService.validatePssw(
+        this.formData.password,
+        this.authService.psswPolicy.policyLC,
+        this.authService.psswPolicy.policyUC,
+        this.authService.psswPolicy.policyNM,
+        this.authService.psswPolicy.policySC,
+        this.authService.psswPolicy.policyMinLen,
+        this.authService.psswPolicy.policyMaxLen
+      );
+      if (!valid) {
+        this.passwordError = 'Password non conforme alle regole!';
+        isValid = false;
+      }
+    }
 
-    const valid = this.authService.validatePssw(
-      e.value,
-      this.authService.psswPolicy.policyLC,
-      this.authService.psswPolicy.policyUC,
-      this.authService.psswPolicy.policyNM,
-      this.authService.psswPolicy.policySC,
-      this.authService.psswPolicy.policyMinLen,
-      this.authService.psswPolicy.policyMaxLen
-    );
+    // Validazione conferma password
+    if (!this.formData.confirmedPassword) {
+      this.confirmPasswordError = this.getText(110) || 'Conferma password obbligatoria';
+      isValid = false;
+    } else if (this.formData.confirmedPassword !== this.formData.password) {
+      this.confirmPasswordError = this.getText(111) || 'Le password non corrispondono';
+      isValid = false;
+    }
 
-    return valid;
-  };
-
-  /**
-   * Pulisce la conferma password quando si modifica la password
-   */
-  cleanConfirmPassword = (e: { value: string }): boolean => {
-    this.formData.confirmedPassword = '';
-    return true;
-  };
-
-  /**
-   * Valida che le due password corrispondano
-   */
-  confirmPassword = (e: { value: string }): boolean => {
-    return e.value === this.formData.password;
-  };
+    return isValid;
+  }
 
   /**
    * Passa alla pagina 2 dopo la validazione della chiave
    */
   async onNextPage() {
-    if (!this.authKeyFormComponent) {
-      return;
+    // Se la chiave non è stata ancora validata, validala
+    if (!this.isKeyValid) {
+      await this.onAuthKeyBlur();
     }
 
-    const validation = this.authKeyFormComponent.instance.validate();
-
-    // Aspetta il completamento della validazione asincrona
-    if (validation.complete) {
-      try {
-        await validation.complete;
-
-        // Dopo il completamento, controlla se è valido
-        if (validation.isValid) {
-          this.page = 2;
-          this.errorMessage = '';
-          this.cdr.detectChanges();
-        }
-      } catch (error) {
-        // La validazione asincrona ha fallito
-        console.error('Validation error:', error);
-      }
-    } else if (validation.isValid) {
-      // Se non c'è validazione asincrona, passa direttamente
+    if (this.isKeyValid) {
       this.page = 2;
       this.errorMessage = '';
       this.cdr.detectChanges();
@@ -1257,12 +1325,18 @@ export class RegisterPage implements OnInit, AfterViewInit {
    * Gestisce la registrazione
    */
   async onRegister() {
-    if (!this.registerFormComponent) {
+    // Valida l'email se non è stata ancora validata
+    if (!this.isEmailValid) {
+      await this.onEmailBlur();
+    }
+
+    // Valida il form
+    if (!this.validateRegistrationForm()) {
       return;
     }
 
-    const validation = this.registerFormComponent.instance.validate();
-    if (!validation.isValid) {
+    // Controlla che l'email sia stata validata dal server
+    if (!this.isEmailValid) {
       return;
     }
 

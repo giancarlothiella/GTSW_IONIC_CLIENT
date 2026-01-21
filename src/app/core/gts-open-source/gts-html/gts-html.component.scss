@@ -1,0 +1,566 @@
+.gts-html-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--ion-background-color, #f5f5f5);
+}
+
+.main-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--ion-card-background, #ffffff);
+  border-bottom: 1px solid var(--ion-border-color, #e0e0e0);
+  box-shadow: var(--ion-toolbar-shadow, 0 2px 4px rgba(0, 0, 0, 0.1));
+
+  .toolbar-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ion-text-color, #333);
+  }
+
+  .toolbar-buttons {
+    display: flex;
+    gap: 8px;
+
+    ion-button {
+      --padding-start: 12px;
+      --padding-end: 12px;
+      height: 32px;
+      text-transform: none;
+      font-size: 13px;
+      font-weight: 500;
+
+      ion-label {
+        font-size: 13px;
+      }
+
+      // Tutti i bottoni solid hanno testo bianco
+      &[fill="solid"] {
+        --color: #ffffff;
+
+        ion-label {
+          color: #ffffff;
+        }
+      }
+    }
+  }
+}
+
+.editor-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.fields-panel {
+  width: 250px;
+  background: var(--ion-card-background, #ffffff);
+  border-right: 1px solid var(--ion-border-color, #e0e0e0);
+  display: flex;
+  flex-direction: column;
+
+  .fields-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--ion-background-color, #f9f9f9);
+    border-bottom: 1px solid var(--ion-border-color, #e0e0e0);
+    font-weight: 600;
+    font-size: 13px;
+    min-height: 36px;
+
+    ion-button {
+      --padding-start: 6px;
+      --padding-end: 6px;
+      height: 24px;
+      min-width: 28px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+  }
+
+  .fields-list {
+    flex: 1;
+    overflow-y: auto;
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+
+      th {
+        background: var(--ion-color-light, #f5f5f5);
+        padding: 6px 8px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        border-bottom: 1px solid var(--ion-border-color, #e0e0e0);
+        height: 28px;
+      }
+
+      td {
+        padding: 4px 8px;
+        border-bottom: 1px solid var(--ion-border-color, #f0f0f0);
+        font-size: 13px;
+        color: var(--ion-text-color);
+        height: 32px;
+        vertical-align: middle;
+      }
+
+      tr {
+        cursor: pointer;
+
+        &:hover {
+          background: var(--ion-color-light-tint, #f9f9f9);
+        }
+      }
+    }
+  }
+}
+
+.editor-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--ion-card-background, #ffffff);
+
+  ion-segment {
+    margin: 8px 12px 0;
+    --background: transparent;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    padding: 0;
+    width: fit-content;
+
+    ion-segment-button {
+      --color: rgba(0, 0, 139, 0.6);
+      --color-checked: #00008b;
+      --indicator-color: transparent;
+      --indicator-height: 0px;
+      --padding-start: 16px;
+      --padding-end: 16px;
+
+      min-width: 100px;
+      max-width: 180px;
+      width: auto;
+      height: 40px !important;
+      max-height: 40px !important;
+      text-transform: none;
+      font-weight: 500;
+      font-size: 14px;
+      background-color: rgba(200, 200, 200, 0.2);
+      border: 1px solid transparent !important;
+      border-radius: 6px 6px 0 0;
+      transition: all 0.2s ease;
+      margin: 0 3px;
+      position: relative;
+      top: 0;
+
+      &::part(indicator-background) {
+        display: none;
+      }
+
+      &::part(native) {
+        padding: 10px 16px !important;
+        height: 40px !important;
+        max-height: 40px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        overflow: visible !important;
+      }
+
+      // Tab selezionato
+      &.segment-button-checked {
+        background-color: white !important;
+        font-weight: bold;
+        border: 3px solid #00008b !important;
+        border-bottom: none !important;
+        box-shadow:
+          0 -2px 6px rgba(0, 0, 139, 0.3),
+          inset 0 0 0 1px rgba(0, 0, 139, 0.1);
+        z-index: 10;
+        position: relative;
+        top: 0;
+        height: 44px !important;
+        max-height: 44px !important;
+
+        &::part(native) {
+          height: 44px !important;
+          max-height: 44px !important;
+        }
+
+        ion-label {
+          color: #00008b;
+        }
+
+        .lang-flag {
+          opacity: 1;
+        }
+      }
+
+      // Hover
+      &:hover:not(.segment-button-disabled):not(.segment-button-checked) {
+        background-color: rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(0, 0, 139, 0.3) !important;
+        border-bottom: none !important;
+      }
+
+      ion-label {
+        font-size: 13px;
+        margin: 0;
+        font-weight: inherit;
+        color: rgba(0, 0, 139, 0.7);
+        line-height: 1.2;
+        transition: all 0.2s ease;
+      }
+    }
+
+    .lang-flag {
+      width: 16px;
+      height: 16px;
+      margin: 0 !important;
+      display: inline-block;
+      vertical-align: middle;
+      opacity: 0.7;
+      transition: all 0.2s ease;
+    }
+  }
+
+  .editor-controls {
+    display: flex;
+    gap: 16px;
+    padding: 8px 12px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #e0e0e0;
+    min-height: 40px;
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      label {
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      input[type="color"] {
+        width: 100px;
+        height: 28px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      ion-input {
+        width: 80px;
+        --background: #ffffff;
+        --border-color: #ccc;
+        --border-radius: 4px;
+        --padding-start: 6px;
+        --padding-end: 6px;
+        height: 28px;
+        font-size: 13px;
+      }
+    }
+  }
+
+  quill-editor {
+    margin: 8px 12px 12px;
+
+    ::ng-deep .ql-container {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      min-height: 400px;
+    }
+
+    ::ng-deep .ql-toolbar {
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px 4px 0 0;
+      padding: 6px 8px;
+
+      .ql-formats {
+        margin-right: 12px;
+      }
+
+      button {
+        width: 24px;
+        height: 24px;
+      }
+    }
+
+    ::ng-deep .ql-container {
+      border: 1px solid #e0e0e0;
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+    }
+  }
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 16px;
+  width: 100%;
+
+  ion-button {
+    --color: #ffffff;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 13px;
+  }
+}
+
+// Modal per test data - dimensione media
+.test-data-modal {
+  --width: 800px;
+  --height: 600px;
+  --max-width: 90vw;
+  --max-height: 80vh;
+  --border-radius: 8px;
+
+  ion-content {
+    --background: #ffffff;
+  }
+
+  ion-footer {
+    ion-toolbar {
+      --background: #f9f9f9;
+      --border-color: #e0e0e0;
+      --min-height: auto;
+      padding: 0;
+    }
+  }
+}
+
+// Modal per preview - grande e centrato
+.preview-modal {
+  --width: 90vw;
+  --height: 85vh;
+  --max-width: 1400px;
+  --max-height: 900px;
+  --border-radius: 8px;
+
+  ion-content {
+    --background: #ffffff;
+    --padding-start: 0;
+    --padding-end: 0;
+    --padding-top: 0;
+    --padding-bottom: 0;
+  }
+}
+
+// Modal per languages - dimensione media e centrato
+.languages-modal {
+  --width: 700px;
+  --height: 500px;
+  --max-width: 90vw;
+  --max-height: 80vh;
+  --border-radius: 8px;
+
+  ion-toolbar[color="primary"] {
+    ion-title {
+      color: #ffffff;
+    }
+
+    ion-button {
+      --color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: none;
+
+      &:not([disabled]) {
+        --background: rgba(255, 255, 255, 0.2);
+        --background-hover: rgba(255, 255, 255, 0.3);
+        --background-activated: rgba(255, 255, 255, 0.4);
+      }
+
+      &[disabled] {
+        --color: rgba(255, 255, 255, 0.4);
+        --background: rgba(255, 255, 255, 0.05);
+        opacity: 0.5;
+      }
+
+      &[color="danger"]:not([disabled]) {
+        --background: rgba(220, 53, 69, 0.9);
+        --background-hover: rgba(220, 53, 69, 1);
+        --background-activated: rgba(200, 35, 51, 1);
+      }
+    }
+  }
+
+  ion-content {
+    --background: #ffffff;
+  }
+}
+
+.languages-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--ion-border-color, #e0e0e0);
+  margin: 0;
+
+  th {
+    background: rgba(132, 177, 235, 0.3);
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    color: #00008b;
+    border-bottom: 2px solid var(--ion-border-color, #e0e0e0);
+    border-right: 1px solid var(--ion-border-color, #e0e0e0);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+
+    &:last-child {
+      border-right: none;
+      text-align: center;
+    }
+  }
+
+  td {
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--ion-text-color, #333);
+    border-bottom: 1px solid var(--ion-border-color, #e0e0e0);
+    border-right: 1px solid var(--ion-border-color, #f0f0f0);
+
+    &:last-child {
+      border-right: none;
+      text-align: center;
+      font-size: 18px;
+      color: #00008b;
+      font-weight: bold;
+    }
+  }
+
+  tbody tr {
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: var(--ion-color-light-tint, #f9f9f9);
+    }
+
+    &.selected {
+      background: rgba(132, 177, 235, 0.25);
+      border-left: 4px solid #00008b;
+
+      td:first-child {
+        padding-left: 12px;
+      }
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  .lang-flag {
+    width: 28px;
+    height: 20px;
+    vertical-align: middle;
+    border: 1px solid var(--ion-border-color, #ddd);
+    border-radius: 2px;
+  }
+}
+
+.preview-content {
+  padding: 20px;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  max-width: 100%;
+  overflow-x: auto;
+
+  ::ng-deep * {
+    line-height: 1.4 !important;
+  }
+
+  ::ng-deep h1 {
+    font-size: 20px !important;
+    margin: 12px 0 10px !important;
+    line-height: 1.3 !important;
+  }
+
+  ::ng-deep h2 {
+    font-size: 17px !important;
+    margin: 10px 0 8px !important;
+    line-height: 1.3 !important;
+  }
+
+  ::ng-deep h3 {
+    font-size: 15px !important;
+    margin: 8px 0 6px !important;
+    line-height: 1.3 !important;
+  }
+
+  ::ng-deep p {
+    margin: 6px 0 !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+  }
+
+  ::ng-deep strong,
+  ::ng-deep b {
+    line-height: inherit !important;
+  }
+
+  ::ng-deep table {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 10px 0 !important;
+    font-size: 13px !important;
+    table-layout: fixed !important;
+    line-height: 1.3 !important;
+
+    th, td {
+      padding: 6px 10px !important;
+      border: 1px solid var(--ion-border-color, #ddd) !important;
+      text-align: left !important;
+      word-wrap: break-word !important;
+      overflow-wrap: break-word !important;
+      line-height: 1.3 !important;
+      vertical-align: top !important;
+    }
+
+    th {
+      background: var(--ion-color-light, #f5f5f5) !important;
+      font-weight: 600 !important;
+      font-size: 12px !important;
+    }
+
+    td {
+      font-size: 12px !important;
+    }
+
+    // Gestione colonne: prima colonna stretta, le altre si dividono lo spazio
+    td:first-child,
+    th:first-child {
+      width: 25% !important;
+    }
+
+    td:nth-child(2),
+    th:nth-child(2) {
+      width: 75% !important;
+    }
+  }
+}
+
+ion-textarea {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}

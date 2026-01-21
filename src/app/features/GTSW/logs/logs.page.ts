@@ -3,19 +3,29 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import DataSource from 'devextreme/data/data_source';
-import ArrayStore from 'devextreme/data/array_store';
-import { DxPopupModule, DxHtmlEditorModule, DxDataGridModule } from 'devextreme-angular';
 import { AuthService } from '../../../core/services/auth.service';
 import { GtsDataService } from '../../../core/services/gts-data.service';
-import { GtsLoaderComponent } from '../../../core/gts/gts-loader/gts-loader.component';
-import { GtsToolbarComponent } from '../../../core/gts/gts-toolbar/gts-toolbar.component';
-import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component';
-import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component';
-import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component';
-import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';
-import { GtsTabsComponent } from '../../../core/gts/gts-tabs/gts-tabs.component';
-import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.component';
+// Import GTS Components - Open Source Versions
+import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
+import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component';
+import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component';
+import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
+import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
+import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
+import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component';
+import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';
+// Ionic imports
+import {
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonButtons,
+  IonButton
+} from '@ionic/angular/standalone';
+// PrimeNG imports
+import { TableModule } from 'primeng/table';
 
 @Component({
   selector: 'app-logs',
@@ -30,9 +40,14 @@ import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.c
     GtsMessageComponent,
     GtsTabsComponent,
     GtsReportsComponent,
-    DxPopupModule,
-    DxHtmlEditorModule,
-    DxDataGridModule
+    IonModal,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonContent,
+    IonButtons,
+    IonButton,
+    TableModule
   ],
   template: `
     <ng-container class="pageFormat">
@@ -113,84 +128,110 @@ import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.c
       ></app-gts-message>
     </ng-container>
 
-    <dx-popup
-      [hideOnOutsideClick]="true"
-      [showCloseButton]="true"
-      [(visible)]="jsonVisible"
-      [title]="jsonDataTitle"
-      [height]="800"
-      [width]="800"
-    >
-      <div class="multiline">
-        <pre>{{jsonDataString}}</pre>
-      </div>
-    </dx-popup>
+    <!-- JSON Modal -->
+    <ion-modal [isOpen]="jsonVisible" (didDismiss)="jsonVisible = false" class="json-modal">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>{{ jsonDataTitle }}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="jsonVisible = false">Close</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <div class="json-content">
+            <pre>{{ jsonDataString }}</pre>
+          </div>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
 
-    <dx-popup
-      [hideOnOutsideClick]="true"
-      [showCloseButton]="true"
-      [(visible)]="showMailHtml"
-      title="Mail text"
-      [height]="800"
-      [width]="800"
-    >
-      <dx-html-editor
-        [readOnly]="true"
-        [height]="724"
-        [width]="768"
-        [value]="mailTextHtml"
-      ></dx-html-editor>
-    </dx-popup>
+    <!-- Mail HTML Modal -->
+    <ion-modal [isOpen]="showMailHtml" (didDismiss)="showMailHtml = false" class="mail-html-modal">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>Mail text</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="showMailHtml = false">Close</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <div class="mail-html-content" [innerHTML]="mailTextHtml"></div>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
 
-    @if (showReport) {
-      <dx-popup
-        [hideOnOutsideClick]="true"
-        [showCloseButton]="true"
-        [(visible)]="showReport"
-        title="Report"
-        [height]="900"
-        [width]="1500"
-      >
-        <app-gts-reports
-          [prjId]="reportPrjId"
-          [formId]="reportFormId"
-          [fieldGrpId]="reportFieldGrpId"
-          [reportCode]="reportCode"
-          [params]="reportParams"
-          [connCode]="reportConnCode"
-          [report]="report"
-        ></app-gts-reports>
-      </dx-popup>
-    }
+    <!-- Report Modal -->
+    <ion-modal [isOpen]="showReport" (didDismiss)="showReport = false" class="report-modal">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>Report</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="showReport = false">Close</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content>
+          @if (showReport) {
+            <app-gts-reports
+              [prjId]="reportPrjId"
+              [formId]="reportFormId"
+              [fieldGrpId]="reportFieldGrpId"
+              [reportCode]="reportCode"
+              [params]="reportParams"
+              [connCode]="reportConnCode"
+              [report]="report"
+            ></app-gts-reports>
+          }
+        </ion-content>
+      </ng-template>
+    </ion-modal>
 
-    <dx-popup
-      [hideOnOutsideClick]="true"
-      [showCloseButton]="true"
-      [(visible)]="showDataAdapter"
-      [title]="dataAdapterTitle"
-      [height]="800"
-      [width]="800"
-    >
-      <dx-data-grid
-        [repaintChangesOnly]="true"
-        [visible]="true"
-        [dataSource]="dataAdapterDataSource"
-        [showBorders]="true"
-        [columnAutoWidth]="true"
-        [showRowLines]="true"
-        [showColumnLines]="true"
-        [rowAlternationEnabled]="true"
-        [focusedRowEnabled]="true"
-        [(focusedRowIndex)]="dataSetFocusedRowIndex"
-        (onCellDblClick)="onDataSetCellDblClick($event)"
-      >
-        <dxi-column dataField="dataSetName" caption="Data Set"></dxi-column>
-        <dxi-column dataField="sqlId" caption="Select SQL Id"></dxi-column>
-        <dxi-column dataField="sqlInsertId" caption="Insert SQL Id"></dxi-column>
-        <dxi-column dataField="sqlUpdateId" caption="Update SQL Id"></dxi-column>
-        <dxi-column dataField="sqlDeleteId" caption="Delete SQL Id"></dxi-column>
-      </dx-data-grid>
-    </dx-popup>
+    <!-- Data Adapter Modal -->
+    <ion-modal [isOpen]="showDataAdapter" (didDismiss)="showDataAdapter = false" class="data-adapter-modal">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>{{ dataAdapterTitle }}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="showDataAdapter = false">Close</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <p-table
+            [value]="dataAdapterData"
+            [tableStyle]="{'min-width': '50rem'}"
+            [(selection)]="dataAdapterSelectedRow"
+            selectionMode="single"
+            (onRowDblclick)="onDataAdapterRowDblClick($event)"
+          >
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Data Set</th>
+                <th>Select SQL Id</th>
+                <th>Insert SQL Id</th>
+                <th>Update SQL Id</th>
+                <th>Delete SQL Id</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row>
+              <tr [pSelectableRow]="row">
+                <td>{{ row.dataSetName }}</td>
+                <td>{{ row.sqlId }}</td>
+                <td>{{ row.sqlInsertId }}</td>
+                <td>{{ row.sqlUpdateId }}</td>
+                <td>{{ row.sqlDeleteId }}</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
 
   `,
   styles: [`
@@ -201,9 +242,48 @@ import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.c
       flex-direction: column;
     }
 
-    .multiline {
+    .json-modal,
+    .mail-html-modal {
+      --width: 800px;
+      --height: 80vh;
+      --max-width: 90vw;
+      --max-height: 90vh;
+    }
+
+    .report-modal {
+      --width: 95vw;
+      --height: 90vh;
+      --max-width: 1500px;
+    }
+
+    .data-adapter-modal {
+      --width: 900px;
+      --height: 80vh;
+      --max-width: 90vw;
+    }
+
+    .json-content {
+      background: #f5f5f5;
+      padding: 16px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+
+    .json-content pre {
+      margin: 0;
       white-space: pre-wrap;
       word-wrap: break-word;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .mail-html-content {
+      padding: 16px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      min-height: 400px;
     }
   `]
 })
@@ -253,10 +333,8 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
 
   showDataAdapter = false;
   dataAdapterTitle = '';
-  dataSetFocusedRowIndex = 0;
-
-  dataAdapterDataStore: any = {};
-  dataAdapterDataSource: any = {};
+  dataAdapterData: any[] = [];
+  dataAdapterSelectedRow: any = null;
   dataAdapterPrjId = '';
 
   ngOnInit(): void {
@@ -515,15 +593,7 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
             await this.gtsDataService.getOtherPageData(row.prjId, row.formId);
 
             const dataAdapter = this.gtsDataService.getPageMetaData(row.prjId, row.formId, 'dataAdapter', row.dataAdapterName);
-
-            this.dataAdapterDataStore = new ArrayStore({
-              data: dataAdapter,
-              key: ['dataSetName']
-            });
-
-            this.dataAdapterDataSource = new DataSource({
-              store: this.dataAdapterDataStore
-            });
+            this.dataAdapterData = dataAdapter;
 
             this.dataAdapterTitle = 'Data Adapter : ' + row.dataAdapterName;
             this.dataAdapterPrjId = row.prjId;
@@ -547,12 +617,43 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
     this.formReqListenerSubs?.unsubscribe();
   }
 
-  async onDataSetCellDblClick(event: any) {
-    if (event.rowType === 'data' && event.columnIndex > 0) {
+  async onDataAdapterRowDblClick(event: any) {
+    const row = event.data;
+    const columnIndex = event.originalEvent.target.cellIndex;
+
+    // Skip if clicked on first column (dataSetName)
+    if (columnIndex === 0) {
+      return;
+    }
+
+    let sqlId: number | null = null;
+    let columnName = '';
+
+    // Determine which column was clicked
+    switch (columnIndex) {
+      case 1:
+        sqlId = row.sqlId;
+        columnName = 'Select SQL Id';
+        break;
+      case 2:
+        sqlId = row.sqlInsertId;
+        columnName = 'Insert SQL Id';
+        break;
+      case 3:
+        sqlId = row.sqlUpdateId;
+        columnName = 'Update SQL Id';
+        break;
+      case 4:
+        sqlId = row.sqlDeleteId;
+        columnName = 'Delete SQL Id';
+        break;
+    }
+
+    if (sqlId) {
       const params = {
         prjId: this.dataAdapterPrjId,
-        sqlId: event.values[event.columnIndex]
-      }
+        sqlId: sqlId
+      };
 
       const SQL = await this.gtsDataService.execMethod('data', 'getSQLSpec', params);
 
@@ -561,8 +662,9 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
       } else {
         this.jsonDataString = SQL.sql.sqlCode;
       }
-      this.jsonDataTitle = event.values[0] +' - SQL Id: ' + event.text+' - '+SQL.sql.sqlDescription;
-      this.jsonVisible = !this.jsonVisible;
+      this.jsonDataTitle = row.dataSetName + ' - ' + columnName + ': ' + sqlId + ' - ' + SQL.sql.sqlDescription;
+      this.showDataAdapter = false;
+      this.jsonVisible = true;
     }
   }
 }

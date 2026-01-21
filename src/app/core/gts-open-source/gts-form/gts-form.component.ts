@@ -13,11 +13,11 @@ import { Checkbox } from 'primeng/checkbox';
 import { RadioButton } from 'primeng/radiobutton';
 import { Button } from 'primeng/button';
 import { FloatLabel } from 'primeng/floatlabel';
-import { Message } from 'primeng/message';
 import { Tooltip } from 'primeng/tooltip';
 
 import { GtsToolbarComponent } from '../gts-toolbar/gts-toolbar.component';
-import { GtsLookupComponent } from '../../gts/gts-lookup/gts-lookup.component';
+// import { GtsLookupComponent } from '../../gts/gts-lookup/gts-lookup.component'; // DevExtreme version
+import { GtsLookupComponent } from '../gts-lookup/gts-lookup.component'; // Open-source version ✨
 
 /**
  * GTS Form Component - Open Source Version
@@ -50,7 +50,6 @@ import { GtsLookupComponent } from '../../gts/gts-lookup/gts-lookup.component';
     RadioButton,
     Button,
     FloatLabel,
-    Message,
     Tooltip,
     // GTS Components
     GtsToolbarComponent,
@@ -72,6 +71,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   formRepListenerSubs: Subscription | undefined;
   formExternalListenerSubs: Subscription | undefined;
   formFormFocusListenerSubs: Subscription | undefined;
+  appViewListenerSubs: Subscription | undefined;
 
   //========= GLOBALS =================
   metaData: any = {};
@@ -121,6 +121,22 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   //========= ON INIT =================
   async ngOnInit() {
     this.passwMode = 'password';
+
+    // App View Listener - reload form data when view changes
+    this.appViewListenerSubs = this.gtsDataService
+      .getAppViewListener()
+      .subscribe((actualView) => {
+        if (actualView !== undefined && actualView !== '' && actualView !== this.actualView) {
+          this.actualView = actualView;
+          // Check if this form is visible in current view before reloading
+          const formMeta = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'forms', this.objectName);
+          if (formMeta && formMeta.visible) {
+            console.log('[GTS Form] View changed to:', actualView, '- Reloading form data for:', this.objectName);
+            this.prepareFormData();
+            this.changeDetector.detectChanges();
+          }
+        }
+      });
 
     // Form Focus Listener
     this.formFormFocusListenerSubs = this.gtsDataService
@@ -214,6 +230,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     this.formRepListenerSubs?.unsubscribe();
     this.formFormFocusListenerSubs?.unsubscribe();
     this.formExternalListenerSubs?.unsubscribe();
+    this.appViewListenerSubs?.unsubscribe();
   }
 
   //========= FORM EVENTS =================
@@ -239,6 +256,9 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
       field.updateFromLookUp = true;
       field.validated = true;
       field.value = event.fieldValue;
+      // Clear validation error since a valid value was selected from lookup
+      field.validationMessage = '';
+      field.cssClass = field.cssClassStd;
 
       // Update metaData.fields to sync params in subsequent validations
       const metaField = this.metaData.fields.filter((f: any) => f.objectName === field.objectName)[0];
@@ -369,8 +389,15 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         field.value = field.value === field.valueChecked || field.value === true;
       }
 
-      // Apply PK field styling for TextBox and TextArea if field is PK
-      if ((this.metaData.fields[i].editorType === 'TextBox' || this.metaData.fields[i].editorType === 'TextArea') && this.metaData.fields[i].isPK) {
+      // Convert date string to Date object for DateBox
+      if (this.metaData.fields[i].editorType === 'DateBox' && field.value) {
+        if (typeof field.value === 'string') {
+          field.value = new Date(field.value);
+        }
+      }
+
+      // Apply PK field styling for TextBox, TextArea and DateBox if field is PK
+      if ((this.metaData.fields[i].editorType === 'TextBox' || this.metaData.fields[i].editorType === 'TextArea' || this.metaData.fields[i].editorType === 'DateBox') && this.metaData.fields[i].isPK) {
         field.cssClass = this.metaData.cssClass + 'PKField';
         field.cssClassStd = this.metaData.cssClass + 'PKField';
       }

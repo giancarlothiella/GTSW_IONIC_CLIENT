@@ -1,0 +1,183 @@
+// GTS File Uploader - Ionic Version
+// Stili per il componente di upload file
+
+:host {
+  display: block;
+}
+
+.file-uploader-modal {
+  --width: 90%;
+  --max-width: 600px;
+  --height: auto;
+  --max-height: 80vh;
+}
+
+.upload-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+
+// File Input Area
+.file-input-area {
+  position: relative;
+  width: 100%;
+}
+
+.file-input {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.file-input-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: #94a3b8;
+    background: #f1f5f9;
+  }
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.upload-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.allowed-types {
+  font-size: 12px;
+  color: #64748b;
+  margin: 4px 0;
+  text-align: center;
+}
+
+.max-size {
+  font-size: 12px;
+  color: #64748b;
+  margin: 4px 0;
+  text-align: center;
+}
+
+// Selected File Info
+.selected-file-info {
+  margin: 0;
+  border-radius: 8px;
+  overflow: hidden;
+
+  ion-item {
+    --background: #f8fafc;
+    --border-color: #e2e8f0;
+
+    ion-icon {
+      font-size: 24px;
+    }
+
+    ion-label {
+      h3 {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0 0 4px 0;
+      }
+
+      p {
+        font-size: 12px;
+        color: #64748b;
+        margin: 0;
+      }
+    }
+  }
+}
+
+// Upload Progress
+.progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  ion-progress-bar {
+    height: 8px;
+    border-radius: 4px;
+  }
+
+  .progress-text {
+    font-size: 12px;
+    color: #64748b;
+    text-align: center;
+    margin: 0;
+  }
+}
+
+// Error Message
+.error-message {
+  padding: 12px 16px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+
+  p {
+    font-size: 13px;
+    color: #dc2626;
+    margin: 0;
+  }
+}
+
+// Upload Button
+.button-container {
+  margin-top: 8px;
+
+  ion-button {
+    --border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: none;
+    height: 44px;
+
+    ion-icon {
+      margin-right: 8px;
+      font-size: 20px;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .file-uploader-modal {
+    --width: 95%;
+  }
+
+  .upload-container {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .file-input-label {
+    padding: 32px 16px;
+  }
+
+  .upload-icon {
+    font-size: 40px;
+  }
+}

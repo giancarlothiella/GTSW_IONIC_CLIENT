@@ -29,11 +29,24 @@
 // Toolbar for edit mode (like DevExtreme)
 .gts-grid-toolbar {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
   padding: 8px 12px;
   background-color: #f8f9fa;
   border-bottom: 1px solid #ddd;
+}
+
+.gts-grid-toolbar-left {
+  display: flex;
+  gap: 8px;
   align-items: center;
+}
+
+.gts-grid-toolbar-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
 }
 
 .gts-grid-toolbar-btn {

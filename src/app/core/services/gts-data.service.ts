@@ -1123,6 +1123,7 @@ export class GtsDataService {
 
     if (action.actionType === 'dsPost') {
       status = this.getDataSetStatus(prjId, formId, action.dataSetName);
+
       this.saveFormData(prjId, formId, action.clFldGrpId, true, action.dataSetName, status);
 
       const data = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId);
@@ -1140,8 +1141,8 @@ export class GtsDataService {
         sqlType: dataSet.sqlType,
         sqlParams: dataSet.sqlParams,
         doc: dataSet.doc,
-        queryParams: dataSet.queryParams        
-      }      
+        queryParams: dataSet.queryParams
+      }
 
     } else {
       this.saveFormData(prjId, formId, action.clFldGrpId, true, action.dataSetName, 'delete');
@@ -1375,7 +1376,7 @@ export class GtsDataService {
           .pageData
           .pageFields
           .filter((field: any) => field.dataSetName === dataSetName);
-          
+
           //intersect pageFields and form fields by Name
           const commonFields: any[] = [];
           pageFields.forEach((pageField: any) => {
@@ -1388,7 +1389,7 @@ export class GtsDataService {
 
           const dataAdapter = this.getDataSetAdapter(prjId, formId, dataSetName)
           this.setDataSetValue(prjId, formId, dataAdapter, dataSetName, commonFields);
-        }   
+        }
       }
     } else {
       // delete dataset selected row
@@ -1517,8 +1518,8 @@ export class GtsDataService {
       });
       return valid;
     })
-    
-    // update rows values  
+
+    // update rows values
     filteredRows.forEach((row: any) => {
       fields.forEach((field: any) => {
         row[field.dbFieldName] = field.value;
@@ -1643,6 +1644,14 @@ export class GtsDataService {
               detail.value = responseData.data[0].rows[0][detail.detailFieldName];
             });
           } 
+          
+          if (responseData.valid && responseData.data[0].rows.length > 0) {   
+            valid = true;   
+            field.details.forEach((detail: any) => {
+              detail.value = responseData.data[0].rows[0][detail.detailFieldName];
+            });
+          } 
+
         } else {
           field.details.forEach((detail: any) => {
             detail.value = null;
@@ -1684,19 +1693,19 @@ export class GtsDataService {
     }    
 
     if (field !== undefined && field !== null) {     
-      const opFieldName = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-      .pageData
-      .sqls
-      .filter((sql: any) => sql.sqlId === field.sqlId)[0].opFieldName || null;
+      // const opFieldName = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+      // .pageData
+      // .sqls
+      // .filter((sql: any) => sql.sqlId === field.sqlId)[0].opFieldName || null;
 
-      if (opFieldName !== null) {
-        const opFieldData = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-        .pageData
-        .pageFields
-        .filter((field: any) => field.pageFieldName === opFieldName)[0].value || null;
+      // if (opFieldName !== null) {
+      //   const opFieldData = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+      //   .pageData
+      //   .pageFields
+      //   .filter((field: any) => field.pageFieldName === opFieldName)[0].value || null;
         
-        params[opFieldName] = opFieldData;
-      }
+      //   params[opFieldName] = opFieldData;
+      // }
 
       const connCode: string = this.getConnCode(prjId);
       const dataReq: any = {
@@ -2067,7 +2076,7 @@ export class GtsDataService {
       });
   }
 
-  // Set View
+  // Set View - Optimized version that applies only differences to avoid flickering
   private setView(prjId: string, formId: number, viewName: string, isPrevious: boolean) {
     let valid: boolean = true;
 
@@ -2084,13 +2093,16 @@ export class GtsDataService {
     if (viewName === '') {
       valid = false;
     } else {
-    
-      let objList: any[] = [];  
+      const pageData = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]?.pageData;
+      if (!pageData) {
+        return false;
+      }
+
+      // Step 1: Build the desired state (objList) from view definitions
+      let objList: any[] = [];
 
       // Look on all view actual viewName plus all views with viewFlagAlwaysActive order by viewLevel
-      this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-      .pageData
-      .views
+      pageData.views
       .filter((view: any) => view.viewName === viewName || view.viewFlagAlwaysActive)
       .sort((a: any, b: any) => a.viewLevel - b.viewLevel)
       .forEach((view: any) => {
@@ -2098,10 +2110,7 @@ export class GtsDataService {
         .forEach((object: any) => {
           if (object.objectType === 'tabs') {
             // search metadata tabs and set actual tab index in view tabs object
-            this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-            .pageData
-            .tabs
-            .forEach((tab: any) => {
+            pageData.tabs.forEach((tab: any) => {
               if (tab.objectName === object.objectName) {
                 object.tabIndex = tab.tabIndex || 0;
               }
@@ -2109,7 +2118,7 @@ export class GtsDataService {
           }
 
           object.visible = true;
-          
+
           if (object.tabsName !== undefined && object.tabsName !== null && object.tabsName !== '') {
             if (objList.filter((tab: any) => tab.objectName === object.tabsName).length > 0) {
               object.visible = objList.filter((tab: any) => tab.objectName === object.tabsName)[0].visible && objList.filter((tab: any) => tab.objectName === object.tabsName)[0].tabIndex === object.tabRN-1;
@@ -2117,7 +2126,7 @@ export class GtsDataService {
           }
 
           if (object.visible) {
-            if (object.selected === 'U') {  
+            if (object.selected === 'U') {
               object.visible = true;
             } else if (object.selected === 'Y') {
               object.visible = false;
@@ -2130,7 +2139,7 @@ export class GtsDataService {
                     }
                   }
                 });
-              }); 
+              });
             } else if (object.selected === 'N') {
               object.visible = false;
               this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId)
@@ -2162,94 +2171,104 @@ export class GtsDataService {
         });
       });
 
+      // Step 2: Create a map of desired states for quick lookup
+      const desiredStateMap = new Map<string, { visible: boolean, disabled: boolean, tabIndex?: number }>();
+      objList.forEach((obj: any) => {
+        const key = `${obj.objectType}:${obj.objectName}`;
+        desiredStateMap.set(key, {
+          visible: obj.visible || false,
+          disabled: obj.disabled || false,
+          tabIndex: obj.tabIndex
+        });
+      });
 
-      // set all metadata objects tabs, grids, toolbar and toolbar.itemslist, forms as not visible
-      this.resetMetadataVisibility(prjId, formId);
+      // Step 3: Apply differences only - update metadata objects only if their state actually changes
 
-      // metadata status visible for tabs, grids, toolbar and toolbar.itemsList, forms from objList with visible property true
-      objList.forEach((object: any) => {
-        if (object.objectType === 'tabs') {
-          this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-          .pageData
-          .tabs
-          .forEach((tab: any) => {
-            if (tab.objectName === object.objectName) {
-              tab.visible = object.visible;
-              tab.tabIndex = object.tabIndex;
-            }
-          });
+      // Tabs
+      pageData.tabs.forEach((tab: any) => {
+        const key = `tabs:${tab.objectName}`;
+        const desired = desiredStateMap.get(key);
+        const newVisible = desired?.visible || false;
+        const newTabIndex = desired?.tabIndex;
+
+        if (tab.visible !== newVisible) {
+          tab.visible = newVisible;
         }
-
-        if (object.objectType === 'grid') {
-          this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-          .pageData
-          .grids
-          .forEach((grid: any) => {
-            if (grid.objectName === object.objectName) {
-              grid.visible = object.visible;
-              grid.disabled = object.disabled;
-            }
-          });
-        }
-
-        if (object.objectType === 'reportsGroup') {
-          this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-          .pageData
-          .reportsGroups
-          .forEach((rptGroup: any) => {
-            if (rptGroup.fieldGrpId === Number(object.objectName)) {
-              rptGroup.visible = object.visible;
-            }
-          });
-        }
-
-        if (object.objectType === 'toolbar') {
-          this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-          .pageData
-          .toolbars
-          .forEach((toolbar: any) => {
-            if (toolbar.objectName === object.objectName) {
-              toolbar.visible = object.visible;
-            }
-          });
-        }
-
-        if (object.objectType === 'toolbarItem') {
-          this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-          .pageData
-          .toolbars
-          .forEach((toolbar: any) => {
-            toolbar.itemsList.forEach((item: any) => {
-              if (item.objectName === object.objectName) {
-                item.visible = object.visible;
-              }
-            });
-          });
-        }
-
-        if (object.objectType === 'form') {
-          this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-          .pageData
-          .forms
-          .forEach((form: any) => {
-            if (form.objectName === object.objectName) {
-              form.visible = object.visible;
-            }
-          });
+        if (newTabIndex !== undefined && tab.tabIndex !== newTabIndex) {
+          tab.tabIndex = newTabIndex;
         }
       });
 
+      // Grids
+      pageData.grids.forEach((grid: any) => {
+        const key = `grid:${grid.objectName}`;
+        const desired = desiredStateMap.get(key);
+        const newVisible = desired?.visible || false;
+        const newDisabled = desired?.disabled || false;
 
-      // apply checkPageRule for each reports
-      this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-      .pageData
-      .reportsGroups
-      .forEach((rptGroup: any) => {
+        if (grid.visible !== newVisible) {
+          grid.visible = newVisible;
+        }
+        if (grid.disabled !== newDisabled) {
+          grid.disabled = newDisabled;
+        }
+      });
+
+      // ReportsGroups
+      pageData.reportsGroups.forEach((rptGroup: any) => {
+        const key = `reportsGroup:${rptGroup.fieldGrpId}`;
+        const desired = desiredStateMap.get(key);
+        const newVisible = desired?.visible || false;
+
+        if (rptGroup.visible !== newVisible) {
+          rptGroup.visible = newVisible;
+        }
+      });
+
+      // Toolbars
+      pageData.toolbars.forEach((toolbar: any) => {
+        const key = `toolbar:${toolbar.objectName}`;
+        const desired = desiredStateMap.get(key);
+        const newVisible = desired?.visible || false;
+
+        if (toolbar.visible !== newVisible) {
+          toolbar.visible = newVisible;
+        }
+
+        // ToolbarItems
+        toolbar.itemsList.forEach((item: any) => {
+          const itemKey = `toolbarItem:${item.objectName}`;
+          const itemDesired = desiredStateMap.get(itemKey);
+          const itemNewVisible = itemDesired?.visible || false;
+          const itemNewDisabled = itemDesired?.disabled || false;
+
+          if (item.visible !== itemNewVisible) {
+            item.visible = itemNewVisible;
+          }
+          if (item.disabled !== itemNewDisabled) {
+            item.disabled = itemNewDisabled;
+          }
+        });
+      });
+
+      // Forms
+      pageData.forms.forEach((form: any) => {
+        const key = `form:${form.objectName}`;
+        const desired = desiredStateMap.get(key);
+        const newVisible = desired?.visible || false;
+
+        if (form.visible !== newVisible) {
+          form.visible = newVisible;
+        }
+      });
+
+      // Apply checkPageRule for each reports
+      pageData.reportsGroups.forEach((rptGroup: any) => {
         rptGroup.reports.forEach((report: any) => {
           if (report.execCond !== undefined && report.execCond !== null && report.execCond.length > 0) {
-            report.visible = false;
-            if (this.checkPageRule(prjId, formId, report.execCond)) {
-              report.visible = true;
+            const newVisible = this.checkPageRule(prjId, formId, report.execCond);
+            if (report.visible !== newVisible) {
+              report.visible = newVisible;
             }
           }
         });

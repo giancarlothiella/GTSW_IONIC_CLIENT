@@ -88,11 +88,25 @@ ion-card {
 ion-menu {
   --background: #ffffff;
   --ion-item-background: #ffffff;
+
+  /* Font più piccolo per il menu principale */
+  ion-item {
+    --min-height: 40px;
+
+    ion-label {
+      font-size: 13px !important;
+    }
+  }
+
+  /* Sottomenu leggermente più piccolo */
+  ion-item.submenu-item ion-label {
+    font-size: 12px !important;
+  }
 }
 
 /* Toolbar con colori definiti */
 ion-toolbar {
-  --background: var(--ion-color-primary);
+  --background: #475569;
   --color: #ffffff;
 }
 
@@ -555,4 +569,100 @@ app-gts-dash-grid {
 .p-tooltip .p-tooltip-text {
   padding: 4px 8px !important;
   font-size: 12px !important;
+}
+
+/* ============================================
+   PrimeNG DatePicker Panel - Compact Styling
+   ============================================ */
+
+/* Bottoni navigazione datepicker - selettori globali */
+.p-datepicker-prev,
+.p-datepicker-next,
+.p-datepicker button[class*="prev"],
+.p-datepicker button[class*="next"],
+p-datepicker .p-datepicker-prev,
+p-datepicker .p-datepicker-next {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  background: #f1f5f9 !important;
+  background-color: #f1f5f9 !important;
+  border: 1px solid #94a3b8 !important;
+  border-radius: 4px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: #1e293b !important;
+
+  &:hover {
+    background: #dbeafe !important;
+    background-color: #dbeafe !important;
+    border-color: #3b82f6 !important;
+  }
+
+  .p-icon,
+  svg,
+  span {
+    width: 14px !important;
+    height: 14px !important;
+    color: #1e293b !important;
+    fill: #1e293b !important;
+  }
+}
+
+.p-datepicker-panel,
+.p-datepicker {
+  font-size: 12px !important;
+
+  /* Header con mese e anno */
+  .p-datepicker-header {
+    padding: 6px 8px !important;
+    background: #ffffff !important;
+
+    /* Titolo mese/anno */
+    .p-datepicker-title {
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      gap: 4px !important;
+
+      .p-datepicker-select-month,
+      .p-datepicker-select-year,
+      button {
+        font-size: 13px !important;
+        padding: 4px 8px !important;
+        color: #1e293b !important;
+      }
+    }
+  }
+
+  /* Griglia giorni */
+  .p-datepicker-calendar {
+    font-size: 12px !important;
+
+    th {
+      padding: 4px !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      color: #64748b !important;
+    }
+
+    td {
+      padding: 2px !important;
+
+      > span {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 12px !important;
+      }
+    }
+  }
+
+  /* Bottone Today */
+  .p-datepicker-buttonbar {
+    padding: 6px !important;
+
+    .p-button {
+      font-size: 11px !important;
+      padding: 4px 8px !important;
+    }
+  }
 }

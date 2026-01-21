@@ -9,7 +9,7 @@ import { IonList, IonItem, IonLabel, IonIcon, PopoverController } from '@ionic/a
   template: `
     <ion-list class="action-menu-list">
       @for (item of items; track item.text) {
-        <ion-item button (click)="selectItem(item)" lines="none">
+        <ion-item button [disabled]="item.disabled" (click)="selectItem(item)" lines="none" [class.item-disabled]="item.disabled">
           @if (item.ionIcon) {
             <ion-icon [name]="item.ionIcon" slot="start"></ion-icon>
           } @else if (item.icon) {
@@ -42,9 +42,15 @@ import { IonList, IonItem, IonLabel, IonIcon, PopoverController } from '@ionic/a
         margin-bottom: 0;
       }
 
-      &:hover {
+      &:hover:not(.item-disabled) {
         --background: #f0f0f0;
         border-color: #bbb;
+      }
+
+      &.item-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
       }
     }
 

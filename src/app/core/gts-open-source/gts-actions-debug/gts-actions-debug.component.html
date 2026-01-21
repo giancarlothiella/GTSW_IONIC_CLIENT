@@ -1,0 +1,110 @@
+<p-dialog
+  [(visible)]="showPopup"
+  [header]="debugTitle"
+  [modal]="false"
+  [closable]="true"
+  [draggable]="true"
+  [resizable]="true"
+  [style]="{width: '1200px', height: '600px'}"
+  [baseZIndex]="10000"
+  (onHide)="onPopupHiding()"
+  styleClass="actions-debug-dialog">
+
+  <!-- Control Buttons and Status -->
+  <div class="debug-controls">
+    <ion-button
+      (click)="onExecLineButtonClick()"
+      [disabled]="status === 'Completed'"
+      color="primary"
+      size="small"
+    >
+      <ion-icon slot="start" name="play"></ion-icon>
+      Execute Line
+    </ion-button>
+
+    <ion-button
+      (click)="onExecAllButtonClick()"
+      [disabled]="status === 'Completed'"
+      color="success"
+      size="small"
+    >
+      <ion-icon slot="start" name="play-forward"></ion-icon>
+      Execute All
+    </ion-button>
+
+    @if (status !== 'Completed') {
+      <div class="debug-info">
+        <span class="info-label">Action Debug Line: {{ lineNumber + 1 }}</span>
+        <span class="info-label">{{ actionType }}</span>
+      </div>
+    }
+
+    <div class="debug-status">
+      <span class="status-label">{{ status }}</span>
+    </div>
+  </div>
+
+  <!-- Actions Grid -->
+  <div class="actions-grid">
+    <p-table
+      [value]="actions"
+      [tableStyle]="{'min-width': '50rem'}"
+      [rowHover]="true"
+      [showGridlines]="true"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 60px">Order</th>
+          <th style="width: 150px">Type</th>
+          <th style="width: 70px">Rule#</th>
+          <th style="width: 60px">Rule</th>
+          <th style="width: 120px">Code</th>
+          <th style="width: 80px">Group</th>
+          <th style="width: 100px">Adapter</th>
+          <th style="width: 100px">DataSet</th>
+          <th style="width: 80px">SQL</th>
+          <th style="width: 140px">View Name</th>
+          <th style="width: 80px">Msg</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr [ngClass]="getRowClass(row)">
+          <td>{{ row.actionOrder }}</td>
+          <td>{{ row.actionType }}</td>
+          <td>{{ row.condId }}</td>
+          <td>{{ row.condValue }}</td>
+          <td>{{ row.customCode }}</td>
+          <td>{{ row.clFldGrpId }}</td>
+          <td>{{ row.dataAdapter }}</td>
+          <td>{{ row.dataSetName }}</td>
+          <td>{{ row.sqlId }}</td>
+          <td>{{ row.viewName }}</td>
+          <td>{{ row.msgId }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Page Rules Grid -->
+  <div class="rules-grid">
+    <h3>Page Rules</h3>
+    <p-table
+      [value]="pageRules"
+      [tableStyle]="{'min-width': '10rem'}"
+      [showGridlines]="true"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 60px">Rule#</th>
+          <th style="width: 60px">Value</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr>
+          <td>{{ row.condId }}</td>
+          <td>{{ row.condValue }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</p-dialog>

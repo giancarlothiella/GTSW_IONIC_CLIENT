@@ -1,5 +1,14 @@
 // GTS Form - PrimeNG styling
 
+// Form Wrapper - contains the form within its grid area
+.gts-form-wrapper {
+  display: block;
+  width: 100%;
+  align-self: start;
+  overflow: visible;
+  padding-bottom: 18px;
+}
+
 // Form Title
 .form001Title {
   height: 40px;
@@ -27,6 +36,36 @@
 .form001Toolbar {
   width: 100%;
   padding-right: 5px;
+}
+
+// Override toolbar background when inside form to match form title color
+:host ::ng-deep .form001Toolbar {
+  ion-toolbar {
+    --background: rgb(171, 195, 243) !important;
+    --color: rgb(16, 16, 179) !important;
+    background: rgb(171, 195, 243) !important;
+
+    // Force background on shadow DOM parts
+    &::part(native) {
+      background: rgb(171, 195, 243) !important;
+    }
+
+    .toolbar-background {
+      background: rgb(171, 195, 243) !important;
+    }
+
+    // Override button colors
+    ion-button {
+      --background: white !important;
+      --color: #333 !important;
+      --border-color: #ddd !important;
+
+      &::part(native) {
+        background: white !important;
+        color: #333 !important;
+      }
+    }
+  }
 }
 
 // Form Fields
@@ -119,10 +158,12 @@
   display: flex;
   align-items: flex-start;
   gap: 2px;
+  flex-wrap: wrap;
 
   p-floatLabel {
     flex: 1;
     display: block;
+    min-width: 0;
 
     .lookup-input {
       width: 100%;
@@ -132,6 +173,12 @@
   p-button {
     flex-shrink: 0;
     margin-top: 0;
+  }
+
+  // Validation error goes on new line below
+  .validation-error {
+    flex-basis: 100%;
+    width: 100%;
   }
 }
 
@@ -220,6 +267,16 @@
   white-space: normal !important;
   word-wrap: break-word !important;
   z-index: 1 !important;
+}
+
+// Checkbox container - center vertically in grid cell
+.form001Field:has(p-checkbox),
+.form001PKField:has(p-checkbox),
+.form001FieldError:has(p-checkbox) {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 6px;
 }
 
 // Checkbox
@@ -448,17 +505,13 @@
     }
   }
 
-  // Validation Messages
-  .p-message {
-    margin-top: 2px;
-    padding: 3px 6px;
+  // Validation error message - simple text like DevExtreme
+  .validation-error {
+    display: block;
     font-size: 11px;
-
-    &.p-message-error {
-      background-color: #ffebee;
-      border: 1px solid #d32f2f;
-      color: #d32f2f;
-    }
+    color: #d32f2f;
+    margin-top: 2px;
+    padding-left: 2px;
   }
 
   // Buttons

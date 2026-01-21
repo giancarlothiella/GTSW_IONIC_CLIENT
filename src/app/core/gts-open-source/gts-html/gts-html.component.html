@@ -1,0 +1,185 @@
+<div class="gts-html-editor">
+  <!-- Main Toolbar -->
+  <div class="main-toolbar">
+    <div class="toolbar-title">{{ htmlTitle }}</div>
+    <div class="toolbar-buttons">
+      @if (showMMTags) {
+        <ion-button fill="solid" (click)="openLanguages()">
+          <ion-label>LANGUAGES</ion-label>
+        </ion-button>
+        <ion-button fill="solid" (click)="openTestData()">
+          <ion-label>EDIT TEST DATA</ion-label>
+        </ion-button>
+      }
+      <ion-button fill="solid" color="primary" (click)="testResult()">
+        <ion-label>TEST RESULT</ion-label>
+      </ion-button>
+      @if (changed) {
+        <ion-button fill="solid" color="danger" (click)="rollBack()">
+          <ion-label>Roll Back</ion-label>
+        </ion-button>
+        <ion-button fill="solid" color="success" (click)="saveChanges()">
+          <ion-label>Save Changes</ion-label>
+        </ion-button>
+      }
+    </div>
+  </div>
+
+  <div class="editor-container">
+    <!-- Fields List (Left Panel) -->
+    @if (showMMTags) {
+      <div class="fields-panel">
+        <div class="fields-header">
+          <span>Fields List</span>
+          <ion-button size="small" (click)="addField()">+</ion-button>
+        </div>
+        <div class="fields-list">
+          <table>
+            <thead>
+              <tr>
+                <th>Field Name</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (field of fieldsData; track $index) {
+                <tr (click)="onFieldClick(field)">
+                  <td>{{ field.fieldName }}</td>
+                  <td>
+                    <ion-button size="small" fill="clear" color="danger" (click)="deleteField($index); $event.stopPropagation()">
+                      🗑
+                    </ion-button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- Editor Panel -->
+    <div class="editor-panel">
+      <!-- Language Tabs -->
+      <ion-segment [value]="languageTabs[languageIndex]?.id" (ionChange)="onLanguageTabChange($event)">
+        @for (tab of languageTabs; track tab.id) {
+          <ion-segment-button [value]="tab.id">
+            <img [src]="tab.icon" alt="" class="lang-flag" />
+            <ion-label>{{ tab.text }}</ion-label>
+          </ion-segment-button>
+        }
+      </ion-segment>
+
+      <!-- Editor Controls -->
+      <div class="editor-controls">
+        <div class="control-group">
+          <label>Table title background</label>
+          <input type="color" [(ngModel)]="colorValue" (ngModelChange)="onColorValueChanged({detail: {value: $event}})" [disabled]="!showMMTags" />
+        </div>
+        <div class="control-group">
+          <label>Row height</label>
+          <ion-input [(ngModel)]="rowHeight" (ngModelChange)="onRowHeightChanged({detail: {value: $event}})" [readonly]="!showMMTags"></ion-input>
+        </div>
+      </div>
+
+      <!-- Quill Editor -->
+      @if (showHtmlEditor) {
+        <quill-editor
+          #quillEditor
+          [(ngModel)]="valueContent"
+          [modules]="quillModules"
+          [readOnly]="!showMMTags"
+          (ngModelChange)="onContentChanged()"
+          [styles]="{height: '725px'}"
+        ></quill-editor>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Test Data Modal -->
+<ion-modal [isOpen]="testDataVisible" (didDismiss)="testDataVisible = false" class="test-data-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Test Data Object</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-textarea
+        [(ngModel)]="testDataString"
+        [rows]="20"
+        [autoGrow]="true"
+      ></ion-textarea>
+    </ion-content>
+    <ion-footer>
+      <ion-toolbar>
+        <div class="modal-buttons">
+          <ion-button color="danger" (click)="cancelTestData()">CANCEL</ion-button>
+          <ion-button color="success" (click)="saveTestData()">SAVE</ion-button>
+        </div>
+      </ion-toolbar>
+    </ion-footer>
+  </ng-template>
+</ion-modal>
+
+<!-- Preview Result Modal -->
+<ion-modal [isOpen]="resultDataVisible" (didDismiss)="resultDataVisible = false" class="preview-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Preview MailMerge result</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="resultDataVisible = false">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <div class="preview-content" [innerHTML]="testValueContent"></div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Languages Modal -->
+<ion-modal [isOpen]="languagesVisible" (didDismiss)="languagesVisible = false" class="languages-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar color="primary">
+        <ion-title>Languages</ion-title>
+        <ion-buttons slot="start">
+          <ion-button fill="solid" [disabled]="!canAddLanguage" (click)="addLanguage()">
+            + ENABLE LANGUAGE
+          </ion-button>
+          <ion-button fill="solid" [disabled]="!canRemoveLanguage" color="danger" (click)="removeLanguage()">
+            - DISABLE LANGUAGE
+          </ion-button>
+        </ion-buttons>
+        <ion-buttons slot="end">
+          <ion-button (click)="languagesVisible = false">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <table class="languages-table">
+        <thead>
+          <tr>
+            <th>Icon</th>
+            <th>Id</th>
+            <th>Language</th>
+            <th>Selected</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (lang of languages; track lang.languageId; let i = $index) {
+            <tr (click)="selectLanguage(i)" [class.selected]="languageFocusedRowIndex === i">
+              <td><img [src]="lang.flag" alt="" class="lang-flag" /></td>
+              <td>{{ lang.languageId }}</td>
+              <td>{{ lang.description }}</td>
+              <td>{{ lang.selected ? '✓' : '' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </ion-content>
+  </ng-template>
+</ion-modal>

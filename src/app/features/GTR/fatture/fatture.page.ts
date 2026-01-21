@@ -9,19 +9,23 @@ import { GtsDataService } from '../../../core/services/gts-data.service';
 import { Subscription } from 'rxjs';
 
 // Import GTS Components
-import { GtsLoaderComponent } from '../../../core/gts/gts-loader/gts-loader.component';
-// import { GtsToolbarComponent } from '../../../core/gts/gts-toolbar/gts-toolbar.component'; // DevExtreme version
+// import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component'; // DevExtreme version
+import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component'; // Ionic version ✨
+// import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component'; // DevExtreme version
 import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component'; // Ionic version ✨
-// import { GtsTabsComponent } from '../../../core/gts/gts-tabs/gts-tabs.component'; // DevExtreme version
+// import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component'; // DevExtreme version
 import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component'; // Ionic version ✨
-// import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component'; // DevExtreme version
+// import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component'; // DevExtreme version
 import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component'; // AG Grid version ✨
-import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component';
-import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component';
-import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.component';
-// import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component'; // DevExtreme version
+// import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component'; // DevExtreme version
+import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component'; // PrimeNG version ✨
+// import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component'; // DevExtreme version
+import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component'; // PrimeNG version ✨
+// import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component'; // DevExtreme version
+import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component'; // Open-source version ✨
+// import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component'; // DevExtreme version
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component'; // Ionic version ✨
-import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts/gts-ai-analyzer/gts-ai-analyzer.component';
+import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts-open-source/gts-ai-analyzer/gts-ai-analyzer.component';
 
 @Component({
   selector: 'app-fatture',

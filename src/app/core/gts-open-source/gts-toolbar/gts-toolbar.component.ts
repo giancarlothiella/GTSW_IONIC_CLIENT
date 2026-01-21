@@ -89,11 +89,11 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
         this.actualView = actualView;
 
         if (this.viewData !== undefined && this.metaData !== undefined && this.metaData !== null) {
-          this.toolbarReady = false;
-          setTimeout(() => {
-            this.prepareToolbarData(this.customData);
+          // Update toolbar data without hiding it to avoid flickering
+          this.prepareToolbarData(this.customData);
+          if (!this.toolbarReady) {
             this.toolbarReady = true;
-          }, 0);
+          }
         }
       });
 
@@ -105,11 +105,8 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
 
     if (this.viewData !== undefined && this.viewData !== null && this.viewData !== '') {
       if (this.metaData !== undefined && this.metaData !== null && this.viewData !== undefined && this.viewData !== '') {
-        this.toolbarReady = false;
-        setTimeout(() => {
-          this.prepareToolbarData(this.customData);
-          this.toolbarReady = true;
-        }, 0);
+        this.prepareToolbarData(this.customData);
+        this.toolbarReady = true;
       }
     }
 
@@ -164,33 +161,32 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
         icon = '/assets/icons/icon_' + item.iconId + '.svg';
       }
 
-      // Check visibilità
-      if ((this.viewData.objects !== undefined && this.viewData.objects !== null) || this.metaData.toolbarFlagSubmit) {
-        if (!this.metaData.toolbarFlagSubmit) {
-          const viewItems = this.viewData.objects.filter((element: any) => element.objectName === item.objectName);
-          for (let j = 0; j < viewItems.length; j++) {
-            const viewItem = viewItems[j];
-            if (viewItem !== undefined) {
-              item.visible = viewItem.visible;
-              item.disabled = viewItem.disabled;
-              break;
-            }
-          }
+      // Check visibilità basato su viewData.objects
+      // Il service ha già valutato le execCond, quindi usiamo direttamente visible da viewData
+      if (!this.metaData.toolbarFlagSubmit && this.viewData.objects !== undefined && this.viewData.objects !== null) {
+        const viewItems = this.viewData.objects.filter((element: any) =>
+          element.objectType === 'toolbarItem' && element.objectName === item.objectName
+        );
+        if (viewItems.length > 0) {
+          const viewItem = viewItems[0];
+          item.visible = viewItem.visible;
+          item.disabled = viewItem.disabled || false;
         }
+      }
 
-        if (item.visible) {
-          const preparedItem = this.prepareItem(item, icon, customData);
-          if (preparedItem) {
-            this.itemsList.push(preparedItem);
+      // Se l'item è visibile, preparalo e aggiungilo alla lista
+      if (item.visible) {
+        const preparedItem = this.prepareItem(item, icon, customData);
+        if (preparedItem) {
+          this.itemsList.push(preparedItem);
 
-            // Categorizza per posizionamento
-            if (item.type === 'title') {
-              this.titleItem = preparedItem;
-            } else if (item.location === 'before' || item.location === 'left') {
-              this.startItems.push(preparedItem);
-            } else {
-              this.endItems.push(preparedItem);
-            }
+          // Categorizza per posizionamento
+          if (item.type === 'title') {
+            this.titleItem = preparedItem;
+          } else if (item.location === 'before' || item.location === 'left') {
+            this.startItems.push(preparedItem);
+          } else {
+            this.endItems.push(preparedItem);
           }
         }
       }
@@ -367,7 +363,8 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
           text: item.text,
           icon: icon,
           ionIcon: ionIcon,
-          actionName: item.actionName
+          actionName: item.actionName,
+          disabled: item.disabled || false
         });
       }
     });

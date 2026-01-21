@@ -146,7 +146,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   constructor() {}
 
   async ngOnInit() {
-    console.log('[gts-grid] ngOnInit - subscribing to grid reload listener for:', this.objectName);
 
     // Grid reload listener
     this.gridReloadListenerSubs = this.gtsDataService
@@ -164,7 +163,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
               console.log('[gts-grid]', this.objectName, '- Edit mode set to:', this.allowUpdating);
 
               // Update editable state on existing columns without recreating them
-              if (this.gridApi && this.metaData?.data?.columns) {
+              if (this.gridApi && !this.gridApi.isDestroyed() && this.metaData?.data?.columns) {
                 const columns = this.gridApi.getColumns();
                 columns?.forEach((column: any) => {
                   const colId = column.getColId();
@@ -198,7 +197,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
               this.allowDeleting = false;
               console.log('[gts-grid]', this.objectName, '- Idle mode - all editing disabled');
               // Recreate columns with editing disabled
-              if (this.metaData?.data?.columns && this.gridApi) {
+              if (this.metaData?.data?.columns && this.gridApi && !this.gridApi.isDestroyed()) {
                 this.convertColumnsToAGGrid(this.metaData.data.columns);
                 this.gridApi.setGridOption('columnDefs', this.columnDefs);
                 // Don't call autoSizeAllColumns here - preserve existing column widths
@@ -208,8 +207,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
           }
         }
 
-        // Normal data reload - check dataSetName only for this
-        if (this.metaData?.dataSetName === dataSetName) {
+        // Normal data reload - check dataSetName and visibility
+        if (this.metaData?.dataSetName === dataSetName && this.metaData?.visible) {
           this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
           await this.prepareGridData();
         }
@@ -240,10 +239,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
           // Only reload data when grid transitions from hidden to visible
           // If already visible, don't reload (preserves selection)
           if (newVisible && !wasVisible) {
-            console.log('[gts-grid] Grid becoming visible, loading data');
             await this.prepareGridData();
           } else if (newVisible && wasVisible) {
-            console.log('[gts-grid] Grid already visible, skipping reload to preserve selection');
             // Just update metadata without reloading
             if (!this.gridObject) {
               this.gridObject = {};
@@ -265,7 +262,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
     this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'grids', this.objectName);
 
-    if (this.metaData !== undefined && !this.gridReady) {
+    // Only load data if grid is visible and not already ready
+    if (this.metaData !== undefined && !this.gridReady && this.metaData.visible) {
       await this.prepareGridData();
     }
 
@@ -320,12 +318,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     this.allowUpdating = this.metaData.allowUpdating || false;
     this.allowDeleting = newGridObject.allowDeleting || false;
 
-    console.log('[gts-grid] Editing permissions:', {
-      allowInserting: this.allowInserting,
-      allowUpdating: this.allowUpdating,
-      allowDeleting: this.allowDeleting,
-      metaDataAllowUpdating: this.metaData.allowUpdating
-    });
+    // Debug: console.log('[gts-grid] Editing permissions:', { allowInserting, allowUpdating, allowDeleting });
 
     // Set selection mode (AG Grid v35+ format with checkboxes control)
     const isMultiple = newGridObject.selectionMode === 'multiple';
@@ -344,9 +337,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       ? data.dataSource._store._array
       : [];
 
-    if (newRowData.length === 0) {
-      console.warn('[gts-grid] No data in dataSource for', this.objectName);
-    }
+    // No warning for empty data - it's normal for detail grids before master selection
 
     // Update gridObject with all data
     this.gridObject = newGridObject;
@@ -357,12 +348,10 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     const gridKeyChanged = this.gridKey !== newGridKey;
 
     if (gridKeyChanged) {
-      console.log('[gts-grid] Selection mode changed, recreating grid with new key:', newGridKey);
       this.gridKey = newGridKey;
       this.rowData = newRowData; // Full data replacement when grid is recreated
-    } else if (this.gridApi) {
+    } else if (this.gridApi && !this.gridApi.isDestroyed()) {
       // Grid already exists, just update the data without recreating it
-      console.log('[gts-grid] Updating existing grid data, preserving selection');
       this.gridApi.setGridOption('rowData', newRowData);
       // Don't update this.rowData here, AG Grid manages it
     } else {
@@ -380,7 +369,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   convertColumnsToAGGrid(columns: any[]): void {
     this.columnDefs = [];
 
-    console.log(`[gts-grid] ${this.objectName} - Converting ${columns.length} columns`);
+    // console.log(`[gts-grid] ${this.objectName} - Converting ${columns.length} columns`);
 
     // AG Grid v35+ usa rowSelection.checkboxes in GridOptions invece di colonne separate
     // Non serve più aggiungere colonne checkbox manualmente
@@ -573,7 +562,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    * Check if there are any active filters in the grid
    */
   checkActiveFilters(): void {
-    if (!this.gridApi) return;
+    if (!this.gridApi || this.gridApi.isDestroyed()) return;
 
     const filterModel = this.gridApi.getFilterModel();
     this.hasActiveFilters = Object.keys(filterModel).length > 0;
@@ -584,7 +573,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    * Clear all filters from the grid
    */
   clearAllFilters(): void {
-    if (!this.gridApi) return;
+    if (!this.gridApi || this.gridApi.isDestroyed()) return;
 
     console.log('[gts-grid] Clearing all filters');
     this.gridApi.setFilterModel(null);
@@ -592,7 +581,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   }
 
   restoreSelection(): void {
-    if (!this.gridApi || !this.savedSelectedRowKeys || this.savedSelectedRowKeys.length === 0) {
+    if (!this.gridApi || this.gridApi.isDestroyed() || !this.savedSelectedRowKeys || this.savedSelectedRowKeys.length === 0) {
       return;
     }
 
@@ -627,23 +616,45 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   }
 
   onSelectionChanged(event: SelectionChangedEvent): void {
+    // If grid is disabled, prevent selection change by restoring previous selection
+    if (this.gridObject?.disabled && !this.isRestoringSelection) {
+      console.log('[gts-grid] Grid is disabled, restoring previous selection');
+      // Store the previous selection keys before the change
+      const previousKeys = this.selectedRows;
+
+      // Restore previous selection
+      setTimeout(() => {
+        this.isRestoringSelection = true;
+        event.api.deselectAll();
+        if (previousKeys.length > 0) {
+          const keyField = this.gridObject?.keys?.[0] || 'id';
+          event.api.forEachNode((node: any) => {
+            if (node.data && previousKeys.some((prevRow: any) => prevRow[keyField] === node.data[keyField])) {
+              node.setSelected(true);
+            }
+          });
+        }
+        this.isRestoringSelection = false;
+      }, 0);
+      return;
+    }
+
     this.selectedRows = event.api.getSelectedRows();
 
     // Get the key field from gridObject.keys (which comes from metadata sqlKeys)
     const keyField = this.gridObject?.keys?.[0] || this.metaData?.dataAdapterIdField || 'id';
-    const selectedRowKeys = this.selectedRows.map((row: any) => row[keyField]);
 
-    console.log('[gts-grid] Selection changed for', this.objectName);
-    console.log('[gts-grid] Selected rows:', this.selectedRows.length);
-    console.log('[gts-grid] Key field:', keyField);
-    console.log('[gts-grid] Selected row data:', this.selectedRows);
-    console.log('[gts-grid] Selected row keys:', selectedRowKeys);
-    console.log('[gts-grid] actionOnSelectedRows:', this.metaData?.actionOnSelectedRows);
-    console.log('[gts-grid] isRestoringSelection:', this.isRestoringSelection);
+    // Create selectedRowKeys as array of objects (like DevExtreme) instead of simple values
+    // DevExtreme format: [{prjId: "GTSW"}]
+    // Previous bug: ["GTSW"] caused Object.keys() to return ['0','1','2','3']
+    const selectedRowKeys = this.selectedRows.map((row: any) => {
+      const keyObj: any = {};
+      keyObj[keyField] = row[keyField];
+      return keyObj;
+    });
 
     // Skip action execution if we're restoring selection programmatically
     if (this.isRestoringSelection) {
-      console.log('[gts-grid] Skipping action execution - restoring selection');
       return;
     }
 
@@ -767,7 +778,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
     // Exit edit mode (like DevExtreme) - disable editing on all columns
     this.allowUpdating = false;
-    if (this.gridApi && this.metaData?.data?.columns) {
+    if (this.gridApi && !this.gridApi.isDestroyed() && this.metaData?.data?.columns) {
       const columns = this.gridApi.getColumns();
       columns?.forEach((column: any) => {
         const colDef = column.getColDef();
@@ -807,13 +818,13 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     }
 
     // Refresh grid to show original values
-    if (this.gridApi) {
+    if (this.gridApi && !this.gridApi.isDestroyed()) {
       this.gridApi.setGridOption('rowData', this.gridObject.dataSet);
     }
 
     // Exit edit mode (like DevExtreme) - disable editing on all columns
     this.allowUpdating = false;
-    if (this.gridApi && this.metaData?.data?.columns) {
+    if (this.gridApi && !this.gridApi.isDestroyed() && this.metaData?.data?.columns) {
       const columns = this.gridApi.getColumns();
       columns?.forEach((column: any) => {
         const colDef = column.getColDef();
@@ -839,7 +850,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    * Returns all rows including edited ones
    */
   getAllRowData(): any[] {
-    if (this.gridApi) {
+    if (this.gridApi && !this.gridApi.isDestroyed()) {
       const allRows: any[] = [];
       this.gridApi.forEachNode(node => {
         if (node.data) {
@@ -899,8 +910,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    * File name comes from metadata.exportFileName, or gridTitle, or objectName
    */
   async exportToExcel(): Promise<void> {
-    if (!this.gridApi) {
-      console.warn('[gts-grid] Cannot export - grid API not ready');
+    if (!this.gridApi || this.gridApi.isDestroyed()) {
+      console.warn('[gts-grid] Cannot export - grid API not ready or destroyed');
       return;
     }
 

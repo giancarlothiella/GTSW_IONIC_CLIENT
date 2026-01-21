@@ -1,0 +1,119 @@
+<app-gts-loader></app-gts-loader>
+
+@if (!showReport) {
+  <div class="reports-wrapper">
+    <div [class]="reportCSSTitle">
+      {{reportTitle}}
+    </div>
+
+    <!-- Radio Group for Report Selection -->
+    <div [class]="reportsGroups.cssClass">
+      <ion-radio-group [(ngModel)]="selectedValue">
+        @for (report of reportsGroups.radioValues; track report.reportDescr) {
+          <ion-item lines="none">
+            <ion-radio [value]="report.reportDescr" slot="start"></ion-radio>
+            <ion-label>{{ report.reportDescr }}</ion-label>
+          </ion-item>
+        }
+      </ion-radio-group>
+    </div>
+
+    <!-- Print Button -->
+    <div [class]="reportsGroups.cssToolbar">
+      <ion-button (click)="onPrintClick()" expand="block">
+        <img src="/assets/icons/stdImage_43.png" slot="start" style="width: 14px; height: 14px;" />
+        PRINT
+      </ion-button>
+    </div>
+  </div>
+}
+
+@if (showReport) {
+  <!-- Main Tabs: PDF / DATA -->
+  <div class="gts-tabs">
+    <ion-segment [(ngModel)]="mainTabIndex">
+      <ion-segment-button value="pdf">
+        <ion-label>PDF</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="data">
+        <ion-label>DATA</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </div>
+
+  <!-- PDF Tab Content -->
+  @if (mainTabIndex === 'pdf') {
+    <div class="pdf-container">
+      <ngx-extended-pdf-viewer
+        [base64Src]="base64PdfStream"
+        [textLayer]="true"
+        height="auto"
+        [showHandToolButton]="true"
+        [showPresentationModeButton]="true"
+        [language]="''"
+        [logLevel]="0"
+      ></ngx-extended-pdf-viewer>
+    </div>
+  }
+
+  <!-- Data Tab Content -->
+  @if (mainTabIndex === 'data') {
+    <!-- Grids Tabs -->
+    @if (grids.length > 1) {
+      <div class="grids-tabs">
+        <ion-segment [(ngModel)]="gridsTabsIndex" (ionChange)="onGridsTabClick(gridsTabsIndex)">
+          @for (grid of grids; track grid.id; let i = $index) {
+            <ion-segment-button [value]="i">
+              <ion-label>{{ grid.name }}</ion-label>
+            </ion-segment-button>
+          }
+        </ion-segment>
+      </div>
+    }
+
+    <!-- Grids Display -->
+    @for (grid of grids; track grid.id; let i = $index) {
+      @if (grid.visible) {
+        <div class="grid-container">
+          <!-- Export Button for this grid -->
+          <div class="grid-export-toolbar">
+            <button class="export-btn" (click)="exportGridToExcel(grid)">
+              <span class="btn-icon">📊</span>
+              Export to Excel
+            </button>
+          </div>
+
+          <!-- Simple data table -->
+          <div class="data-grid">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  @for (column of grid.columns; track column.dataField) {
+                    <th>{{ column.caption }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of grid.rows; track row.id) {
+                  <tr>
+                    @for (column of grid.columns; track column.dataField) {
+                      <td>
+                        @if (column.dataType === 'number') {
+                          {{ row[column.dataField] | number:'1.2-2' }}
+                        } @else if (column.dataType === 'date') {
+                          {{ row[column.dataField] | date:'dd/MM/yyyy' }}
+                        } @else {
+                          {{ row[column.dataField] }}
+                        }
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    }
+  }
+}

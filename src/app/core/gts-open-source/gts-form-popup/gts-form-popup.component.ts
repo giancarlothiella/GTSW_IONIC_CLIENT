@@ -48,18 +48,12 @@ export class GtsFormPopupComponent implements OnInit, OnDestroy {
     // 42px per row (32px field height + 10px gap between rows)
     // Base space: dialog header (50px) + toolbar (44px) + padding (56px) = 150px
 
-    console.log('=== POPUP HEIGHT CALCULATION ===');
-    console.log('groupRows:', this.metaData.groupRows);
-    console.log('groupHeight:', this.metaData.groupHeight);
-
     if (this.metaData.groupHeight && this.metaData.groupHeight > 0) {
       // Use fixed height from metadata
       this.formHeight = this.metaData.groupHeight + 150;
-      console.log('Using fixed height:', this.formHeight, '=', this.metaData.groupHeight, '+ 150');
     } else {
       // Calculate based on row count: 42px per row
       this.formHeight = 150 + this.metaData.groupRows * 42;
-      console.log('Calculated height:', this.formHeight, '= 150 +', this.metaData.groupRows, '* 42');
     }
 
     this.formWidth = this.metaData.groupWidth + 40;

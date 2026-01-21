@@ -12,7 +12,7 @@
   <div
     [style]="viewStyle"
     >
-    @for (element of metaData.tabs; track element) {
+    @for (element of metaData.tabs; track element.objectName) {
       @if (element.visible) {
         <app-gts-tabs
           [style]="'grid-area: '+element.gridArea"
@@ -23,7 +23,7 @@
       }
     }
 
-    @for (element of metaData.reportsGroups; track element) {
+    @for (element of metaData.reportsGroups; track element.fieldGrpId) {
       @if (element.visible) {
         <app-gts-reports
           [style]="'grid-area: '+element.gridArea"
@@ -34,7 +34,7 @@
       }
     }
 
-    @for (element of metaData.toolbars; track element) {
+    @for (element of metaData.toolbars; track element.objectName) {
       @if (element.visible && element.objectName != 'mainToolbar' && !element.toolbarFlagSubmit) {
         <app-gts-toolbar
           [style]="'grid-area: '+element.gridArea"
@@ -47,21 +47,21 @@
       }
     }
 
-    @for (element of metaData.grids; track element) {
-      @if (element.visible) {
-        <app-gts-grid
-          [style]="'grid-area: '+element.gridArea"
-          [prjId]="prjId"
-          [formId]="formId"
-          [objectName]="element.objectName"
-        ></app-gts-grid>
-      }
+    @for (element of metaData.grids; track element.objectName) {
+      <app-gts-grid
+        [style]="'grid-area: '+element.gridArea"
+        [style.display]="element.visible ? '' : 'none'"
+        [prjId]="prjId"
+        [formId]="formId"
+        [objectName]="element.objectName"
+      ></app-gts-grid>
     }
 
-    @for (element of metaData.forms; track element) {
-      @if (element.visible && !element.groupShowPopUp) {
+    @for (element of metaData.forms; track element.objectName) {
+      @if (!element.groupShowPopUp) {
         <app-gts-form
           [style]="'grid-area: '+element.gridArea"
+          [style.display]="element.visible ? '' : 'none'"
           [prjId]="prjId"
           [formId]="formId"
           [objectName]="element.objectName"

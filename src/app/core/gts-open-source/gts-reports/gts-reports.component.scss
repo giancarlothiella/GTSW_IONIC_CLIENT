@@ -1,0 +1,273 @@
+// GTS Reports - Open Source Version
+// Using Ionic Segments, Radio Group, and simple HTML tables
+// Matching GTS Form styling for consistency
+
+.reports-wrapper {
+  max-width: 100%;
+  width: 100%;
+}
+
+.reportTitle001 {
+  height: 40px;
+  width: 100%;
+  border-top: solid 1px #a5a3a392;
+  border-left: solid 1px #a5a3a392;
+  border-right: solid 1px #a5a3a392;
+  text-align: center;
+  line-height: 40px;
+  font-size: 16px;
+  font-weight: 500;
+  background-color: rgb(171, 195, 243);
+  color: rgb(16, 16, 179);
+}
+
+.report001 {
+  border: solid 1px #a5a3a392;
+  background-color: rgb(252, 246, 246);
+  padding: 10px 5px;
+  font-weight: normal;
+  border-top: none;
+
+  ion-item {
+    --background: rgb(234, 235, 247);
+    --padding-start: 6px;
+    --inner-padding-end: 6px;
+    --border-color: transparent;
+    margin-bottom: 3px;
+    font-size: 12px;
+    border-radius: 2px;
+
+    ion-radio {
+      margin-right: 8px;
+      --color: #ced4da;
+      --color-checked: #00008b;
+      width: 16px;
+      height: 16px;
+    }
+
+    ion-label {
+      color: #333;
+      font-size: 12px;
+    }
+  }
+}
+
+.rptToolbar001 {
+  border: solid 1px #a5a3a392;
+  border-top: none;
+  padding: 10px 5px;
+  background-color: rgb(171, 195, 243);
+  text-align: center;
+
+  ion-button {
+    --background: white;
+    --background-hover: #f5f5f5;
+    --background-activated: #eeeeee;
+    --color: #333;
+    --border-radius: 2px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --border-width: 1px;
+    --border-style: solid;
+    --border-color: #ddd;
+    height: 28px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-size: 11px;
+    width: auto;
+    max-width: 120px;
+    min-width: 90px;
+
+    img {
+      width: 14px;
+      height: 14px;
+      margin-right: 4px;
+    }
+  }
+}
+
+.gts-tabs {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #2d3e50 0%, #3d4e60 100%);
+  border-bottom: none;
+
+  ion-segment {
+    --background: transparent;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+
+  ion-segment-button {
+    --color: rgba(255, 255, 255, 0.7);
+    --color-checked: #ffffff;
+    --indicator-color: #00008b;
+    --indicator-height: 3px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-size: 13px;
+    min-height: 40px;
+  }
+}
+
+.pdf-container {
+  padding: 0;
+  height: calc(100vh - 200px);
+  min-height: 600px;
+}
+
+.grids-tabs {
+  padding: 8px 16px;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #00008b;
+
+  ion-segment {
+    --background: transparent;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  ion-segment-button {
+    --color: #666;
+    --color-checked: #00008b;
+    --indicator-color: #00008b;
+    --indicator-height: 3px;
+    font-weight: 500;
+    min-width: 80px;
+    font-size: 12px;
+  }
+}
+
+.grid-container {
+  padding: 16px;
+}
+
+.grid-export-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 12px;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #17a2b8;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: #fff;
+  color: #17a2b8;
+
+  .btn-icon {
+    font-size: 14px;
+  }
+
+  &:hover {
+    background-color: #17a2b8;
+    color: #fff;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.data-grid {
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #ffffff;
+  font-size: 13px;
+
+  thead {
+    background-color: #f4f5f8;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    th {
+      padding: 12px 8px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #00008b;
+      border-right: 1px solid #ddd;
+      white-space: nowrap;
+
+      &:last-child {
+        border-right: none;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid #e9ecef;
+      cursor: pointer;
+
+      &:hover {
+        background-color: #f5f5f5;
+      }
+
+      &:nth-child(even) {
+        background-color: #fafafa;
+
+        &:hover {
+          background-color: #f5f5f5;
+        }
+      }
+
+      td {
+        padding: 10px 8px;
+        color: #333;
+        border-right: 1px solid #e9ecef;
+
+        &:last-child {
+          border-right: none;
+        }
+      }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .reportTitle001 {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  .report001 {
+    padding: 12px;
+  }
+
+  .gts-tabs ion-segment {
+    max-width: 100%;
+  }
+
+  .report-table {
+    font-size: 12px;
+
+    thead th {
+      padding: 10px 6px;
+      font-size: 11px;
+    }
+
+    tbody td {
+      padding: 8px 6px;
+    }
+  }
+}

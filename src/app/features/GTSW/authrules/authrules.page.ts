@@ -4,24 +4,38 @@ import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { GtsDataService } from '../../../core/services/gts-data.service';
-import { GtsLoaderComponent } from '../../../core/gts/gts-loader/gts-loader.component';
-import { GtsToolbarComponent } from '../../../core/gts/gts-toolbar/gts-toolbar.component';
-// import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component'; // DevExtreme version
-import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component'; // AG Grid version ✨
-import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component';
-import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component';
-import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';
-import { GtsTabsComponent } from '../../../core/gts/gts-tabs/gts-tabs.component';
-import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.component';
+// Import GTS Components - Open Source Versions
+import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
+import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component';
+import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component';
+import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
+import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
+import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
+import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component';
+import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';
 import { AuthDetailsComponent } from '../auth-details/auth-details.component';
 import { webInfo } from '../../../../environments/environment';
+// Ionic imports
 import {
-  DxPopupModule,
-  DxListModule,
-  DxTextBoxModule,
-  DxButtonModule,
-  DxHtmlEditorModule
-} from 'devextreme-angular';
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonButtons,
+  IonButton,
+  IonList,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonItemSliding,
+  IonItemOptions,
+  IonItemOption,
+  IonIcon
+} from '@ionic/angular/standalone';
+import { FormsModule } from '@angular/forms';
+import { addIcons } from 'ionicons';
+import { send, trash } from 'ionicons/icons';
 
 @Component({
   selector: 'app-authrules',
@@ -37,11 +51,22 @@ import {
     GtsTabsComponent,
     GtsReportsComponent,
     AuthDetailsComponent,
-    DxPopupModule,
-    DxListModule,
-    DxTextBoxModule,
-    DxButtonModule,
-    DxHtmlEditorModule
+    IonModal,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonContent,
+    IonButtons,
+    IonButton,
+    IonList,
+    IonItem,
+    IonLabel,
+    IonInput,
+    IonItemSliding,
+    IonItemOptions,
+    IonItemOption,
+    IonIcon,
+    FormsModule
   ],
   template: `
     @if (!nestedFormActive) {
@@ -139,88 +164,99 @@ import {
     }
 
     <!-- Email edit List -->
-    <dx-popup
-      [(visible)]="showMailList"
-      [title]="mailPopupTitle"
-      [width]="400"
-      [height]="400"
-      [showTitle]="true"
-      [hideOnOutsideClick]="false"
-      [showCloseButton]="true">
-      <dx-list
-        id="emailList"
-        [dataSource]="emailList"
-        [selectByClick]="true"
-        [allowItemDeleting]="true"
-        [height]="280"
-        (onItemDeleted)="deleteMail($event)">
-        <div *dxTemplate="let item of 'item'">
-          <div>{{item.email}}</div>
-        </div>
-      </dx-list>
-
-      <dx-text-box
-        [(value)]="newEmail"
-        [placeholder]="'Enter new email'"
-        (onEnterKey)="saveMail()">
-      </dx-text-box>
-    </dx-popup>
+    <ion-modal [isOpen]="showMailList" (didDismiss)="showMailList = false" class="email-list-modal">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>{{ mailPopupTitle }}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="showMailList = false">Close</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content>
+          <ion-list>
+            @for (email of emailList; track email.email; let i = $index) {
+              <ion-item-sliding>
+                <ion-item>
+                  <ion-label>{{ email.email }}</ion-label>
+                </ion-item>
+                <ion-item-options>
+                  <ion-item-option color="danger" (click)="deleteEmail(i)">
+                    <ion-icon slot="icon-only" name="trash"></ion-icon>
+                  </ion-item-option>
+                </ion-item-options>
+              </ion-item-sliding>
+            }
+          </ion-list>
+          <div class="add-email-container">
+            <ion-input
+              [(ngModel)]="newEmail"
+              placeholder="Enter new email"
+              (keyup.enter)="saveMail()"
+              fill="outline"
+            ></ion-input>
+          </div>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
 
     <!-- Email Send List -->
-    <dx-popup
-      [(visible)]="showMailSendList"
-      [title]="mailPopupTitle"
-      [width]="600"
-      [height]="400"
-      [showTitle]="true"
-      [hideOnOutsideClick]="false"
-      [showCloseButton]="true">
-      <dx-list
-        id="emailList"
-        [dataSource]="emailList"
-        [selectByClick]="true"
-        [allowItemDeleting]="true"
-        [height]="280"
-        [visible]="!showMailSentResult">
-        <div *dxTemplate="let item of 'item'">
-          <div>{{item.email}}</div>
-        </div>
-      </dx-list>
-
-      <dx-list
-        id="emailResult"
-        [dataSource]="sentMailResult"
-        [selectByClick]="true"
-        [allowItemDeleting]="true"
-        [height]="280"
-        [visible]="showMailSentResult">
-        <div *dxTemplate="let item of 'item'">
-          <div><b>{{item.message}}</b></div>
-        </div>
-      </dx-list>
-
-      <dx-button
-        text="Send"
-        icon="send"
-        (onClick)="sendMail($event)">
-      </dx-button>
-    </dx-popup>
+    <ion-modal [isOpen]="showMailSendList" (didDismiss)="showMailSendList = false" class="email-send-modal">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>{{ mailPopupTitle }}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="showMailSendList = false">Close</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content>
+          @if (!showMailSentResult) {
+            <ion-list>
+              @for (email of emailList; track email.email) {
+                <ion-item>
+                  <ion-label>{{ email.email }}</ion-label>
+                </ion-item>
+              }
+            </ion-list>
+            <div class="send-button-container">
+              <ion-button expand="block" (click)="sendMail()">
+                <ion-icon slot="start" name="send"></ion-icon>
+                Send
+              </ion-button>
+            </div>
+          }
+          @if (showMailSentResult) {
+            <ion-list>
+              @for (result of sentMailResult; track result.message) {
+                <ion-item>
+                  <ion-label><strong>{{ result.message }}</strong></ion-label>
+                </ion-item>
+              }
+            </ion-list>
+          }
+        </ion-content>
+      </ng-template>
+    </ion-modal>
 
     <!-- HTML Preview -->
-    <dx-popup
-      [hideOnOutsideClick]="true"
-      [showCloseButton]="false"
-      [(visible)]="showHtml"
-      title="Preview MailMerge result"
-      [height]="800"
-      [width]="800">
-      <dx-html-editor
-        [readOnly]="true"
-        [height]="724"
-        [width]="768"
-        [value]="testValueContent">
-      </dx-html-editor>
-    </dx-popup>
+    <ion-modal [isOpen]="showHtml" (didDismiss)="showHtml = false" class="html-preview-modal">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>Preview MailMerge result</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="showHtml = false">Close</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <div class="html-preview-content" [innerHTML]="testValueContent"></div>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
   `,
   styles: [`
     .authrules-container {
@@ -228,12 +264,43 @@ import {
       display: flex;
       flex-direction: column;
     }
+
+    .email-list-modal,
+    .email-send-modal {
+      --width: 500px;
+      --height: 60vh;
+      --max-width: 90vw;
+    }
+
+    .html-preview-modal {
+      --width: 800px;
+      --height: 80vh;
+      --max-width: 90vw;
+    }
+
+    .add-email-container,
+    .send-button-container {
+      padding: 16px;
+    }
+
+    .html-preview-content {
+      padding: 16px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      min-height: 400px;
+    }
   `]
 })
 export class GTSW_AuthrulesComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   public gtsDataService = inject(GtsDataService);
   private cd = inject(ChangeDetectorRef);
+
+  constructor() {
+    // Register Ionic icons
+    addIcons({ send, trash });
+  }
 
   // Page params
   prjId = 'GTSW';
@@ -464,7 +531,8 @@ export class GTSW_AuthrulesComponent implements OnInit, OnDestroy {
     this.gtsDataService.sendAppLoaderListener(false);
   }
 
-  async deleteMail(event: any): Promise<void> {
+  async deleteEmail(index: number): Promise<void> {
+    this.emailList.splice(index, 1);
     this.authKey = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daAuth', 'qAuthKey').authKey;
     this.gtsDataService.setFormFieldValue(this.prjId, this.formId, 'mailDataForm', 'gtsFldqAuthKey_authKey', this.authKey);
     this.gtsDataService.setFormFieldValue(this.prjId, this.formId, 'mailDataForm', 'gtsFldqAuthKey_emails', this.emailList);
@@ -474,7 +542,7 @@ export class GTSW_AuthrulesComponent implements OnInit, OnDestroy {
     this.gtsDataService.sendAppLoaderListener(false);
   }
 
-  async sendMail(event: any): Promise<void> {
+  async sendMail(): Promise<void> {
     this.sentMailResult = [];
     const mailToArray = this.emailList.map((email: any) => email.email);
     const sendResult: any[] = [];

@@ -1,0 +1,306 @@
+// GTS Debug - Open Source Version
+
+.gts-debug-container {
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+// Header
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  gap: 1rem;
+
+  .debug-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .debug-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: #ffffff;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+
+      .status-icon {
+        font-size: 18px;
+        color: #dc3545;
+      }
+
+      &.active .status-icon {
+        color: #28a745;
+      }
+    }
+  }
+
+  .page-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    label {
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    ion-select {
+      min-width: 300px;
+      max-width: 500px;
+    }
+  }
+}
+
+// Tabs
+.tabs-container {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 1rem;
+
+  ion-segment {
+    margin-bottom: 1rem;
+
+    ion-segment-button {
+      min-height: 40px;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: none;
+    }
+  }
+
+  .tab-content {
+    padding: 1rem 0;
+  }
+}
+
+// MetaData Tab
+.metadata-container {
+  .category-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1rem;
+
+    label {
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    ion-select {
+      min-width: 200px;
+    }
+
+    .record-count {
+      font-size: 13px;
+      color: #6c757d;
+      font-weight: 600;
+    }
+  }
+
+  .metadata-grid {
+    ::ng-deep .p-datatable {
+      font-size: 13px;
+
+      .p-datatable-thead > tr > th {
+        background: #e9ecef;
+        color: #495057;
+        font-weight: 600;
+        padding: 8px;
+        border: 1px solid #dee2e6;
+      }
+
+      .p-datatable-tbody > tr > td {
+        padding: 6px 8px;
+        border: 1px solid #dee2e6;
+
+        pre {
+          margin: 0;
+          font-size: 11px;
+          max-height: 100px;
+          overflow: auto;
+        }
+      }
+    }
+  }
+}
+
+// DB Data Tab
+.dbdata-container {
+  .adapter-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1rem;
+
+    label {
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    ion-select {
+      min-width: 200px;
+    }
+  }
+
+  .dataset-list {
+    margin-bottom: 1rem;
+
+    h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .dataset-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 12px;
+    }
+
+    .dataset-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: #f8f9fa;
+      border: 2px solid #dee2e6;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #e9ecef;
+        border-color: #adb5bd;
+      }
+
+      &.selected {
+        background: #e3f2fd;
+        border-color: #2196f3;
+      }
+
+      .dataset-name {
+        flex: 1;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .dataset-count {
+        font-size: 12px;
+        color: #6c757d;
+      }
+    }
+  }
+
+  .dataset-grid {
+    h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    ::ng-deep .p-datatable {
+      font-size: 12px;
+
+      .p-datatable-thead > tr > th {
+        background: #e9ecef;
+        color: #495057;
+        font-weight: 600;
+        padding: 6px 8px;
+        border: 1px solid #dee2e6;
+      }
+
+      .p-datatable-tbody > tr > td {
+        padding: 4px 6px;
+        border: 1px solid #dee2e6;
+      }
+    }
+  }
+}
+
+// DB Action Log Tab
+.dblog-container {
+  ::ng-deep .p-datatable {
+    font-size: 13px;
+
+    .p-datatable-thead > tr > th {
+      background: #e9ecef;
+      color: #495057;
+      font-weight: 600;
+      padding: 8px;
+      border: 1px solid #dee2e6;
+    }
+
+    .p-datatable-tbody > tr > td {
+      padding: 6px 8px;
+      border: 1px solid #dee2e6;
+    }
+  }
+}
+
+// Dialogs
+::ng-deep .sql-dialog,
+::ng-deep .json-dialog {
+  .p-dialog-content {
+    padding: 0;
+  }
+}
+
+.sql-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .sql-toolbar {
+    padding: 8px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .sql-code {
+    flex: 1;
+    margin: 0;
+    padding: 12px;
+    background: #2d2d2d;
+    color: #f8f8f2;
+    font-size: 12px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    overflow: auto;
+  }
+}
+
+.json-content {
+  margin: 0;
+  padding: 12px;
+  background: #2d2d2d;
+  color: #f8f8f2;
+  font-size: 12px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  overflow: auto;
+  height: 100%;
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .debug-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .dbdata-container .dataset-list .dataset-items {
+    grid-template-columns: 1fr;
+  }
+}

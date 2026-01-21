@@ -1,7 +1,8 @@
 // src/app/features/auth/recover-password/recover-password.page.ts
-import { Component, OnInit, ViewChild, AfterViewInit, inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, inject } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import {
   IonContent,
   IonCard,
@@ -14,11 +15,12 @@ import {
   IonList,
   IonItem,
   IonLabel,
+  IonInput,
+  IonText,
   ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { informationCircleOutline, checkmarkCircle, closeCircle, arrowBackOutline } from 'ionicons/icons';
-import { DxFormModule, DxButtonModule, DxFormComponent } from 'devextreme-angular';
+import { informationCircleOutline, checkmarkCircle, closeCircle, arrowBackOutline, eyeOutline, eyeOffOutline } from 'ionicons/icons';
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslationService, Language } from '../../../core/services/translation.service';
 import { environment, webInfo } from '../../../../environments/environment';
@@ -28,7 +30,9 @@ addIcons({
   'information-circle-outline': informationCircleOutline,
   'checkmark-circle': checkmarkCircle,
   'close-circle': closeCircle,
-  'arrow-back-outline': arrowBackOutline
+  'arrow-back-outline': arrowBackOutline,
+  'eye-outline': eyeOutline,
+  'eye-off-outline': eyeOffOutline
 });
 
 interface RecoverPasswordFormData {
@@ -41,6 +45,7 @@ interface RecoverPasswordFormData {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     IonContent,
     IonCard,
     IonCardHeader,
@@ -52,8 +57,8 @@ interface RecoverPasswordFormData {
     IonList,
     IonItem,
     IonLabel,
-    DxFormModule,
-    DxButtonModule
+    IonInput,
+    IonText
   ],
   template: `
     <ion-content class="recover-password-content">
@@ -85,48 +90,66 @@ interface RecoverPasswordFormData {
 
             <ion-card-content>
               <form (submit)="onSubmit($event)">
-                <dx-form
-                  #recoverPasswordForm
-                  [(formData)]="formData"
-                  [colCount]="1"
-                  [showColonAfterLabel]="false"
-                  labelLocation="top"
-                  [disabled]="loading">
+                <!-- New Password Field -->
+                <div class="input-section">
+                  <ion-text color="dark">
+                    <p class="input-label">{{ getText(621) || 'Nuova Password' }}</p>
+                  </ion-text>
+                  <div class="password-input-wrapper">
+                    <ion-input
+                      [type]="newPasswordVisible ? 'text' : 'password'"
+                      [(ngModel)]="formData.newPassword"
+                      name="newPassword"
+                      placeholder="Password"
+                      class="custom-input password-input"
+                      [disabled]="loading"
+                      (ionInput)="onNewPasswordInput()">
+                    </ion-input>
+                    <button
+                      type="button"
+                      class="password-toggle-btn"
+                      (click)="toggleNewPasswordVisibility()"
+                      [disabled]="loading"
+                      tabindex="-1">
+                      <ion-icon [name]="newPasswordVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                    </button>
+                  </div>
+                  @if (newPasswordError) {
+                    <ion-text color="danger">
+                      <p class="field-error">{{ newPasswordError }}</p>
+                    </ion-text>
+                  }
+                </div>
 
-                  <!-- Nuova Password -->
-                  <dxi-item
-                    dataField="newPassword"
-                    editorType="dxTextBox"
-                    [editorOptions]="newPasswordEditorOptions">
-                    <dxo-label [text]="getText(621)"></dxo-label>
-                    <dxi-validation-rule
-                      type="required"
-                      [message]="getText(109)">
-                    </dxi-validation-rule>
-                    <dxi-validation-rule
-                      type="custom"
-                      [message]="getText(624)"
-                      [validationCallback]="checkPassword">
-                    </dxi-validation-rule>
-                  </dxi-item>
-
-                  <!-- Conferma Password -->
-                  <dxi-item
-                    dataField="confirmedPassword"
-                    editorType="dxTextBox"
-                    [editorOptions]="confirmPasswordEditorOptions">
-                    <dxo-label [text]="getText(622)"></dxo-label>
-                    <dxi-validation-rule
-                      type="required"
-                      [message]="getText(109)">
-                    </dxi-validation-rule>
-                    <dxi-validation-rule
-                      type="custom"
-                      [message]="getText(111)"
-                      [validationCallback]="confirmPassword">
-                    </dxi-validation-rule>
-                  </dxi-item>
-                </dx-form>
+                <!-- Confirm Password Field -->
+                <div class="input-section">
+                  <ion-text color="dark">
+                    <p class="input-label">{{ getText(622) || 'Conferma Password' }}</p>
+                  </ion-text>
+                  <div class="password-input-wrapper">
+                    <ion-input
+                      [type]="confirmPasswordVisible ? 'text' : 'password'"
+                      [(ngModel)]="formData.confirmedPassword"
+                      name="confirmedPassword"
+                      [placeholder]="getText(622) || 'Conferma Password'"
+                      class="custom-input password-input"
+                      [disabled]="loading">
+                    </ion-input>
+                    <button
+                      type="button"
+                      class="password-toggle-btn"
+                      (click)="toggleConfirmPasswordVisibility()"
+                      [disabled]="loading"
+                      tabindex="-1">
+                      <ion-icon [name]="confirmPasswordVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                    </button>
+                  </div>
+                  @if (confirmPasswordError) {
+                    <ion-text color="danger">
+                      <p class="field-error">{{ confirmPasswordError }}</p>
+                    </ion-text>
+                  }
+                </div>
 
                 <!-- Info Password Rules -->
                 <div class="password-info-container">
@@ -386,9 +409,66 @@ interface RecoverPasswordFormData {
     }
 
     /* Form styling */
-    dx-form {
-      margin-top: 20px;
+    .input-section {
       margin-bottom: 20px;
+    }
+
+    .input-section:first-child {
+      margin-top: 15px;
+    }
+
+    .input-label {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      display: block;
+      color: #555;
+    }
+
+    .custom-input {
+      --background: var(--ion-color-light);
+      --padding-start: 15px;
+      --padding-end: 15px;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    .password-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .password-input {
+      flex: 1;
+      --padding-end: 45px;
+    }
+
+    .password-toggle-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      color: var(--ion-color-medium);
+      z-index: 10;
+    }
+
+    .password-toggle-btn:hover {
+      color: var(--ion-color-primary);
+    }
+
+    .password-toggle-btn ion-icon {
+      font-size: 20px;
+    }
+
+    .field-error {
+      font-size: 12px;
+      margin: 5px 0 0 0;
+      padding-left: 2px;
     }
 
     /* Password Info Container */
@@ -588,8 +668,6 @@ interface RecoverPasswordFormData {
   `]
 })
 export class RecoverPasswordPage implements OnInit, AfterViewInit {
-  @ViewChild('recoverPasswordForm') recoverPasswordFormComponent?: DxFormComponent;
-
   authService = inject(AuthService);
   private translationService = inject(TranslationService);
   private router = inject(Router);
@@ -612,15 +690,15 @@ export class RecoverPasswordPage implements OnInit, AfterViewInit {
   newPasswordVisible = false;
   confirmPasswordVisible = false;
 
-  newPasswordEditorOptions: any;
-  confirmPasswordEditorOptions: any;
+  // Validation errors
+  newPasswordError = '';
+  confirmPasswordError = '';
 
   // Multi-lingua
   availableLanguages: Language[] = [];
   currentLanguage: string = environment.languageId;
 
   constructor() {
-    this.initializePasswordOptions();
   }
 
   async ngOnInit() {
@@ -656,123 +734,70 @@ export class RecoverPasswordPage implements OnInit, AfterViewInit {
     }
   }
 
-  private initializePasswordOptions() {
-    this.newPasswordEditorOptions = {
-      stylingMode: 'filled',
-      mode: 'password',
-      onValueChanged: (e: any) => {
-        this.checkPassword({ value: e.value });
-      },
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          tabIndex: -1,
-          onClick: () => {
-            this.toggleNewPasswordVisibility();
-          }
-        }
-      }]
-    };
-
-    this.confirmPasswordEditorOptions = {
-      stylingMode: 'filled',
-      mode: 'password',
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          tabIndex: -1,
-          onClick: () => {
-            this.toggleConfirmPasswordVisibility();
-          }
-        }
-      }]
-    };
-  }
-
   toggleNewPasswordVisibility() {
     this.newPasswordVisible = !this.newPasswordVisible;
-    this.newPasswordEditorOptions = {
-      ...this.newPasswordEditorOptions,
-      mode: this.newPasswordVisible ? 'text' : 'password',
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: this.newPasswordVisible ? 'eyeopen' : 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          tabIndex: -1,
-          onClick: () => {
-            this.toggleNewPasswordVisibility();
-          }
-        }
-      }]
-    };
-    if (this.recoverPasswordFormComponent) {
-      this.recoverPasswordFormComponent.instance.repaint();
-    }
   }
 
   toggleConfirmPasswordVisibility() {
     this.confirmPasswordVisible = !this.confirmPasswordVisible;
-    this.confirmPasswordEditorOptions = {
-      ...this.confirmPasswordEditorOptions,
-      mode: this.confirmPasswordVisible ? 'text' : 'password',
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: this.confirmPasswordVisible ? 'eyeopen' : 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          tabIndex: -1,
-          onClick: () => {
-            this.toggleConfirmPasswordVisibility();
-          }
-        }
-      }]
-    };
-    if (this.recoverPasswordFormComponent) {
-      this.recoverPasswordFormComponent.instance.repaint();
+  }
+
+  /**
+   * Chiamato quando cambia la password
+   */
+  onNewPasswordInput() {
+    this.newPasswordError = '';
+    this.confirmPasswordError = '';
+    this.formData.confirmedPassword = ''; // Resetta conferma password
+
+    if (this.formData.newPassword && this.authService.psswPolicy) {
+      const level = this.authService.getPasswStrength(this.formData.newPassword);
+      this.pwStrengthLevel = level;
+    } else {
+      this.pwStrengthLevel = 0;
     }
   }
 
   /**
-   * Validazione password con policy
+   * Valida il form
    */
-  checkPassword = (e: { value: string }): boolean => {
-    if (!this.authService.psswPolicy) {
-      return false;
+  private validateForm(): boolean {
+    this.newPasswordError = '';
+    this.confirmPasswordError = '';
+
+    let isValid = true;
+
+    // Validazione nuova password
+    if (!this.formData.newPassword) {
+      this.newPasswordError = this.getText(109) || 'Password obbligatoria';
+      isValid = false;
+    } else if (this.authService.psswPolicy) {
+      const valid = this.authService.validatePssw(
+        this.formData.newPassword,
+        this.authService.psswPolicy.policyLC,
+        this.authService.psswPolicy.policyUC,
+        this.authService.psswPolicy.policyNM,
+        this.authService.psswPolicy.policySC,
+        this.authService.psswPolicy.policyMinLen,
+        this.authService.psswPolicy.policyMaxLen
+      );
+      if (!valid) {
+        this.newPasswordError = this.getText(624) || 'Password non conforme alle regole!';
+        isValid = false;
+      }
     }
 
-    const level = this.authService.getPasswStrength(e.value);
-    this.pwStrengthLevel = level;
+    // Validazione conferma password
+    if (!this.formData.confirmedPassword) {
+      this.confirmPasswordError = this.getText(109) || 'Conferma password obbligatoria';
+      isValid = false;
+    } else if (this.formData.confirmedPassword !== this.formData.newPassword) {
+      this.confirmPasswordError = this.getText(111) || 'Le password non corrispondono';
+      isValid = false;
+    }
 
-    return this.authService.validatePssw(
-      e.value,
-      this.authService.psswPolicy.policyLC,
-      this.authService.psswPolicy.policyUC,
-      this.authService.psswPolicy.policyNM,
-      this.authService.psswPolicy.policySC,
-      this.authService.psswPolicy.policyMinLen,
-      this.authService.psswPolicy.policyMaxLen
-    );
-  };
-
-  /**
-   * Validazione conferma password
-   */
-  confirmPassword = (e: { value: string }): boolean => {
-    return e.value === this.formData.newPassword;
-  };
+    return isValid;
+  }
 
   /**
    * Gestisce il salvataggio della nuova password
@@ -780,13 +805,7 @@ export class RecoverPasswordPage implements OnInit, AfterViewInit {
   async onSubmit(e: Event) {
     e.preventDefault();
 
-    if (!this.recoverPasswordFormComponent) {
-      return;
-    }
-
-    const validation = this.recoverPasswordFormComponent.instance.validate();
-
-    if (!validation.isValid) {
+    if (!this.validateForm()) {
       return;
     }
 

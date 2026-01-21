@@ -1,0 +1,53 @@
+@if (lookUpReady) {
+  <p-toast />
+
+  <p-dialog
+    [(visible)]="popUpVisible"
+    [header]="lookUpTitle"
+    [modal]="true"
+    [closeOnEscape]="false"
+    [closable]="false"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{width: '600px', height: '660px'}"
+    [contentStyle]="{padding: '0', overflow: 'hidden', display: 'flex', 'flex-direction': 'column'}"
+    [appendTo]="'body'"
+  >
+    <div class="lookup-container">
+      <!-- Grid Panel -->
+      <div class="lookup-grid-panel">
+        <ag-grid-angular
+          class="ag-theme-material gts-lookup-grid"
+          [rowData]="rowData"
+          [columnDefs]="columnDefs"
+          [defaultColDef]="defaultColDef"
+          [rowSelection]="rowSelectionConfig"
+          [pagination]="true"
+          [paginationPageSize]="10"
+          [paginationPageSizeSelector]="[10, 20, 50]"
+          [animateRows]="true"
+          [domLayout]="'normal'"
+          (gridReady)="onGridReady($event)"
+          (selectionChanged)="onSelectionChanged($event)"
+          (rowDoubleClicked)="onRowDoubleClicked($event)"
+        />
+      </div>
+
+      <!-- Toolbar Panel -->
+      <div class="lookup-toolbar-panel">
+        <ion-toolbar class="form001Toolbar">
+          <ion-buttons slot="end">
+            <ion-button (click)="popUpVisible = false">
+              <img [src]="'/assets/icons/stdImage_57.png'" style="width: 20px; height: 20px; margin-right: 6px;" />
+              {{ textCancel }}
+            </ion-button>
+            <ion-button (click)="onOKClick()">
+              <img [src]="'/assets/icons/stdImage_43.png'" style="width: 20px; height: 20px; margin-right: 6px;" />
+              {{ textOK }}
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </div>
+    </div>
+  </p-dialog>
+}

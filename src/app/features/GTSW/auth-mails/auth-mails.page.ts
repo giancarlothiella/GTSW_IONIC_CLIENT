@@ -4,15 +4,16 @@ import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { GtsDataService } from '../../../core/services/gts-data.service';
-import { GtsLoaderComponent } from '../../../core/gts/gts-loader/gts-loader.component';
-import { GtsToolbarComponent } from '../../../core/gts/gts-toolbar/gts-toolbar.component';
-import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component';
-import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component';
-import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component';
-import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';
-import { GtsTabsComponent } from '../../../core/gts/gts-tabs/gts-tabs.component';
-import { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.component';
-import { GtsHtmlComponent } from '../../../core/gts/gts-html/gts-html.component';
+// Import GTS Components - Open Source Versions
+import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
+import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component';
+import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component';
+import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
+import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
+import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
+import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component';
+import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';
+import { GtsHtmlComponent } from '../../../core/gts-open-source/gts-html/gts-html.component';
 
 @Component({
   selector: 'app-auth-mails',

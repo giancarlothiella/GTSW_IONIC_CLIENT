@@ -38,9 +38,9 @@ import { MenuService } from '../../core/services/menu.service';
 import { DynamicRoutesService } from '../../core/services/dynamic-routes.service';
 import { TranslationService } from '../../core/services/translation.service';
 import { MenuItem, ProjectInfo } from '../../core/models/menu.model';
-import { GtsLoaderComponent } from '../../core/gts/gts-loader/gts-loader.component';
-import { GtsDebugComponent } from '../../core/gts/gts-debug/gts-debug.component';
-import { GtsActionsDebugComponent } from '../../core/gts/gts-actions-debug/gts-actions-debug.component';
+import { GtsLoaderComponent } from '../../core/gts-open-source/gts-loader/gts-loader.component';
+import { GtsDebugComponent } from '../../core/gts-open-source/gts-debug/gts-debug.component';
+import { GtsActionsDebugComponent } from '../../core/gts-open-source/gts-actions-debug/gts-actions-debug.component';
 import { GtsDataService } from '../../core/services/gts-data.service';
 import { AppInfoService } from '../../core/services/app-info.service';
 
@@ -296,7 +296,22 @@ import { AppInfoService } from '../../core/services/app-info.service';
       --width: 280px;
     }
 
-    /* Menu laterale */
+    /* Menu items - font più piccolo */
+    ion-menu ion-item {
+      --min-height: 38px;
+      font-size: 13px;
+    }
+
+    ion-menu ion-item ion-label {
+      font-size: 13px;
+    }
+
+    /* Icone menu leggermente più piccole */
+    ion-menu ion-item ion-icon {
+      font-size: 18px;
+    }
+
+    /* Stili contenitori */
     .loading-container,
     .empty-menu {
       display: flex;
