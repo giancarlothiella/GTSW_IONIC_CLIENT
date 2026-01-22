@@ -196,9 +196,10 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
    */
   private checkCachedData(): void {
     const pageCode = `salesDashboard_${this.formId}`;
+    const connCode = this.gtsDataService.getActualConnCode();
 
-    // Cache condivisa tra tutti gli utenti (userId = 'shared')
-    this.userDataService.excelCacheExists(this.prjId, pageCode, 'shared').subscribe({
+    // Cache condivisa tra tutti gli utenti (userId = 'shared') ma filtrata per connCode
+    this.userDataService.excelCacheExists(this.prjId, pageCode, 'shared', connCode).subscribe({
       next: (response) => {
         this.hasCachedData = response.exists;
         if (response.exists && response.metadata) {
@@ -210,8 +211,7 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
           };
         }
       },
-      error: (err) => {
-        console.warn('Error checking cached data:', err);
+      error: () => {
         this.hasCachedData = false;
       }
     });
@@ -340,10 +340,12 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
     }
 
     if (customCode === 'LOAD_CACHED') {
-      // Il loader verrà attivato dentro loadCachedData() prima della chiamata MongoDB
-      // e verrà spento dalla griglia quando avrà finito di renderizzare
       if (this.hasCachedData) {
         this.loadCachedData();
+      } else {
+        // Se non ci sono dati in cache, spegni il loader e mostra messaggio
+        this.gtsDataService.sendAppLoaderListener(false);
+        this.showWarning(this.t(1548, 'Nessun dato in cache per questa connessione. Carica prima un file Excel.'));
       }
     }
 
@@ -583,8 +585,10 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
   private saveDataToCache(data: ExcelRow[], fileName?: string): void {
     const pageCode = `salesDashboard_${this.formId}`;
     const uploadedBy = this.authService.getUserEmail() || 'unknown';
+    const connCode = this.gtsDataService.getActualConnCode();
 
     // Cache condivisa tra tutti gli utenti (userId = 'shared'), ma salviamo chi l'ha caricata
+    // Il connCode garantisce che utenti di connessioni diverse vedano solo i propri dati
     this.userDataService.saveExcelCache(
       this.prjId,
       pageCode,
@@ -592,7 +596,8 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
       data,
       fileName,
       30, // TTL 30 giorni
-      uploadedBy
+      uploadedBy,
+      connCode
     ).subscribe({
       next: (response) => {
         if (response.success) {
@@ -621,12 +626,13 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
     }
 
     const pageCode = `salesDashboard_${this.formId}`;
+    const connCode = this.gtsDataService.getActualConnCode();
 
     this.cacheLoading = true;
     this.gtsDataService.sendAppLoaderListener(true);
 
-    // Cache condivisa tra tutti gli utenti (userId = 'shared')
-    this.userDataService.loadExcelCache<ExcelRow[]>(this.prjId, pageCode, 'shared').subscribe({
+    // Cache condivisa tra tutti gli utenti (userId = 'shared') ma filtrata per connCode
+    this.userDataService.loadExcelCache<ExcelRow[]>(this.prjId, pageCode, 'shared', connCode).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const rawData = response.data;
@@ -701,6 +707,10 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
           // Processa i dati per dashboard (popola rawExcelData)
           this.processExcelData(rawData);
           // NON apre la dashboard - c'è un bottone separato per quello
+
+          // Spegni il loader dopo il caricamento
+          this.cacheLoading = false;
+          this.gtsDataService.sendAppLoaderListener(false);
         }
       },
       error: (err) => {
@@ -710,8 +720,7 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
         this.gtsDataService.sendAppLoaderListener(false);
       },
       complete: () => {
-        this.cacheLoading = false;
-        // NON spegnere il loader qui - la griglia lo spegnerà quando avrà finito di renderizzare
+        // Il loader viene già spento nel next callback
       }
     });
   }
@@ -726,12 +735,13 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
     }
 
     const pageCode = `salesDashboard_${this.formId}`;
+    const connCode = this.gtsDataService.getActualConnCode();
 
     this.cacheLoading = true;
     this.gtsDataService.sendAppLoaderListener(true);
 
-    // Cache condivisa tra tutti gli utenti (userId = 'shared')
-    this.userDataService.loadExcelCache<ExcelRow[]>(this.prjId, pageCode, 'shared').subscribe({
+    // Cache condivisa tra tutti gli utenti (userId = 'shared') ma filtrata per connCode
+    this.userDataService.loadExcelCache<ExcelRow[]>(this.prjId, pageCode, 'shared', connCode).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           // Processa i dati (popola rawExcelData e dashboardData)
@@ -762,9 +772,10 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
     if (!this.hasCachedData) return;
 
     const pageCode = `salesDashboard_${this.formId}`;
+    const connCode = this.gtsDataService.getActualConnCode();
 
-    // Cache condivisa tra tutti gli utenti (userId = 'shared')
-    this.userDataService.deleteExcelCache(this.prjId, pageCode, 'shared').subscribe({
+    // Cache condivisa tra tutti gli utenti (userId = 'shared') ma filtrata per connCode
+    this.userDataService.deleteExcelCache(this.prjId, pageCode, 'shared', connCode).subscribe({
       next: () => {
         this.hasCachedData = false;
         this.cachedDataInfo = null;

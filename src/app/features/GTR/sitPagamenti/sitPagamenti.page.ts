@@ -207,8 +207,9 @@ export class GTR_SitPagamentiComponent implements OnInit, OnDestroy {
       if (this.hasCachedData) {
         this.loadCachedData();
       } else {
-        // Verifica se esistono dati in cache
-        this.checkCachedData();
+        // Se non ci sono dati in cache, spegni il loader e mostra messaggio
+        this.gtsDataService.sendAppLoaderListener(false);
+        this.showWarning(this.t(1548, 'Nessun dato in cache per questa connessione. Carica prima un file Excel.'));
       }
     }
 
@@ -236,8 +237,9 @@ export class GTR_SitPagamentiComponent implements OnInit, OnDestroy {
    */
   private checkCachedData(): void {
     const pageCode = `sitPagamenti_${this.formId}`;
+    const connCode = this.gtsDataService.getActualConnCode();
 
-    this.userDataService.excelCacheExists(this.prjId, pageCode, 'shared').subscribe({
+    this.userDataService.excelCacheExists(this.prjId, pageCode, 'shared', connCode).subscribe({
       next: (response) => {
         this.hasCachedData = response.exists;
         if (response.exists && response.metadata) {
@@ -265,11 +267,12 @@ export class GTR_SitPagamentiComponent implements OnInit, OnDestroy {
     if (!this.hasCachedData) return;
 
     const pageCode = `sitPagamenti_${this.formId}`;
+    const connCode = this.gtsDataService.getActualConnCode();
 
     this.cacheLoading = true;
     this.gtsDataService.sendAppLoaderListener(true);
 
-    this.userDataService.loadExcelCache<any[]>(this.prjId, pageCode, 'shared').subscribe({
+    this.userDataService.loadExcelCache<any[]>(this.prjId, pageCode, 'shared', connCode).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           // Formatta le date ISO dalla cache
@@ -303,6 +306,7 @@ export class GTR_SitPagamentiComponent implements OnInit, OnDestroy {
   private saveDataToCache(data: any[], fileName?: string): void {
     const pageCode = `sitPagamenti_${this.formId}`;
     const uploadedBy = this.authService.getUserEmail() || 'unknown';
+    const connCode = this.gtsDataService.getActualConnCode();
 
     this.userDataService.saveExcelCache(
       this.prjId,
@@ -311,7 +315,8 @@ export class GTR_SitPagamentiComponent implements OnInit, OnDestroy {
       data,
       fileName,
       30, // TTL 30 giorni
-      uploadedBy
+      uploadedBy,
+      connCode
     ).subscribe({
       next: (response) => {
         if (response.success) {

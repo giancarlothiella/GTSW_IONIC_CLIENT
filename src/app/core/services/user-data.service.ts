@@ -102,7 +102,8 @@ export class UserDataService {
     data: any[],
     fileName?: string,
     ttlDays: number = 30,
-    uploadedBy?: string
+    uploadedBy?: string,
+    connCode?: string
   ): Observable<SaveUserDataResponse> {
     return this.save({
       prjId,
@@ -110,6 +111,7 @@ export class UserDataService {
       dataType: 'excelCache',
       userId,
       data,
+      connCode,
       metadata: { fileName, uploadedBy },
       ttlDays
     });
@@ -126,11 +128,14 @@ export class UserDataService {
     prjId: string,
     pageCode: string,
     dataType: UserDataType,
-    userId: string
+    userId: string,
+    connCode?: string
   ): Observable<LoadUserDataResponse<T>> {
-    return this.http.get<LoadUserDataResponse<T>>(
-      `${this.apiUrl}/load/${prjId}/${pageCode}/${dataType}/${userId}`
-    );
+    let url = `${this.apiUrl}/load/${prjId}/${pageCode}/${dataType}/${userId}`;
+    if (connCode) {
+      url += `?connCode=${encodeURIComponent(connCode)}`;
+    }
+    return this.http.get<LoadUserDataResponse<T>>(url);
   }
 
   /**
@@ -140,9 +145,10 @@ export class UserDataService {
   loadExcelCache<T = any[]>(
     prjId: string,
     pageCode: string,
-    userId: string
+    userId: string,
+    connCode?: string
   ): Observable<LoadUserDataResponse<T>> {
-    return this.load<T>(prjId, pageCode, 'excelCache', userId);
+    return this.load<T>(prjId, pageCode, 'excelCache', userId, connCode);
   }
 
   // ============================================
@@ -156,11 +162,14 @@ export class UserDataService {
     prjId: string,
     pageCode: string,
     dataType: UserDataType,
-    userId: string
+    userId: string,
+    connCode?: string
   ): Observable<UserDataExistsResponse> {
-    return this.http.get<UserDataExistsResponse>(
-      `${this.apiUrl}/exists/${prjId}/${pageCode}/${dataType}/${userId}`
-    );
+    let url = `${this.apiUrl}/exists/${prjId}/${pageCode}/${dataType}/${userId}`;
+    if (connCode) {
+      url += `?connCode=${encodeURIComponent(connCode)}`;
+    }
+    return this.http.get<UserDataExistsResponse>(url);
   }
 
   /**
@@ -169,9 +178,10 @@ export class UserDataService {
   excelCacheExists(
     prjId: string,
     pageCode: string,
-    userId: string
+    userId: string,
+    connCode?: string
   ): Observable<UserDataExistsResponse> {
-    return this.exists(prjId, pageCode, 'excelCache', userId);
+    return this.exists(prjId, pageCode, 'excelCache', userId, connCode);
   }
 
   // ============================================
@@ -185,11 +195,14 @@ export class UserDataService {
     prjId: string,
     pageCode: string,
     dataType: UserDataType,
-    userId: string
+    userId: string,
+    connCode?: string
   ): Observable<{ success: boolean; deleted: boolean }> {
-    return this.http.delete<{ success: boolean; deleted: boolean }>(
-      `${this.apiUrl}/${prjId}/${pageCode}/${dataType}/${userId}`
-    );
+    let url = `${this.apiUrl}/${prjId}/${pageCode}/${dataType}/${userId}`;
+    if (connCode) {
+      url += `?connCode=${encodeURIComponent(connCode)}`;
+    }
+    return this.http.delete<{ success: boolean; deleted: boolean }>(url);
   }
 
   /**
@@ -198,9 +211,10 @@ export class UserDataService {
   deleteExcelCache(
     prjId: string,
     pageCode: string,
-    userId: string
+    userId: string,
+    connCode?: string
   ): Observable<{ success: boolean; deleted: boolean }> {
-    return this.delete(prjId, pageCode, 'excelCache', userId);
+    return this.delete(prjId, pageCode, 'excelCache', userId, connCode);
   }
 
   // ============================================
