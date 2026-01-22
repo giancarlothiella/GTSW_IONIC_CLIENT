@@ -66,6 +66,7 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
   toolbarReady: boolean = false;
   itemsList: any[] = [];
   cssClass: string = '';
+  isMerged: boolean = false; // Se true, questa toolbar è stata mergiata nella mainToolbar
 
   // Items categorizzati per posizionamento
   titleItem: any = null;
@@ -143,13 +144,55 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Check se questa toolbar dovrebbe essere mergiata nella mainToolbar
+    // (non è mainToolbar, non ha gridArea, non è un action menu)
+    if (this.objectName !== 'mainToolbar' &&
+        (!this.metaData.gridArea || this.metaData.gridArea === null || this.metaData.gridArea === '') &&
+        !this.metaData.flagAction &&
+        !this.metaData.actionTarget) {
+      this.isMerged = true;
+      this.toolbarVisible = false;
+      return; // Non preparare i dati, sarà la mainToolbar a mostrarli
+    }
+
+    this.isMerged = false;
     this.itemsList = [];
     this.titleItem = null;
     this.startItems = [];
     this.endItems = [];
 
-    for (let i = 0; i < this.metaData.itemsList.length; i++) {
-      const item = this.metaData.itemsList[i];
+    // Raccogli tutti gli items da processare
+    let allItems: any[] = [...this.metaData.itemsList];
+
+    // Se questa è la mainToolbar, cerca altre toolbar senza gridArea da mergiare
+    if (this.objectName === 'mainToolbar') {
+      // getPageMetaData con 'all' ritorna pageData, quindi prendiamo .toolbars
+      const pageData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all');
+      const allToolbars = pageData?.toolbars;
+      if (Array.isArray(allToolbars)) {
+        allToolbars.forEach((toolbar: any) => {
+          // Merge toolbar che:
+          // 1. Non sono la mainToolbar stessa
+          // 2. Sono visibili
+          // 3. Non hanno gridArea (o gridArea è null/undefined/empty)
+          // 4. Non hanno flagAction true (sono toolbar di azioni/action list)
+          // 5. Non hanno actionTarget (sono riferite da altri bottoni come action menu)
+          const shouldMerge = toolbar.objectName !== 'mainToolbar' &&
+              toolbar.visible === true &&
+              (!toolbar.gridArea || toolbar.gridArea === null || toolbar.gridArea === '') &&
+              !toolbar.flagAction &&
+              !toolbar.actionTarget &&
+              toolbar.itemsList && toolbar.itemsList.length > 0;
+
+          if (shouldMerge) {
+            allItems = [...allItems, ...toolbar.itemsList];
+          }
+        });
+      }
+    }
+
+    for (let i = 0; i < allItems.length; i++) {
+      const item = allItems[i];
 
       // Gestione icone
       let icon: string = '';
@@ -213,6 +256,13 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
     // Usa ionIcon SOLO se non c'è una icona personalizzata (stdImageId o iconId)
     const useIonIcon = !icon || icon === '';
 
+    // Risolvi actionToolbar: può essere inline o un riferimento tramite actionTarget
+    let actionToolbar = item.actionToolbar;
+    if (!actionToolbar && item.actionTarget) {
+      // actionTarget è un riferimento a un'altra toolbar, cercala nei metadati
+      actionToolbar = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'toolbars', item.actionTarget);
+    }
+
     return {
       type: 'button',
       objectName: item.objectName,
@@ -223,7 +273,7 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       disabled: item.disabled,
       submitBehavior: item.submitBehavior,
       actionName: item.actionName,
-      actionToolbar: item.actionToolbar,
+      actionToolbar: actionToolbar,
       location: item.location
     };
   }

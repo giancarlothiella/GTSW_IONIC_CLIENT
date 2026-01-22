@@ -48,6 +48,7 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
         [customData]="customData"
         (newValueEvent)="gtsDataService.toolbarSelectEvent($event)"
       ></app-gts-toolbar>
+
       <div [style]="viewStyle">
         @if (loading) {
           <app-gts-loader></app-gts-loader>
@@ -124,6 +125,7 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
         [dismissableMask]="true"
         [style]="{ width: '1200px', height: '600px' }"
         [closable]="true"
+        styleClass="cron-dialog"
       >
         <p-table
           [value]="cronList"
@@ -131,7 +133,7 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
           scrollHeight="450px"
           [rowHover]="true"
           [stripedRows]="true"
-          styleClass="p-datatable-sm p-datatable-gridlines"
+          styleClass="p-datatable-gridlines"
         >
           <ng-template pTemplate="header">
             <tr>

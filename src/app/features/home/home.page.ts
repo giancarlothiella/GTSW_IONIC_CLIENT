@@ -422,6 +422,8 @@ export class HomePage implements OnInit, ViewWillEnter {
   }
 
   ionViewWillEnter() {
+    // Spegni sempre il loader globale quando si entra nella home
+    this.gtsDataService.sendAppLoaderListener(false);
     // Ri-sincronizza ogni volta che la home diventa visibile
     this.syncProjectSection();
   }

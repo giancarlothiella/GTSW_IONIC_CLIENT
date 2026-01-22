@@ -666,3 +666,15 @@ p-datepicker .p-datepicker-next {
     }
   }
 }
+
+/* ============================================
+   Cron Dialog Table - Larger rows
+   ============================================ */
+.cron-dialog {
+  .p-datatable-table {
+    th, td {
+      padding: 8px 12px !important;
+      font-size: 13px !important;
+    }
+  }
+}
