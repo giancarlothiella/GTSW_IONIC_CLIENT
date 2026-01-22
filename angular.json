@@ -43,7 +43,6 @@
             "styles": [
               "src/global.scss",
               "src/theme/variables.scss",
-              "node_modules/devextreme/dist/css/dx.material.blue.light.compact.css",
               "node_modules/quill/dist/quill.snow.css"
             ],
             "scripts": [],
@@ -54,10 +53,7 @@
               "crypto-js",
               "localforage",
               "jszip",
-              "devextreme-quill",
               "quill",
-              "devexpress-diagram",
-              "devexpress-gantt",
               "html2canvas",
               "canvg",
               "rgbcolor",

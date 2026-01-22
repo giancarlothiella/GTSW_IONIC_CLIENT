@@ -33,12 +33,7 @@ import {
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 import { authInterceptor } from './app/core/interceptors/auth.interceptor';
-
-import config from 'devextreme/core/config';
-import { licenseKey } from './devextreme-license';
 import { pdfDefaultOptions } from 'ngx-extended-pdf-viewer';
-
-config({ licenseKey });
 
 // Silenzia i log di PDF.js
 pdfDefaultOptions.verbosity = 0;
