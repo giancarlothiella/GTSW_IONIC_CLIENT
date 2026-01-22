@@ -145,11 +145,12 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
     }
 
     // Check se questa toolbar dovrebbe essere mergiata nella mainToolbar
-    // (non è mainToolbar, non ha gridArea, non è un action menu)
+    // (non è mainToolbar, non ha gridArea, non è un action menu, non è submit)
     if (this.objectName !== 'mainToolbar' &&
         (!this.metaData.gridArea || this.metaData.gridArea === null || this.metaData.gridArea === '') &&
         !this.metaData.flagAction &&
-        !this.metaData.actionTarget) {
+        !this.metaData.actionTarget &&
+        !this.metaData.toolbarFlagSubmit) {
       this.isMerged = true;
       this.toolbarVisible = false;
       return; // Non preparare i dati, sarà la mainToolbar a mostrarli
@@ -177,11 +178,13 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
           // 3. Non hanno gridArea (o gridArea è null/undefined/empty)
           // 4. Non hanno flagAction true (sono toolbar di azioni/action list)
           // 5. Non hanno actionTarget (sono riferite da altri bottoni come action menu)
+          // 6. Non hanno toolbarFlagSubmit (sono toolbar di submit con form)
           const shouldMerge = toolbar.objectName !== 'mainToolbar' &&
               toolbar.visible === true &&
               (!toolbar.gridArea || toolbar.gridArea === null || toolbar.gridArea === '') &&
               !toolbar.flagAction &&
               !toolbar.actionTarget &&
+              !toolbar.toolbarFlagSubmit &&
               toolbar.itemsList && toolbar.itemsList.length > 0;
 
           if (shouldMerge) {
@@ -222,11 +225,15 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
           this.itemsList.push(preparedItem);
 
           // Categorizza per posizionamento
-          if (item.type === 'title') {
+          // center → titleItem (per titoli) o trattato come speciale
+          // before/left → startItems
+          // after/right o default → endItems
+          if (item.type === 'title' || item.location === 'center') {
             this.titleItem = preparedItem;
           } else if (item.location === 'before' || item.location === 'left') {
             this.startItems.push(preparedItem);
           } else {
+            // after, right, o qualsiasi altro valore
             this.endItems.push(preparedItem);
           }
         }
