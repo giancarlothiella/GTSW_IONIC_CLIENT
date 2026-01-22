@@ -666,7 +666,8 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         valid = false;
       }
 
-      if (valid && field.sqlId !== undefined && field.sqlId !== null && field.sqlId !== '' && !field.updateFromLookUp && field.editorType === 'LookUpBox') {
+      // Skip DB validation for multi-line lookups (editorTypeML) because the concatenated value doesn't exist as a single record
+      if (valid && field.sqlId !== undefined && field.sqlId !== null && field.sqlId !== '' && !field.updateFromLookUp && field.editorType === 'LookUpBox' && !field.editorTypeML) {
         const responseData: any = await this.gtsDataService.getExportedData(this.prjId, this.formId, field.groupId, field.sqlQueryField, value, field.objectName);
         if (responseData.valid && responseData.data && responseData.data.length > 0 && responseData.data[0].rows && responseData.data[0].rows.length > 0) {
           this.metaData
@@ -719,11 +720,9 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
+    // Focus on field if validation failed and element exists
     if (!valid && field.component?.nativeElement) {
       field.component.nativeElement.focus();
-      field.validated = false;
-    } else {
-      field.validated = true;
     }
 
     return valid;

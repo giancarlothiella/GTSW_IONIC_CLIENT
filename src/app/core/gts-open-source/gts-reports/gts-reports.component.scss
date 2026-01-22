@@ -88,26 +88,78 @@
 }
 
 .gts-tabs {
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #2d3e50 0%, #3d4e60 100%);
-  border-bottom: none;
+  width: 100%;
+  background-color: #1e3a5f;
+  padding: 4px 4px 0 4px;
+  overflow: hidden;
+  height: 48px;
+  max-height: 48px;
 
   ion-segment {
     --background: transparent;
-    max-width: 300px;
-    margin: 0 auto;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    margin: 0;
+    padding: 0;
+    width: fit-content;
+    overflow: visible !important;
+    display: inline-flex !important;
+    gap: 2px !important;
   }
 
   ion-segment-button {
     --color: rgba(255, 255, 255, 0.7);
-    --color-checked: #ffffff;
-    --indicator-color: #00008b;
-    --indicator-height: 3px;
-    font-weight: 500;
+    --color-checked: #1e3a5f;
+    --indicator-color: transparent;
+    --indicator-height: 0px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+
+    min-width: 80px;
+    max-width: 120px;
+    width: auto;
+    height: 40px !important;
+    max-height: 40px !important;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    font-weight: 500;
     font-size: 13px;
-    min-height: 40px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 6px 6px 0 0;
+    transition: all 0.2s ease;
+    margin: 0;
+
+    &::part(indicator-background) {
+      display: none;
+    }
+
+    // Tab selezionato
+    &.segment-button-checked {
+      background-color: white !important;
+      font-weight: bold;
+      border: 2px solid white !important;
+      border-bottom: none !important;
+      box-shadow: 0 -2px 6px rgba(255, 255, 255, 0.3);
+      z-index: 10;
+      height: 44px !important;
+      max-height: 44px !important;
+
+      ion-label {
+        color: #1e3a5f !important;
+      }
+    }
+
+    // Hover
+    &:hover:not(.segment-button-disabled):not(.segment-button-checked) {
+      background-color: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    }
+
+    ion-label {
+      color: #ffffff !important;
+      font-size: 13px;
+    }
   }
 }
 
@@ -118,24 +170,78 @@
 }
 
 .grids-tabs {
-  padding: 8px 16px;
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #00008b;
+  width: 100%;
+  background-color: rgba(132, 177, 235, 0.3);
+  padding: 4px 4px 0 4px;
+  overflow: hidden;
+  height: 48px;
+  max-height: 48px;
 
   ion-segment {
     --background: transparent;
-    max-width: 600px;
-    margin: 0 auto;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    margin: 0;
+    padding: 0;
+    width: fit-content;
+    overflow: visible !important;
+    display: inline-flex !important;
+    gap: 2px !important;
   }
 
   ion-segment-button {
-    --color: #666;
+    --color: rgba(0, 0, 139, 0.6);
     --color-checked: #00008b;
-    --indicator-color: #00008b;
-    --indicator-height: 3px;
-    font-weight: 500;
+    --indicator-color: transparent;
+    --indicator-height: 0px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+
     min-width: 80px;
-    font-size: 12px;
+    max-width: 150px;
+    width: auto;
+    height: 40px !important;
+    max-height: 40px !important;
+    text-transform: uppercase;
+    font-weight: 500;
+    font-size: 13px;
+    background-color: rgba(200, 200, 200, 0.2);
+    border: 1px solid transparent !important;
+    border-radius: 6px 6px 0 0;
+    transition: all 0.2s ease;
+    margin: 0;
+
+    &::part(indicator-background) {
+      display: none;
+    }
+
+    // Tab selezionato
+    &.segment-button-checked {
+      background-color: white !important;
+      font-weight: bold;
+      border: 3px solid #00008b !important;
+      border-bottom: none !important;
+      box-shadow: 0 -2px 6px rgba(0, 0, 139, 0.3);
+      z-index: 10;
+      height: 44px !important;
+      max-height: 44px !important;
+
+      ion-label {
+        color: #00008b !important;
+      }
+    }
+
+    // Hover
+    &:hover:not(.segment-button-disabled):not(.segment-button-checked) {
+      background-color: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(0, 0, 139, 0.3) !important;
+    }
+
+    ion-label {
+      color: rgba(0, 0, 139, 0.7);
+      font-size: 13px;
+    }
   }
 }
 

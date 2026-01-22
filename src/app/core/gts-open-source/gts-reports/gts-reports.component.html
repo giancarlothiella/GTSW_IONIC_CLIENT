@@ -99,7 +99,7 @@
                     @for (column of grid.columns; track column.dataField) {
                       <td>
                         @if (column.dataType === 'number') {
-                          {{ row[column.dataField] | number:'1.2-2' }}
+                          {{ formatNumber(row[column.dataField]) }}
                         } @else if (column.dataType === 'date') {
                           {{ row[column.dataField] | date:'dd/MM/yyyy' }}
                         } @else {

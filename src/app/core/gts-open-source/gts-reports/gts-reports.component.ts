@@ -193,6 +193,35 @@ export class GtsReportsComponent implements OnInit, OnDestroy {
     this.showReport = true;
   }
 
+  /**
+   * Formatta un valore numerico per la visualizzazione.
+   * Gestisce sia numeri che stringhe con formato europeo (virgola come separatore decimale).
+   */
+  formatNumber(value: any): string {
+    if (value === null || value === undefined || value === '') {
+      return '';
+    }
+
+    // Se è già un numero, formattalo direttamente
+    if (typeof value === 'number') {
+      return value.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // Se è una stringa, prova a convertirla
+    if (typeof value === 'string') {
+      // Sostituisci la virgola con il punto per la conversione
+      const normalized = value.replace(',', '.');
+      const num = parseFloat(normalized);
+      if (!isNaN(num)) {
+        return num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      // Se non è un numero valido, ritorna la stringa originale
+      return value;
+    }
+
+    return String(value);
+  }
+
   exportGridToExcel(grid: any) {
     const workbook = new Workbook();
     const worksheet = workbook.addWorksheet('Main sheet');
