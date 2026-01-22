@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GtsDataService } from '../../services/gts-data.service';
+import { AppInfoService } from '../../services/app-info.service';
 import { GtsLoaderComponent } from '../gts-loader/gts-loader.component';
 import { GtsGridComponent } from '../gts-grid/gts-grid.component';
 import { IonSegment, IonSegmentButton, IonLabel, IonRadioGroup, IonRadio, IonItem, IonButton } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
-import { NgxExtendedPdfViewerModule } from 'ngx-extended-pdf-viewer';
+import { NgxExtendedPdfViewerModule, VerbosityLevel } from 'ngx-extended-pdf-viewer';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
 
@@ -30,7 +31,8 @@ import { saveAs } from 'file-saver';
 })
 export class GtsReportsComponent implements OnInit, OnDestroy {
   constructor(
-    private gtsDataService: GtsDataService
+    private gtsDataService: GtsDataService,
+    private appInfo: AppInfoService
   ) { }
 
   @Input()
@@ -80,6 +82,10 @@ export class GtsReportsComponent implements OnInit, OnDestroy {
   base64PdfStream: string = '';
   grids: any[] = [];
   gridsTabsIndex: number = 0;
+
+  // PDF viewer settings
+  pdfLanguage: string = this.appInfo.getLanguageId || 'en';
+  pdfLogLevel = VerbosityLevel.ERRORS;
   //==================================
 
   onGridsTabClick(index: number) {
