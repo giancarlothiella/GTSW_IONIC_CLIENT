@@ -74,15 +74,26 @@ ion-toolbar {
   }
 }
 
-// Titolo
-ion-title {
+// Titolo (come div invece di ion-title)
+.toolbar-title {
   font-size: 14px;
   font-weight: 500;
-  text-align: center;
+  color: white;
+  white-space: nowrap;
+  padding: 0 12px;
 }
 
 // Bottoni
 ion-buttons {
+  overflow: visible !important;
+  flex-wrap: nowrap;
+
+  // Assicura che i field non vengano troncati
+  .toolbar-field {
+    flex-shrink: 0 !important;
+    min-width: fit-content !important;
+  }
+
   ion-button {
     --color: #333;
     --border-radius: 6px;
@@ -97,6 +108,8 @@ ion-buttons {
     background: white;
     border: 1px solid #ddd;
     color: #333;
+    white-space: nowrap;
+    flex-shrink: 0;
 
     // Icone nei bottoni
     ion-icon {
@@ -162,6 +175,14 @@ ion-toolbar.default-toolbar {
   }
 }
 
+// Wrapper per campi field (fuori da ion-buttons per evitare overflow)
+.toolbar-field-wrapper {
+  display: flex;
+  align-items: center;
+  margin: 0 4px;
+  flex-shrink: 0; // Non comprimere
+}
+
 // Campi read-only
 .toolbar-field {
   display: inline-flex;
@@ -172,10 +193,15 @@ ion-toolbar.default-toolbar {
   background: white;
   border: 1px solid #ddd;
   border-radius: 6px;
-  margin: 0 4px;
   height: 32px;
   color: #333;
   font-weight: 600; // Il valore è bold
+  flex-shrink: 0 !important; // IMPORTANTE: non comprimere
+  flex-grow: 0 !important;
+  flex-basis: auto !important;
+  min-width: fit-content !important;
+  overflow: visible !important;
+  margin: 0 4px;
 
   strong {
     margin-right: 6px;

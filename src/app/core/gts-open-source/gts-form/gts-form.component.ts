@@ -304,6 +304,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     for (let i = 0; i < this.metaData.fields.length; i++) {
       let field: any = {
         id: this.metaData.fields[i].fieldId,
+        trackKey: `${this.objectName}_${i}`, // Unique tracking key for Angular @for
         groupId: this.metaData.groupId,
         fieldId: this.metaData.fields[i].fieldId,
         objectName: this.metaData.fields[i].objectName,
@@ -486,6 +487,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
           this.metaData.fields[i].editorType !== 'DropDownBox' && this.metaData.fields[i].editorType !== 'RadioGroup') {
         for (let j = 0; j < this.metaData.fields[i].details.length; j++) {
           let fieldDetail: any = {
+            trackKey: `${this.objectName}_${i}_detail_${j}`, // Unique tracking key for detail fields
             masterFieldName: this.metaData.fields[i].objectName,
             objectName: this.metaData.fields[i].details[j].pageFieldName,
             fieldName: this.metaData.fields[i].details[j].detailFieldName,

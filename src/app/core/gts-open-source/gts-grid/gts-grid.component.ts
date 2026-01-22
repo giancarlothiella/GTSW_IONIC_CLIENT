@@ -773,6 +773,12 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Store changes in metadata (like DevExtreme)
     this.metaData.changeArray = this.changeArray;
 
+    // Update backupDataSet to reflect saved state (so Cancel won't revert saved changes)
+    if (this.gridObject.dataSet) {
+      this.gridObject.backupDataSet = this.gridObject.dataSet.map((row: any) => ({ ...row }));
+      console.log('[gts-grid] BackupDataSet updated after save');
+    }
+
     // Clear edited rows BEFORE executing action (toolbar will hide)
     this.editedRows.clear();
 

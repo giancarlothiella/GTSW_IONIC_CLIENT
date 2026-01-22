@@ -8,8 +8,25 @@ import { AuthService } from '../../../core/services/auth.service';
 import { GtsDataService } from '../../../core/services/gts-data.service';
 import { Subscription } from 'rxjs';
 
-// DevExtreme
-import { DxAccordionModule, DxPopupModule, DxChartModule } from 'devextreme-angular';
+// Ionic
+import {
+  IonAccordion,
+  IonAccordionGroup,
+  IonItem,
+  IonLabel,
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonContent,
+  IonIcon
+} from '@ionic/angular/standalone';
+import { closeOutline } from 'ionicons/icons';
+
+// PrimeNG (solo per Chart)
+import { ChartModule } from 'primeng/chart';
 
 // Import GTS Components - Open Source Versions
 // import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component'; // DevExtreme version
@@ -37,10 +54,22 @@ import { GtsPdfComponent } from '../../../core/gts-open-source/gts-pdf/gts-pdf.c
   imports: [
     CommonModule,
 
-    // DevExtreme
-    DxAccordionModule,
-    DxPopupModule,
-    DxChartModule,
+    // Ionic
+    IonAccordion,
+    IonAccordionGroup,
+    IonItem,
+    IonLabel,
+    IonModal,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonButtons,
+    IonButton,
+    IonContent,
+    IonIcon,
+
+    // PrimeNG (solo per Chart)
+    ChartModule,
 
     // GTS Components
     GtsLoaderComponent,
@@ -66,7 +95,7 @@ export class GTR_WebAppComponent implements OnInit, OnDestroy {
   private location = inject(Location);
 
   constructor() {
-    addIcons({ arrowBackOutline });
+    addIcons({ arrowBackOutline, closeOutline });
   }
 
   appViewListenerSubs: Subscription | undefined;
@@ -159,6 +188,10 @@ export class GTR_WebAppComponent implements OnInit, OnDestroy {
         });
 
         this.chartTitle = 'Stagione: '+ this.chartDS[0].STAG_CODE;
+
+        // Build Chart.js data structure for PrimeNG Chart
+        this.buildChartData();
+
         this.gtsDataService.sendAppLoaderListener(false);
       }
       if (customCode === 'PDF_GO_BACK') {
@@ -231,6 +264,23 @@ export class GTR_WebAppComponent implements OnInit, OnDestroy {
   socRagioneSociale: string = '';
   showACS: boolean = false;
 
+  // Chart.js configuration for PrimeNG Chart
+  chartData: any = {};
+  chartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top'
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  };
+
   showAccordion: boolean = false;
   selectedItemIndex: number = 0;
   selectedRow: any = {};
@@ -239,29 +289,64 @@ export class GTR_WebAppComponent implements OnInit, OnDestroy {
   showPdf: boolean = false;
   pdfFileData: string = '';
 
-  async onSelectionChanged(event: any) {
+  /**
+   * Handler per cambio accordion (Ionic)
+   */
+  async onAccordionChange(event: any) {
+    const value = event.detail.value;
+    if (!value) return;
+
     this.pageReady = false;
-    this.selectedRow = event.addedItems[0];
+    const selectedPage = this.pages.find((page: any) => page.UTENZA_CODE === value);
+    if (!selectedPage) return;
+
+    this.selectedRow = selectedPage;
 
     this.gtsDataService.setSelectedRows(this.prjId, this.formId, 'daUtenze', 'qUtenze', [this.selectedRow], [{UTENZA_CODE: this.selectedRow.UTENZA_CODE}]);
     await this.gtsDataService.runAction(this.prjId, this.formId, 'utenzeDS');
     this.pages.forEach((page: any) => {
       page.dataVisible = false;
     });
-    this.pages.filter((page: any) => page.UTENZA_CODE === this.selectedRow.UTENZA_CODE)[0].dataVisible = true;
+    selectedPage.dataVisible = true;
     const socLogo = this.gtsDataService.getDataSet(this.prjId, this.formId, 'daUtenze', 'qSocLogo')[0].SOC_LOGO;
     this.socRagioneSociale = this.gtsDataService.getDataSet(this.prjId, this.formId, 'daUtenze', 'qSocLogo')[0].SOC_RAGSOC;
     // Convert Oracle BLOB object socLogo to base64 string
-    // Assuming socLogo is an object with a property 'data' that contains the array buffer
-    const arrayBuffer = socLogo.data; // Adjust this based on the actual structure of socLogo
+    const arrayBuffer = socLogo.data;
     const base64String = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
     this.socImage = 'data:image;base64,' + base64String;
     this.pageReady = true;
   }
 
-  utenzeComponent: any = {};
-  onAccordionInitialized(event: any) {
-    this.utenzeComponent = event.component;
+  /**
+   * Build Chart.js data structure for PrimeNG Chart
+   */
+  buildChartData() {
+    const labels = this.chartDS.map(item => item.MESE_CONSUMO);
+    const datasets: any[] = [];
+
+    if (this.showACS) {
+      datasets.push({
+        label: 'Riscaldamento',
+        data: this.chartDS.map(item => item.RIS_KWH),
+        backgroundColor: '#66bb6a'
+      });
+      datasets.push({
+        label: 'Acqua Calda Sanitaria',
+        data: this.chartDS.map(item => item.ACS_KWH),
+        backgroundColor: '#66bbff'
+      });
+    }
+
+    datasets.push({
+      label: 'Totale Consumi',
+      data: this.chartDS.map(item => item.TOT_KWH),
+      backgroundColor: '#ffaa66'
+    });
+
+    this.chartData = {
+      labels: labels,
+      datasets: datasets
+    };
   }
 
   socImage: string = '';

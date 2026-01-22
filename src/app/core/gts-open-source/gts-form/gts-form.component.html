@@ -11,7 +11,7 @@
       <div
         [class]="formCSSBody"
         [style]="formLayout">
-        @for (element of formData; track $index) {
+        @for (element of formData; track element.trackKey) {
           <!-- GroupHdr (section header) -->
           @if (element.editorType === 'GroupHdr') {
             <div

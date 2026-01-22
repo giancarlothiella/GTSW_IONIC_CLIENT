@@ -6,157 +6,138 @@
     <div class="socRagioneSociale">{{socRagioneSociale}}</div>
   </div>
 }
-<div>
-  <dx-accordion
-    [dataSource]="pages"
-    [collapsible]="false"
-    [multiple]="false"
-    [animationDuration]="300"
-    [(selectedIndex)]="selectedItemIndex"
-    (onSelectionChanged)="onSelectionChanged($event)"
-    (onInitialized)="onAccordionInitialized($event)"
-    [visible]="showAccordion"
-    width="auto"
-    height="auto"
+
+@if (showAccordion) {
+  <ion-accordion-group
+    [value]="undefined"
+    (ionChange)="onAccordionChange($event)"
     id="page-container"
   >
-    <div *dxTemplate="let page of 'title'">
-      <div class="utenzaDescr">{{page.UTENZA_DESCR}}</div>
-      <div class="utenzaCode">Utenza: {{page.UTENZA_CODE}}</div>
-    </div>
+    @for (page of pages; track $index) {
+      <ion-accordion [value]="page.UTENZA_CODE">
+        <ion-item slot="header" color="light">
+          <ion-label>
+            <div class="accordion-header">
+              <div class="utenzaDescr">{{page.UTENZA_DESCR}}</div>
+              <div class="utenzaCode">Utenza: {{page.UTENZA_CODE}}</div>
+            </div>
+          </ion-label>
+        </ion-item>
 
-    <div *dxTemplate="let page of 'item'">
-      @if (page.dataVisible) {
-        <div class="pageFormat">
-          <app-gts-toolbar
-            [prjId]="prjId"
-            [formId]="formId"
-            [objectName]="'mainToolbar'"
-            [customData]="customData"
-            (newValueEvent)="gtsDataService.toolbarSelectEvent($event)"
-          ></app-gts-toolbar>
+        <div slot="content" class="accordion-content">
+          @if (page.dataVisible) {
+            <div class="pageFormat">
+              <app-gts-toolbar
+                [prjId]="prjId"
+                [formId]="formId"
+                [objectName]="'mainToolbar'"
+                [customData]="customData"
+                (newValueEvent)="gtsDataService.toolbarSelectEvent($event)"
+              ></app-gts-toolbar>
 
-          <div [style]="viewStyle">
-            @for (element of metaData.tabs; track element) {
-              @if (element.visible) {
-                <app-gts-tabs
-                  [style]="'grid-area: '+element.gridArea"
-                  [prjId]="prjId"
-                  [formId]="formId"
-                  [objectName]="element.objectName"
-                ></app-gts-tabs>
+              <div [style]="viewStyle">
+                @for (element of metaData.tabs; track element.objectName) {
+                  @if (element.visible) {
+                    <app-gts-tabs
+                      [style]="'grid-area: '+element.gridArea"
+                      [prjId]="prjId"
+                      [formId]="formId"
+                      [objectName]="element.objectName"
+                    ></app-gts-tabs>
+                  }
+                }
+
+                @for (element of metaData.reportsGroups; track element.fieldGrpId) {
+                  @if (element.visible) {
+                    <app-gts-reports
+                      [style]="'grid-area: '+element.gridArea"
+                      [prjId]="prjId"
+                      [formId]="formId"
+                      [fieldGrpId]="element.fieldGrpId"
+                    ></app-gts-reports>
+                  }
+                }
+
+                @for (element of metaData.toolbars; track element.objectName) {
+                  @if (element.visible && element.objectName != 'mainToolbar' && !element.toolbarFlagSubmit) {
+                    <app-gts-toolbar
+                      [style]="'grid-area: '+element.gridArea"
+                      [prjId]="prjId"
+                      [formId]="formId"
+                      [objectName]="element.objectName"
+                      [customCssClass]="element.customCssClass"
+                      (newValueEvent)="gtsDataService.toolbarSelectEvent($event)"
+                    ></app-gts-toolbar>
+                  }
+                }
+
+                @for (element of metaData.grids; track element.objectName) {
+                  @if (element.visible) {
+                    <app-gts-grid
+                      [style]="'grid-area: '+element.gridArea"
+                      [prjId]="prjId"
+                      [formId]="formId"
+                      [objectName]="element.objectName"
+                    ></app-gts-grid>
+                  }
+                }
+
+                @for (element of metaData.forms; track element.objectName) {
+                  @if (element.visible && !element.groupShowPopUp) {
+                    <app-gts-form
+                      [style]="'grid-area: '+element.gridArea"
+                      [prjId]="prjId"
+                      [formId]="formId"
+                      [objectName]="element.objectName"
+                    ></app-gts-form>
+                  }
+                  @if (element.visible && element.groupShowPopUp) {
+                    <app-gts-form-popup
+                      [prjId]="prjId"
+                      [formId]="formId"
+                      [objectName]="element.objectName"
+                    ></app-gts-form-popup>
+                  }
+                }
+              </div>
+
+              <app-gts-message
+                [prjId]="prjId"
+                [formId]="formId"
+              ></app-gts-message>
+
+              @if (showPdf) {
+                <app-gts-loader></app-gts-loader>
+                <app-gts-pdf
+                  [base64PdfStream]="pdfFileData"
+                ></app-gts-pdf>
               }
-            }
 
-            @for (element of metaData.reportsGroups; track element) {
-              @if (element.visible) {
-                <app-gts-reports
-                  [style]="'grid-area: '+element.gridArea"
-                  [prjId]="prjId"
-                  [formId]="formId"
-                  [fieldGrpId]="element.fieldGrpId"
-                ></app-gts-reports>
-              }
-            }
-
-            @for (element of metaData.toolbars; track element) {
-              @if (element.visible && element.objectName != 'mainToolbar' && !element.toolbarFlagSubmit) {
-                <app-gts-toolbar
-                  [style]="'grid-area: '+element.gridArea"
-                  [prjId]="prjId"
-                  [formId]="formId"
-                  [objectName]="element.objectName"
-                  [customCssClass]="element.customCssClass"
-                  (newValueEvent)="gtsDataService.toolbarSelectEvent($event)"
-                ></app-gts-toolbar>
-              }
-            }
-
-            @for (element of metaData.grids; track element) {
-              @if (element.visible) {
-                <app-gts-grid
-                  [style]="'grid-area: '+element.gridArea"
-                  [prjId]="prjId"
-                  [formId]="formId"
-                  [objectName]="element.objectName"
-                ></app-gts-grid>
-              }
-            }
-
-            @for (element of metaData.forms; track element) {
-              @if (element.visible && !element.groupShowPopUp) {
-                <app-gts-form
-                  [style]="'grid-area: '+element.gridArea"
-                  [prjId]="prjId"
-                  [formId]="formId"
-                  [objectName]="element.objectName"
-                ></app-gts-form>
-              }
-              @if (element.visible && element.groupShowPopUp) {
-                <app-gts-form-popup
-                  [prjId]="prjId"
-                  [formId]="formId"
-                  [objectName]="element.objectName"
-                ></app-gts-form-popup>
-              }
-            }
-          </div>
-
-          <app-gts-message
-            [prjId]="prjId"
-            [formId]="formId"
-          ></app-gts-message>
-
-          @if (showPdf) {
-            <app-gts-loader></app-gts-loader>
-            <app-gts-pdf
-              [base64PdfStream]="pdfFileData"
-            ></app-gts-pdf>
+            </div>
           }
-
         </div>
-      }
-
-    </div>
-  </dx-accordion>
-</div>
-
-@if (chartVisible) {
-  <dx-popup
-    [hideOnOutsideClick]="true"
-    [showCloseButton]="true"
-    [(visible)]="chartVisible"
-    [title]="chartTitle"
-    [height]="500"
-    [width]="800"
-    [resizeEnabled]="true"
-  >
-    <dx-chart
-      id="chart"
-      [dataSource]="chartDS">
-      @if (showACS) {
-        <dxi-series
-          argumentField="MESE_CONSUMO"
-          valueField="RIS_KWH"
-          name="Riscaldamento"
-          type="bar"
-          color="#66bb6a"
-        ></dxi-series>
-        <dxi-series
-          argumentField="MESE_CONSUMO"
-          valueField="ACS_KWH"
-          name="Acqua Calda Sanitaria"
-          type="bar"
-          color="#66bbff"
-        ></dxi-series>
-      }
-      <dxi-series
-        argumentField="MESE_CONSUMO"
-        valueField="TOT_KWH"
-        name="Totale Consumi"
-        type="bar"
-        color="#ffaa66"
-      ></dxi-series>
-    </dx-chart>
-  </dx-popup>
+      </ion-accordion>
+    }
+  </ion-accordion-group>
 }
+
+<!-- Chart Modal (Ionic) -->
+<ion-modal [isOpen]="chartVisible" (didDismiss)="chartVisible = false">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar color="primary">
+        <ion-title>{{ chartTitle }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="chartVisible = false">
+            <ion-icon name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <div class="chart-container">
+        <p-chart type="bar" [data]="chartData" [options]="chartOptions"></p-chart>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

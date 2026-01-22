@@ -1,7 +1,8 @@
 // src/app/features/profile/change-password/change-password.page.ts
-import { Component, inject, ViewChild, AfterViewInit, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import {
   IonContent,
   IonCard,
@@ -18,10 +19,13 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { informationCircleOutline, checkmarkCircle, closeCircle, arrowBackOutline } from 'ionicons/icons';
-import { DxFormModule, DxButtonModule, DxFormComponent } from 'devextreme-angular';
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslationService } from '../../../core/services/translation.service';
 import { webInfo } from '../../../../environments/environment';
+
+// PrimeNG
+import { PasswordModule } from 'primeng/password';
+import { FloatLabel } from 'primeng/floatlabel';
 
 // Register icons
 addIcons({
@@ -31,17 +35,12 @@ addIcons({
   'arrow-back-outline': arrowBackOutline
 });
 
-interface ChangePasswordFormData {
-  currentPassword: string;
-  newPassword: string;
-  confirmedPassword: string;
-}
-
 @Component({
   selector: 'app-change-password',
   standalone: true,
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     IonContent,
     IonCard,
     IonCardHeader,
@@ -53,8 +52,8 @@ interface ChangePasswordFormData {
     IonList,
     IonItem,
     IonLabel,
-    DxFormModule,
-    DxButtonModule
+    PasswordModule,
+    FloatLabel
   ],
   template: `
     <ion-content class="change-password-content">
@@ -68,63 +67,69 @@ interface ChangePasswordFormData {
           </ion-card-header>
 
           <ion-card-content>
-            <form (submit)="onSubmit($event)">
-              <dx-form
-                #changePasswordForm
-                [(formData)]="formData"
-                [colCount]="1"
-                [showColonAfterLabel]="false"
-                labelLocation="top"
-                [disabled]="loading">
+            <form [formGroup]="passwordForm" (ngSubmit)="onSubmit()">
+              <!-- Password Corrente (solo se NON è password scaduta) -->
+              @if (!isPasswordExpired) {
+                <div class="field-container">
+                  <p-floatlabel>
+                    <p-password
+                      id="currentPassword"
+                      formControlName="currentPassword"
+                      [feedback]="false"
+                      [toggleMask]="true"
+                      styleClass="w-full"
+                      inputStyleClass="w-full"
+                    ></p-password>
+                    <label for="currentPassword">{{ getText(620) }}</label>
+                  </p-floatlabel>
+                  @if (passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched) {
+                    <small class="p-error">{{ getText(623) }}</small>
+                  }
+                </div>
+              }
 
-                <!-- Password Corrente (solo se NON è password scaduta) -->
-                @if (!isPasswordExpired) {
-                  <dxi-item
-                    dataField="currentPassword"
-                    editorType="dxTextBox"
-                    [editorOptions]="currentPasswordEditorOptions">
-                    <dxo-label [text]="getText(620)"></dxo-label>
-                    <dxi-validation-rule
-                      type="required"
-                      [message]="getText(623)">
-                    </dxi-validation-rule>
-                  </dxi-item>
+              <!-- Nuova Password -->
+              <div class="field-container">
+                <p-floatlabel>
+                  <p-password
+                    id="newPassword"
+                    formControlName="newPassword"
+                    [feedback]="false"
+                    [toggleMask]="true"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                    (onInput)="onNewPasswordInput($event)"
+                  ></p-password>
+                  <label for="newPassword">{{ getText(621) }}</label>
+                </p-floatlabel>
+                @if (passwordForm.get('newPassword')?.hasError('required') && passwordForm.get('newPassword')?.touched) {
+                  <small class="p-error">{{ getText(109) }}</small>
                 }
+                @if (passwordForm.get('newPassword')?.hasError('policyViolation') && passwordForm.get('newPassword')?.touched) {
+                  <small class="p-error">{{ getText(624) }}</small>
+                }
+              </div>
 
-                <!-- Nuova Password -->
-                <dxi-item
-                  dataField="newPassword"
-                  editorType="dxTextBox"
-                  [editorOptions]="newPasswordEditorOptions">
-                  <dxo-label [text]="getText(621)"></dxo-label>
-                  <dxi-validation-rule
-                    type="required"
-                    [message]="getText(109)">
-                  </dxi-validation-rule>
-                  <dxi-validation-rule
-                    type="custom"
-                    [message]="getText(624)"
-                    [validationCallback]="checkPassword">
-                  </dxi-validation-rule>
-                </dxi-item>
-
-                <!-- Conferma Password -->
-                <dxi-item
-                  dataField="confirmedPassword"
-                  editorType="dxTextBox"
-                  [editorOptions]="confirmPasswordEditorOptions">
-                  <dxo-label [text]="getText(622)"></dxo-label>
-                  <dxi-validation-rule
-                    type="required"
-                    [message]="getText(109)">
-                  </dxi-validation-rule>
-                  <dxi-validation-rule
-                    type="custom"
-                    [message]="getText(111)"
-                    [validationCallback]="confirmPassword">
-                  </dxi-validation-rule>
-                </dxi-item>
-              </dx-form>
+              <!-- Conferma Password -->
+              <div class="field-container">
+                <p-floatlabel>
+                  <p-password
+                    id="confirmedPassword"
+                    formControlName="confirmedPassword"
+                    [feedback]="false"
+                    [toggleMask]="true"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                  ></p-password>
+                  <label for="confirmedPassword">{{ getText(622) }}</label>
+                </p-floatlabel>
+                @if (passwordForm.get('confirmedPassword')?.hasError('required') && passwordForm.get('confirmedPassword')?.touched) {
+                  <small class="p-error">{{ getText(109) }}</small>
+                }
+                @if (passwordForm.get('confirmedPassword')?.hasError('passwordMismatch') && passwordForm.get('confirmedPassword')?.touched) {
+                  <small class="p-error">{{ getText(111) }}</small>
+                }
+              </div>
 
               <!-- Info Password Rules -->
               <div class="password-info-container">
@@ -235,7 +240,7 @@ interface ChangePasswordFormData {
                 <ion-button
                   expand="block"
                   type="submit"
-                  [disabled]="loading"
+                  [disabled]="loading || passwordForm.invalid"
                   class="change-password-button">
                   {{ loading ? getText(626) : getText(606) }}
                 </ion-button>
@@ -293,15 +298,37 @@ interface ChangePasswordFormData {
       text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
-    /* Form styling */
-    dx-form {
+    /* Form fields */
+    .field-container {
+      margin-bottom: 24px;
+    }
+
+    .field-container:first-child {
       margin-top: 20px;
-      margin-bottom: 20px;
+    }
+
+    :host ::ng-deep .p-password {
+      width: 100%;
+    }
+
+    :host ::ng-deep .p-password input {
+      width: 100%;
+    }
+
+    :host ::ng-deep .p-floatlabel {
+      width: 100%;
+    }
+
+    .p-error {
+      display: block;
+      margin-top: 4px;
+      color: var(--p-red-500);
+      font-size: 12px;
     }
 
     /* Password Info Container */
     .password-info-container {
-      margin: -10px 0 15px 0;
+      margin: 0 0 15px 0;
       display: flex;
       justify-content: flex-start;
     }
@@ -495,188 +522,55 @@ interface ChangePasswordFormData {
     }
   `]
 })
-export class ChangePasswordPage implements AfterViewInit, OnInit {
-  @ViewChild('changePasswordForm') changePasswordFormComponent?: DxFormComponent;
-
-  authService = inject(AuthService); // public per accesso nel template
+export class ChangePasswordPage implements OnInit {
+  authService = inject(AuthService);
   private translationService = inject(TranslationService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private toastCtrl = inject(ToastController);
+  private fb = inject(FormBuilder);
 
-  // Flag per indicare se la password è scaduta
   isPasswordExpired = false;
-
-  // Dati dell'app dall'environment
   webInfo = webInfo;
-
   loading = false;
   pwStrengthLevel = 0;
 
-  formData: ChangePasswordFormData = {
-    currentPassword: '',
-    newPassword: '',
-    confirmedPassword: ''
-  };
-
-  currentPasswordVisible = false;
-  newPasswordVisible = false;
-  confirmPasswordVisible = false;
-
-  currentPasswordEditorOptions: any;
-  newPasswordEditorOptions: any;
-  confirmPasswordEditorOptions: any;
+  passwordForm: FormGroup;
 
   constructor() {
-    this.initializePasswordOptions();
+    this.passwordForm = this.fb.group({
+      currentPassword: ['', Validators.required],
+      newPassword: ['', [Validators.required, this.passwordPolicyValidator.bind(this)]],
+      confirmedPassword: ['', [Validators.required, this.passwordMatchValidator.bind(this)]]
+    });
   }
 
-  async ngAfterViewInit() {
+  async ngOnInit() {
+    // Verifica se siamo arrivati qui per password scaduta
+    this.route.queryParams.subscribe(params => {
+      this.isPasswordExpired = params['expired'] === 'true';
+
+      // Se password scaduta, rimuovi il validatore required per currentPassword
+      if (this.isPasswordExpired) {
+        this.passwordForm.get('currentPassword')?.clearValidators();
+        this.passwordForm.get('currentPassword')?.updateValueAndValidity();
+      }
+    });
+
     // Carica la policy delle password dal server
     await this.authService.getPsswPolicy();
   }
 
-  private initializePasswordOptions() {
-    this.currentPasswordEditorOptions = {
-      stylingMode: 'filled',
-      placeholder: this.getText(620),
-      mode: 'password',
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          onClick: () => {
-            this.toggleCurrentPasswordVisibility();
-          }
-        }
-      }]
-    };
-
-    this.newPasswordEditorOptions = {
-      stylingMode: 'filled',
-      placeholder: this.getText(621),
-      mode: 'password',
-      onValueChanged: (e: any) => {
-        this.checkPassword({ value: e.value });
-      },
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          onClick: () => {
-            this.toggleNewPasswordVisibility();
-          }
-        }
-      }]
-    };
-
-    this.confirmPasswordEditorOptions = {
-      stylingMode: 'filled',
-      placeholder: this.getText(622),
-      mode: 'password',
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          onClick: () => {
-            this.toggleConfirmPasswordVisibility();
-          }
-        }
-      }]
-    };
-  }
-
-  toggleCurrentPasswordVisibility() {
-    this.currentPasswordVisible = !this.currentPasswordVisible;
-    this.currentPasswordEditorOptions = {
-      ...this.currentPasswordEditorOptions,
-      mode: this.currentPasswordVisible ? 'text' : 'password',
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: this.currentPasswordVisible ? 'eyeopen' : 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          onClick: () => {
-            this.toggleCurrentPasswordVisibility();
-          }
-        }
-      }]
-    };
-    if (this.changePasswordFormComponent) {
-      this.changePasswordFormComponent.instance.repaint();
-    }
-  }
-
-  toggleNewPasswordVisibility() {
-    this.newPasswordVisible = !this.newPasswordVisible;
-    this.newPasswordEditorOptions = {
-      ...this.newPasswordEditorOptions,
-      mode: this.newPasswordVisible ? 'text' : 'password',
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: this.newPasswordVisible ? 'eyeopen' : 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          onClick: () => {
-            this.toggleNewPasswordVisibility();
-          }
-        }
-      }]
-    };
-    if (this.changePasswordFormComponent) {
-      this.changePasswordFormComponent.instance.repaint();
-    }
-  }
-
-  toggleConfirmPasswordVisibility() {
-    this.confirmPasswordVisible = !this.confirmPasswordVisible;
-    this.confirmPasswordEditorOptions = {
-      ...this.confirmPasswordEditorOptions,
-      mode: this.confirmPasswordVisible ? 'text' : 'password',
-      buttons: [{
-        name: 'password',
-        location: 'after',
-        options: {
-          icon: this.confirmPasswordVisible ? 'eyeopen' : 'eyeclose',
-          type: 'default',
-          stylingMode: 'text',
-          onClick: () => {
-            this.toggleConfirmPasswordVisibility();
-          }
-        }
-      }]
-    };
-    if (this.changePasswordFormComponent) {
-      this.changePasswordFormComponent.instance.repaint();
-    }
-  }
-
   /**
-   * Validazione password con policy
+   * Custom validator per la policy password
    */
-  checkPassword = (e: { value: string }): boolean => {
-    if (!this.authService.psswPolicy) {
-      return false;
+  passwordPolicyValidator(control: AbstractControl): ValidationErrors | null {
+    if (!control.value || !this.authService.psswPolicy) {
+      return null;
     }
 
-    const level = this.authService.getPasswStrength(e.value);
-    this.pwStrengthLevel = level;
-
-    return this.authService.validatePssw(
-      e.value,
+    const isValid = this.authService.validatePssw(
+      control.value,
       this.authService.psswPolicy.policyLC,
       this.authService.psswPolicy.policyUC,
       this.authService.psswPolicy.policyNM,
@@ -684,49 +578,45 @@ export class ChangePasswordPage implements AfterViewInit, OnInit {
       this.authService.psswPolicy.policyMinLen,
       this.authService.psswPolicy.policyMaxLen
     );
-  };
+
+    return isValid ? null : { policyViolation: true };
+  }
 
   /**
-   * Validazione conferma password
+   * Custom validator per conferma password
    */
-  confirmPassword = (e: { value: string }): boolean => {
-    return e.value === this.formData.newPassword;
-  };
+  passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
+    if (!control.value) {
+      return null;
+    }
+
+    const newPassword = this.passwordForm?.get('newPassword')?.value;
+    return control.value === newPassword ? null : { passwordMismatch: true };
+  }
 
   /**
-   * Torna alla pagina del profilo
+   * Gestisce l'input della nuova password per calcolare la forza
    */
-  ngOnInit() {
-    // Verifica se siamo arrivati qui per password scaduta
-    this.route.queryParams.subscribe(params => {
-      this.isPasswordExpired = params['expired'] === 'true';
-    });
+  onNewPasswordInput(event: any) {
+    const value = event.target?.value || '';
+    this.pwStrengthLevel = this.authService.getPasswStrength(value);
+
+    // Ri-valida conferma password quando cambia la nuova password
+    this.passwordForm.get('confirmedPassword')?.updateValueAndValidity();
   }
 
   goBack() {
     if (this.isPasswordExpired) {
-      // Se la password è scaduta, torna al login (e pulisci i dati temporanei)
       localStorage.removeItem('tempUserData');
       this.router.navigate(['/login']);
     } else {
-      // Altrimenti torna al profilo
       this.router.navigate(['/profile']);
     }
   }
 
-  /**
-   * Gestisce il cambio password
-   */
-  async onSubmit(e: Event) {
-    e.preventDefault();
-
-    if (!this.changePasswordFormComponent) {
-      return;
-    }
-
-    const validation = this.changePasswordFormComponent.instance.validate();
-
-    if (!validation.isValid) {
+  async onSubmit() {
+    if (this.passwordForm.invalid) {
+      this.passwordForm.markAllAsTouched();
       return;
     }
 
@@ -735,7 +625,6 @@ export class ChangePasswordPage implements AfterViewInit, OnInit {
     try {
       let userEmail: string | null = null;
 
-      // Se la password è scaduta, prendi l'email dai dati temporanei
       if (this.isPasswordExpired) {
         const tempUserData = localStorage.getItem('tempUserData');
         if (tempUserData) {
@@ -743,7 +632,6 @@ export class ChangePasswordPage implements AfterViewInit, OnInit {
           userEmail = userData.email;
         }
       } else {
-        // Altrimenti prendi l'email dall'utente corrente
         userEmail = this.authService.getUserEmail();
       }
 
@@ -751,11 +639,11 @@ export class ChangePasswordPage implements AfterViewInit, OnInit {
         throw new Error(this.getText(646));
       }
 
-      // Cambia la password
+      const formValue = this.passwordForm.value;
       const result = await this.authService.updatePassword(
         userEmail,
-        this.formData.currentPassword,
-        this.formData.newPassword
+        formValue.currentPassword,
+        formValue.newPassword
       );
 
       this.loading = false;
@@ -768,7 +656,6 @@ export class ChangePasswordPage implements AfterViewInit, OnInit {
         });
         await toast.present();
 
-        // Se la password era scaduta, torna al login per rifare l'accesso
         if (this.isPasswordExpired) {
           localStorage.removeItem('tempUserData');
 

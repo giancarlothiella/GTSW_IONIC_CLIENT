@@ -14,7 +14,7 @@
   <div
     [style]="viewStyle"
     >
-    @for (element of metaData.tabs; track element) {
+    @for (element of metaData.tabs; track element.objectName) {
       @if (element.visible) {
         <app-gts-tabs
           [style]="'grid-area: '+element.gridArea"
@@ -25,7 +25,7 @@
       }
     }
 
-    @for (element of metaData.toolbars; track element) {
+    @for (element of metaData.toolbars; track element.objectName) {
       @if (element.visible && element.objectName != 'mainToolbar' && !element.toolbarFlagSubmit) {
         <app-gts-toolbar
           [style]="'grid-area: '+element.gridArea"
@@ -38,7 +38,7 @@
       }
     }
 
-    @for (element of metaData.grids; track element) {
+    @for (element of metaData.grids; track element.objectName) {
       @if (element.visible) {
         <app-gts-grid
           [style]="'grid-area: '+element.gridArea"
@@ -49,7 +49,7 @@
       }
     }
 
-    @for (element of metaData.forms; track element) {
+    @for (element of metaData.forms; track element.objectName) {
       @if (element.visible && !element.groupShowPopUp) {
         <app-gts-form
           [style]="'grid-area: '+element.gridArea"

@@ -2,12 +2,14 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
-import DataSource from 'devextreme/data/data_source';
-import ArrayStore from 'devextreme/data/array_store';
-import notify from 'devextreme/ui/notify';
-import { DxDataGridModule, DxPopupModule } from 'devextreme-angular';
 import { AuthService } from '../../../core/services/auth.service';
 import { GtsDataService } from '../../../core/services/gts-data.service';
+
+// PrimeNG
+import { Dialog } from 'primeng/dialog';
+import { TableModule } from 'primeng/table';
+import { Toast } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 // Import GTS Components - Open Source Versions
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
 import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component';
@@ -17,7 +19,6 @@ import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-po
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
 import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component';
 import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';
-import { GtsAiComponent } from '../../../core/gts/gts-ai/gts-ai.component';
 
 @Component({
   selector: 'app-scheduler',
@@ -32,10 +33,12 @@ import { GtsAiComponent } from '../../../core/gts/gts-ai/gts-ai.component';
     GtsMessageComponent,
     GtsTabsComponent,
     GtsReportsComponent,
-    GtsAiComponent,
-    DxDataGridModule,
-    DxPopupModule
+    // PrimeNG
+    Dialog,
+    TableModule,
+    Toast
   ],
+  providers: [MessageService],
   template: `
     <ng-container class="pageFormat">
       <app-gts-toolbar
@@ -49,7 +52,7 @@ import { GtsAiComponent } from '../../../core/gts/gts-ai/gts-ai.component';
         @if (loading) {
           <app-gts-loader></app-gts-loader>
         }
-        @for (element of metaData.tabs; track element) {
+        @for (element of metaData.tabs; track element.objectName) {
           @if (element.visible) {
             <app-gts-tabs
               [style]="'grid-area: '+element.gridArea"
@@ -59,7 +62,7 @@ import { GtsAiComponent } from '../../../core/gts/gts-ai/gts-ai.component';
             ></app-gts-tabs>
           }
         }
-        @for (element of metaData.reports; track element) {
+        @for (element of metaData.reports; track element.fieldGrpId) {
           @if (element.visible) {
             <app-gts-reports
               [style]="'grid-area: '+element.gridArea"
@@ -69,7 +72,7 @@ import { GtsAiComponent } from '../../../core/gts/gts-ai/gts-ai.component';
             ></app-gts-reports>
           }
         }
-        @for (element of metaData.toolbars; track element) {
+        @for (element of metaData.toolbars; track element.objectName) {
           @if (element.visible && element.objectName !== 'mainToolbar' && !element.toolbarFlagSubmit) {
             <app-gts-toolbar
               [style]="'grid-area: '+element.gridArea"
@@ -81,7 +84,7 @@ import { GtsAiComponent } from '../../../core/gts/gts-ai/gts-ai.component';
             ></app-gts-toolbar>
           }
         }
-        @for (element of metaData.grids; track element) {
+        @for (element of metaData.grids; track element.objectName) {
           @if (element.visible) {
             <app-gts-grid
               [style]="'grid-area: '+element.gridArea"
@@ -91,7 +94,7 @@ import { GtsAiComponent } from '../../../core/gts/gts-ai/gts-ai.component';
             ></app-gts-grid>
           }
         }
-        @for (element of metaData.forms; track element) {
+        @for (element of metaData.forms; track element.objectName) {
           @if (element.visible && !element.groupShowPopUp) {
             <app-gts-form
               [style]="'grid-area: '+element.gridArea"
@@ -113,44 +116,45 @@ import { GtsAiComponent } from '../../../core/gts/gts-ai/gts-ai.component';
         [prjId]="prjId"
         [formId]="formId"
       ></app-gts-message>
-      <app-gts-ai
-        [prjId]="prjId"
-        [formId]="formId"
-        [popUpTitle]="aiPopUpTitle"
-        [instrName]="aiInstrName"
-        [popUpHeigth]="450"
-        [popUpWidth]="700"
-        [popUpVisible]="aiPopUpVisible"
-      ></app-gts-ai>
-      <dx-popup
-        [hideOnOutsideClick]="true"
-        [showCloseButton]="true"
+
+      <p-dialog
+        [header]="cronStatus"
         [(visible)]="showCronList"
-        [title]="cronStatus"
-        [height]="600"
-        [width]="1200"
+        [modal]="true"
+        [dismissableMask]="true"
+        [style]="{ width: '1200px', height: '600px' }"
+        [closable]="true"
       >
-        <dx-data-grid
-          [repaintChangesOnly]="true"
-          [visible]="showCronList"
-          [dataSource]="cronDataSource"
-          [showBorders]="true"
-          [columnAutoWidth]="true"
-          [showRowLines]="true"
-          [showColumnLines]="true"
-          [rowAlternationEnabled]="true"
-          [focusedRowEnabled]="true"
+        <p-table
+          [value]="cronList"
+          [scrollable]="true"
+          scrollHeight="450px"
+          [rowHover]="true"
+          [stripedRows]="true"
+          styleClass="p-datatable-sm p-datatable-gridlines"
         >
-          <dxi-column dataField="taskActive" caption="Active"></dxi-column>
-          <dxi-column dataField="taskCode" caption="Code"></dxi-column>
-          <dxi-column dataField="taskSchedule" caption="Schedule"></dxi-column>
-          <dxi-column dataField="taskURL" caption="Method Route"></dxi-column>
-          <dxi-column dataField="taskType" caption="Task Type"></dxi-column>
-          <div *dxTemplate="let data of 'cellTemplate'">
-            <img [src]="data.value" />
-          </div>
-        </dx-data-grid>
-      </dx-popup>
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Active</th>
+              <th>Code</th>
+              <th>Schedule</th>
+              <th>Method Route</th>
+              <th>Task Type</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-task>
+            <tr>
+              <td>{{ task.taskActive }}</td>
+              <td>{{ task.taskCode }}</td>
+              <td>{{ task.taskSchedule }}</td>
+              <td>{{ task.taskURL }}</td>
+              <td>{{ task.taskType }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-dialog>
+
+      <p-toast></p-toast>
     </ng-container>
   `,
   styles: []
@@ -159,6 +163,7 @@ export class GTSW_SchedulerComponent implements OnInit, OnDestroy {
   // Services
   private authService = inject(AuthService);
   public gtsDataService = inject(GtsDataService);
+  private messageService = inject(MessageService);
 
   // Page params
   prjId = 'GTSW';
@@ -179,16 +184,9 @@ export class GTSW_SchedulerComponent implements OnInit, OnDestroy {
   customData: any[] = [];
   toolbarSelectedValue = '';
 
-  // AI Popup state
-  aiPopUpVisible = false;
-  aiInstrName = 'CronPeriod';
-  aiPopUpTitle = 'Build Cron Period';
-
   // Cron/Scheduler state
   showCronList = false;
   cronList: any[] = [];
-  cronDataStore: any = {};
-  cronDataSource: any = {};
   cronStatus = '';
 
   ngOnInit(): void {
@@ -226,23 +224,7 @@ export class GTSW_SchedulerComponent implements OnInit, OnDestroy {
           message: ''
         };
         //===== START FORM REQUEST CUSTOM CODE =====
-        if (formRequestField.typeRequest !== 'POPUP_HIDDEN') {
-          this.aiPopUpVisible = false;
-          this.gtsDataService.sendFormReply(reply);
-        }
-
-        if (formRequestField.typeRequest !== 'EXIT') {
-          reply.message = 'POPUP_HIDDEN';
-          this.aiPopUpVisible = false;
-          this.gtsDataService.sendFormReply(reply);
-        }
-
-        if (formRequestField.typeRequest === 'aiInstrAnswer') {
-          this.aiPopUpVisible = false;
-          reply.message = formRequestField.typeRequest;
-          reply.data = formRequestField.instrData;
-          this.gtsDataService.sendFormReply(reply);
-        }
+        this.gtsDataService.sendFormReply(reply);
         //===== END FORM REQUEST CODE =====
       });
 
@@ -251,29 +233,13 @@ export class GTSW_SchedulerComponent implements OnInit, OnDestroy {
       .getPageCustomListener()
       .subscribe(async (customCode) => {
         //===== START CUSTOM CODE =====
-        const position: any = 'top center';
-        const direction: any = 'down-push';
         let message = '';
         let valid = false;
 
-        if (customCode === 'AI_QUERY') {
-          this.aiPopUpVisible = true;
-        }
-
         if (customCode === 'CRON_GET_TASK') {
           const response = await this.gtsDataService.execMethod('task', 'getTasksList', {});
-
-          this.cronDataStore = new ArrayStore({
-            data: response.taskList,
-            key: ['taskCode']
-          });
-
-          this.cronDataSource = new DataSource({
-            store: this.cronDataStore
-          });
-
+          this.cronList = response.taskList || [];
           this.cronStatus = 'SERVER CRON STATUS: ' + (response.cronActive === 'Y' ? 'ACTIVE' : 'INACTIVE');
-
           this.gtsDataService.sendAppLoaderListener(false);
           this.showCronList = true;
         }
@@ -315,23 +281,12 @@ export class GTSW_SchedulerComponent implements OnInit, OnDestroy {
 
         if (customCode === 'CRON_UNLOAD' || customCode === 'CRON_LOAD' || customCode === 'CRON_START' ||
             customCode === 'CRON_STOP' || customCode === 'CRON_RUN') {
-          notify(
-            {
-              message: message,
-              height: 45,
-              width: 200,
-              minWidth: 200,
-              type: valid ? 'success' : 'error',
-              displayTime: 3000,
-              animation: {
-                show: {
-                  type: 'fade', duration: 200, from: 0, to: 1,
-                },
-                hide: { type: 'fade', duration: 40, to: 0 },
-              },
-            },
-            { position, direction }
-          );
+          this.messageService.add({
+            severity: valid ? 'success' : 'error',
+            summary: valid ? 'Success' : 'Error',
+            detail: message,
+            life: 3000
+          });
         }
 
         //===== END CUSTOM CODE =====

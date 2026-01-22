@@ -11,7 +11,6 @@ import {
   IonIcon,
   IonSelect,
   IonSelectOption,
-  IonText,
   PopoverController
 } from '@ionic/angular/standalone';
 
@@ -34,8 +33,7 @@ import {
     IonButton,
     IonIcon,
     IonSelect,
-    IonSelectOption,
-    IonText
+    IonSelectOption
   ],
   templateUrl: './gts-toolbar.component.html',
   styleUrls: ['./gts-toolbar.component.scss']

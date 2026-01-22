@@ -58,13 +58,9 @@ export class GtsTabsComponent implements OnInit {
     // Prepara i tab
     this.prepareTabs();
 
-    // Imposta il tab selezionato
-    if (this.metaData.tabIndex === undefined || this.metaData.tabIndex === null) {
-      this.tabsIndex = 0;
-      this.metaData.tabIndex = this.tabsIndex;
-    } else {
-      this.tabsIndex = this.metaData.tabIndex;
-    }
+    // Sempre inizializza al primo tab (index 0)
+    this.tabsIndex = 0;
+    this.metaData.tabIndex = 0;
 
     // Imposta l'ID del tab selezionato (CRITICO per il binding con ion-segment)
     if (this.tabsList.length > 0 && this.tabsIndex >= 0 && this.tabsIndex < this.tabsList.length) {
@@ -113,7 +109,12 @@ export class GtsTabsComponent implements OnInit {
   /**
    * Gestisce il click diretto su un tab (più affidabile di ionChange)
    */
-  onTabClick(tabId: string | undefined): void {
+  onTabClick(tabId: string | undefined, event?: Event): void {
+    // Stop propagation to prevent accordion from closing
+    if (event) {
+      event.stopPropagation();
+    }
+
     if (tabId === undefined || tabId === null || String(tabId) === 'undefined') {
       return;
     }
@@ -147,6 +148,11 @@ export class GtsTabsComponent implements OnInit {
    * Gestisce il cambio tab da ionChange (backup method)
    */
   onTabChange(event: any): void {
+    // Stop propagation to prevent accordion from closing
+    if (event) {
+      event.stopPropagation();
+    }
+
     let selectedId = '';
 
     // Prova diverse modalità di accesso al valore

@@ -11,7 +11,7 @@
           [value]="tab.id"
           [disabled]="tab.disabled"
           layout="icon-start"
-          (click)="onTabClick(tab.id)"
+          (click)="onTabClick(tab.id, $event)"
         >
           @if (tab.iconPath) {
             <img

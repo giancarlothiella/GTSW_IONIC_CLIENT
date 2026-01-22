@@ -1,16 +1,25 @@
 // src/app/features/GTSW/languages/languages.page.ts
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import DataSource from 'devextreme/data/data_source';
-import ArrayStore from 'devextreme/data/array_store';
-import { exportDataGrid } from 'devextreme/excel_exporter';
-import { ExportingEvent } from 'devextreme/ui/data_grid';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
-import { DxDataGridModule, DxTabsModule, DxPopupModule, DxTextAreaModule, DxButtonModule } from 'devextreme-angular';
 import { AuthService } from '../../../core/services/auth.service';
 import { GtsDataService } from '../../../core/services/gts-data.service';
+import { AiReportsService } from '../../../core/services/ai-reports.service';
+
+// PrimeNG
+import { TableModule } from 'primeng/table';
+import { TabsModule } from 'primeng/tabs';
+import { Dialog } from 'primeng/dialog';
+import { Textarea } from 'primeng/textarea';
+import { Button } from 'primeng/button';
+import { InputText } from 'primeng/inputtext';
+import { Toast } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
+import { Checkbox } from 'primeng/checkbox';
+
 // Import GTS Components - Open Source Versions
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
 import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component';
@@ -27,6 +36,7 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     GtsLoaderComponent,
     GtsToolbarComponent,
     GtsGridComponent,
@@ -36,12 +46,17 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
     GtsTabsComponent,
     GtsReportsComponent,
     GtsFileUploaderComponent,
-    DxDataGridModule,
-    DxTabsModule,
-    DxPopupModule,
-    DxTextAreaModule,
-    DxButtonModule
+    // PrimeNG
+    TableModule,
+    TabsModule,
+    Dialog,
+    Textarea,
+    Button,
+    InputText,
+    Toast,
+    Checkbox
   ],
+  providers: [MessageService],
   template: `
     <ng-container class="pageFormat">
       <app-gts-toolbar
@@ -55,7 +70,7 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
         @if (loading) {
           <app-gts-loader></app-gts-loader>
         }
-        @for (element of metaData.tabs; track element) {
+        @for (element of metaData.tabs; track element.objectName) {
           @if (element.visible) {
             <app-gts-tabs
               [style]="'grid-area: '+element.gridArea"
@@ -65,7 +80,7 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
             ></app-gts-tabs>
           }
         }
-        @for (element of metaData.reports; track element) {
+        @for (element of metaData.reports; track element.fieldGrpId) {
           @if (element.visible) {
             <app-gts-reports
               [style]="'grid-area: '+element.gridArea"
@@ -75,7 +90,7 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
             ></app-gts-reports>
           }
         }
-        @for (element of metaData.toolbars; track element) {
+        @for (element of metaData.toolbars; track element.objectName) {
           @if (element.visible && element.objectName !== 'mainToolbar' && !element.toolbarFlagSubmit) {
             <app-gts-toolbar
               [style]="'grid-area: '+element.gridArea"
@@ -88,7 +103,7 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
             ></app-gts-toolbar>
           }
         }
-        @for (element of metaData.grids; track element) {
+        @for (element of metaData.grids; track element.objectName) {
           @if (element.visible) {
             <app-gts-grid
               [style]="'grid-area: '+element.gridArea"
@@ -98,7 +113,7 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
             ></app-gts-grid>
           }
         }
-        @for (element of metaData.forms; track element) {
+        @for (element of metaData.forms; track element.objectName) {
           @if (element.visible && !element.groupShowPopUp) {
             <app-gts-form
               [style]="'grid-area: '+element.gridArea"
@@ -120,74 +135,127 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
         [prjId]="prjId"
         [formId]="formId"
       ></app-gts-message>
+
       @if (showTrans) {
-        <div>
-          <div class="languages">
-            <div style="height: 35px; padding-top: 5px;">
+        <div class="translations-container">
+          <!-- Languages List Table -->
+          <div class="languages-section">
+            <div class="section-header">
               <span>Languages</span>
             </div>
-            <dx-data-grid
-              [repaintChangesOnly]="true"
-              [visible]="true"
-              [dataSource]="languagesDataSource"
-              [showBorders]="true"
-              [columnAutoWidth]="true"
-              [showRowLines]="true"
-              [showColumnLines]="true"
-              [rowAlternationEnabled]="true"
-              [width]="325"
+            <p-table
+              [value]="languages"
+              [scrollable]="true"
+              scrollHeight="200px"
+              [rowHover]="true"
+              [stripedRows]="true"
+              styleClass="p-datatable-sm p-datatable-gridlines"
+              [style]="{ width: '350px' }"
             >
-              <dxi-column dataField="flag" caption="Icon" cellTemplate="cellTemplate"></dxi-column>
-              <dxi-column dataField="languageId" caption="Id"></dxi-column>
-              <dxi-column dataField="description" caption="Language"></dxi-column>
-              <dxi-column dataField="selected" caption="Selected"></dxi-column>
-              <div *dxTemplate="let data of 'cellTemplate'">
-                <img [src]="data.value" />
-              </div>
-            </dx-data-grid>
+              <ng-template pTemplate="header">
+                <tr>
+                  <th style="width: 50px">Icon</th>
+                  <th style="width: 80px">Id</th>
+                  <th>Language</th>
+                  <th style="width: 80px">Selected</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-lang>
+                <tr>
+                  <td><img [src]="lang.flag" style="height: 20px" /></td>
+                  <td>{{ lang.languageId }}</td>
+                  <td>{{ lang.description }}</td>
+                  <td style="text-align: center"><p-checkbox [ngModel]="lang.selected" [binary]="true" [disabled]="true"></p-checkbox></td>
+                </tr>
+              </ng-template>
+            </p-table>
           </div>
-          <dx-tabs
-            id="languages"
-            [width]="languageTabsWidth"
-            [dataSource]="languageTabsDataSource"
-            iconPosition="start"
-            stylingMode="secondary"
-            [(selectedIndex)]="languageIndex"
-            (onItemClick)="onLanguageTabClick($event)"
-            (onInitialized)="onLanguageTabsInitialized($event)"
-          ></dx-tabs>
-          <dx-data-grid
-            [visible]="true"
-            [dataSource]="textsDataSource"
-            [showBorders]="true"
-            [columnAutoWidth]="true"
-            [showRowLines]="true"
-            [showColumnLines]="true"
-            [rowAlternationEnabled]="true"
-            [focusedRowEnabled]="true"
-            [(focusedRowIndex)]="textFocusedRowIndex"
-            (onSaved)="onTextSaved($event)"
-            (onExporting)="onTextExporting($event)"
-          >
-            <dxi-column dataField="txtId" caption="Id"></dxi-column>
-            <dxi-column dataField="text" caption="Text"></dxi-column>
-            <dxo-editing
-              mode="batch"
-              [allowUpdating]="!mlTextData.data?.[languageIndex]?.default"
-            ></dxo-editing>
-            <dxo-filter-panel [visible]="true"></dxo-filter-panel>
-            <dxo-search-panel
-              [visible]="true"
-              [highlightCaseSensitive]="true"
-            ></dxo-search-panel>
-            <dxo-export
-              [enabled]="!mlTextData.data?.[languageIndex]?.default"
-              [formats]="['xlsx']"
-              [fileName]="textExportFileName"
-            ></dxo-export>
-          </dx-data-grid>
+
+          <!-- Language Tabs -->
+          <div class="texts-section">
+            <p-tabs [value]="languageIndex" (valueChange)="onLanguageTabChange($event)">
+              <p-tablist>
+                @for (tab of languageTabs; track tab.id; let i = $index) {
+                  <p-tab [value]="i">
+                    <img [src]="tab.icon" style="height: 16px; margin-right: 8px" />
+                    {{ tab.text }}
+                  </p-tab>
+                }
+              </p-tablist>
+            </p-tabs>
+
+            <!-- Texts Table with inline editing -->
+            <p-table
+              [value]="textsData"
+              [scrollable]="true"
+              scrollHeight="400px"
+              [rowHover]="true"
+              [stripedRows]="true"
+              [globalFilterFields]="['txtId', 'text']"
+              styleClass="p-datatable-sm p-datatable-gridlines"
+              dataKey="txtId"
+              editMode="cell"
+            >
+              <ng-template pTemplate="caption">
+                <div class="table-header">
+                  <span class="p-input-icon-left">
+                    <i class="pi pi-search"></i>
+                    <input
+                      pInputText
+                      type="text"
+                      [(ngModel)]="searchText"
+                      (input)="filterTexts()"
+                      placeholder="Search..."
+                      style="width: 300px"
+                    />
+                  </span>
+                  @if (!isDefaultLanguage()) {
+                    <p-button
+                      icon="pi pi-file-excel"
+                      label="Export Excel"
+                      severity="success"
+                      size="small"
+                      (onClick)="exportTextsToExcel()"
+                    ></p-button>
+                  }
+                </div>
+              </ng-template>
+              <ng-template pTemplate="header">
+                <tr>
+                  <th style="width: 100px">Id</th>
+                  <th>Text</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-text let-editing="editing">
+                <tr>
+                  <td>{{ text.txtId }}</td>
+                  <td [pEditableColumn]="text.text" pEditableColumnField="text">
+                    @if (!isDefaultLanguage()) {
+                      <p-cellEditor>
+                        <ng-template pTemplate="input">
+                          <input
+                            pInputText
+                            type="text"
+                            [(ngModel)]="text.text"
+                            (blur)="onTextEdited(text)"
+                            style="width: 100%"
+                          />
+                        </ng-template>
+                        <ng-template pTemplate="output">
+                          {{ text.text }}
+                        </ng-template>
+                      </p-cellEditor>
+                    } @else {
+                      {{ text.text }}
+                    }
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
         </div>
       }
+
       <app-gts-file-uploader
         fileUploadPath="Temp"
         uploaderTitle="Multilingual Texts"
@@ -195,43 +263,90 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
         [allowedExtensions]="allowedExtensions"
         [maxFileSize]="maxFileSize"
       ></app-gts-file-uploader>
-      <dx-popup
-        [hideOnOutsideClick]="false"
-        [showCloseButton]="false"
+
+      <!-- JSON Editor Dialog -->
+      <p-dialog
+        header="Multilingual Texts"
         [(visible)]="jsonMLVisible"
-        title="Test Data Object"
-        [height]="570"
-        [width]="800"
+        [modal]="true"
+        [style]="{ width: '800px', height: '600px' }"
+        [closable]="false"
+        [contentStyle]="{ 'flex': '1', 'display': 'flex', 'padding': '0', 'overflow': 'hidden' }"
       >
-        <div style="padding-bottom: 10px;">
-          <dx-text-area
-            [(value)]="textMLDataString"
-            height="450"
-          ></dx-text-area>
-        </div>
-        <dx-button
-          class="saveButton"
-          text="Save"
-          type="success"
-          [width]="100"
-          (onClick)="onSaveTextMLData()"
-        ></dx-button>
-        <dx-button
-          class="saveButton"
-          text="Cancel"
-          type="danger"
-          [width]="100"
-          (onClick)="onCancelTextMLData()"
-        ></dx-button>
-      </dx-popup>
+        <textarea
+          pTextarea
+          [(ngModel)]="textMLDataString"
+          style="width: 100%; flex: 1; font-family: monospace; font-size: 13px; resize: none; border: none; border-radius: 0; padding: 10px;"
+        ></textarea>
+        <ng-template pTemplate="footer">
+          <p-button
+            label="Cancel"
+            severity="danger"
+            (onClick)="onCancelTextMLData()"
+            class="mr-2"
+          ></p-button>
+          @if (!isDefaultLanguage()) {
+            <p-button
+              [label]="'AI Translate to: ' + getActiveLanguageId()"
+              icon="pi pi-sparkles"
+              severity="info"
+              (onClick)="onAITranslate()"
+              [loading]="aiTranslating"
+              [disabled]="aiTranslating"
+              class="mr-2"
+            ></p-button>
+            <p-button
+              label="Save"
+              severity="success"
+              (onClick)="onSaveTextMLData()"
+            ></p-button>
+          }
+        </ng-template>
+      </p-dialog>
+
+      <p-toast></p-toast>
     </ng-container>
   `,
   styles: [`
-    .languages {
+    .translations-container {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .languages-section {
       padding: 10px;
     }
-    .saveButton {
-      margin-right: 10px;
+    .section-header {
+      height: 35px;
+      padding-top: 5px;
+      font-weight: bold;
+    }
+    .texts-section {
+      padding: 10px;
+    }
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .tab-label {
+      display: flex;
+      align-items: center;
+    }
+    .mr-2 {
+      margin-right: 0.5rem;
+    }
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+      padding: 0.6rem 0.75rem;
+    }
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+      padding: 0.6rem 0.75rem;
+    }
+    :host ::ng-deep .p-dialog .p-dialog-content {
+      display: flex;
+      flex-direction: column;
     }
   `]
 })
@@ -239,6 +354,8 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
   // Services
   private authService = inject(AuthService);
   public gtsDataService = inject(GtsDataService);
+  private messageService = inject(MessageService);
+  private aiReportsService = inject(AiReportsService);
 
   // Page params
   prjId = 'GTSW';
@@ -264,21 +381,15 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
   // Translations state
   showTrans = false;
   dataLanguages: any = [];
-  languages: any = [];
-  languagesDataStore: any = {};
-  languagesDataSource: any = {};
+  languages: any[] = [];
 
   languageTabs: any[] = [];
-  languageTabsComponent: any = {};
-  languageTabsDataStore: any = {};
-  languageTabsDataSource: any = {};
   languageIndex = 0;
-  languageTabsWidth = 600;
 
   mlTextData: any = { data: [] };
-  textsDataStore: any = {};
-  textsDataSource: any = {};
-  textFocusedRowIndex = -1;
+  textsData: any[] = [];
+  textsDataOriginal: any[] = [];
+  searchText = '';
   textExportFileName = 'mlTextExport';
   allowedExtensions: string[] = ['.xlsx'];
   maxFileSize = 5000000;
@@ -286,6 +397,7 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
 
   jsonMLVisible = false;
   textMLDataString = '';
+  aiTranslating = false;
 
   customData: any[] = [{
     type: 'select',
@@ -373,15 +485,6 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
             });
           });
 
-          this.languagesDataStore = new ArrayStore({
-            data: this.languages,
-            key: ['languageId']
-          });
-
-          this.languagesDataSource = new DataSource({
-            store: this.languagesDataStore
-          });
-
           this.languageTabs = [];
           this.dataLanguages
             .filter((row: any) => row.active)
@@ -393,17 +496,6 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
                 visible: true
               });
             });
-
-          this.languageTabsWidth = this.languageTabs.length * 150;
-
-          this.languageTabsDataStore = new ArrayStore({
-            data: this.languageTabs,
-            key: ['id']
-          });
-
-          this.languageTabsDataSource = new DataSource({
-            store: this.languageTabsDataStore
-          });
 
           const qProjects = this.pageData
             .filter((element: any) => element.dataAdapter === 'daLang')[0]
@@ -495,16 +587,17 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
           });
 
           workbook.xlsx.writeBuffer()
-            .then(function (buffer: BlobPart) {
+            .then((buffer: BlobPart) => {
               saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
             });
 
           this.textMLDataString = JSON.stringify(exportTexts, null, 2);
           this.jsonMLVisible = true;
-          this.loading = false;
+          this.gtsDataService.sendAppLoaderListener(false);
         }
 
         if (customCode === 'TRANS_UPLOAD') {
+          this.gtsDataService.sendAppLoaderListener(false);
           this.gtsDataService.sendFileLoaderListener({
             fileUploadVisible: true
           });
@@ -526,7 +619,7 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
             const fileName = 'MLTextExport_' + this.toolbarSelectedValue + '.xlsx';
             saveAs(new Blob([byteArray], { type: 'application/octet-stream' }), fileName);
           }
-          this.loading = false;
+          this.gtsDataService.sendAppLoaderListener(false);
         }
 
         if (customCode === 'SHOW_LANG') {
@@ -581,14 +674,24 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
   prepareTexts(languageId: string) {
     const languageData = this.mlTextData.data.filter((text: any) => text.languageId === languageId)[0];
     if (languageData) {
-      this.textsDataStore = new ArrayStore({
-        data: languageData.texts,
-        key: 'txtId'
-      });
-      this.textsDataSource = new DataSource({
-        store: this.textsDataStore
-      });
+      this.textsDataOriginal = [...languageData.texts];
+      this.textsData = [...languageData.texts];
     }
+  }
+
+  filterTexts() {
+    if (!this.searchText) {
+      this.textsData = [...this.textsDataOriginal];
+    } else {
+      const search = this.searchText.toLowerCase();
+      this.textsData = this.textsDataOriginal.filter(
+        (t: any) => t.txtId.toString().includes(search) || (t.text && t.text.toLowerCase().includes(search))
+      );
+    }
+  }
+
+  isDefaultLanguage(): boolean {
+    return this.mlTextData.data?.[this.languageIndex]?.default || false;
   }
 
   async onSaveTextMLData() {
@@ -615,6 +718,12 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
     if (result.valid) {
       this.mlTextData = await this.gtsDataService.execMethod('data', 'getSavedMLText', { prjId: this.toolbarSelectedValue });
       this.prepareTexts(this.languageTabs[this.languageIndex].id);
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Success',
+        detail: 'Translations saved successfully',
+        life: 3000
+      });
     }
     this.jsonMLVisible = false;
   }
@@ -623,41 +732,115 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
     this.jsonMLVisible = false;
   }
 
-  onLanguageTabClick(event: any) {
+  onLanguageTabChange(index: string | number | undefined) {
+    if (index === undefined) return;
+    this.languageIndex = Number(index);
     const languageId = this.languageTabs[this.languageIndex].id;
     this.prepareTexts(languageId);
     this.textExportFileName = 'mlTextExport_' + this.toolbarSelectedValue + '_' + languageId;
+    this.searchText = '';
   }
 
-  onLanguageTabsInitialized(event: any) {
-    this.languageTabsComponent = event.component;
-  }
-
-  async onTextSaved(event: any) {
-    const changes = event.changes.map((change: any) => change.data);
+  async onTextEdited(text: any) {
+    // Save the edited text
+    const changes = [{
+      txtId: text.txtId,
+      text: text.text,
+      languageId: this.languageTabs[this.languageIndex].id
+    }];
     await this.gtsDataService.execMethod('data', 'saveMLText', {
       prjId: this.toolbarSelectedValue,
       mlTexts: changes
     });
   }
 
-  onTextExporting(e: ExportingEvent) {
+  exportTextsToExcel() {
     const workbook = new Workbook();
     const worksheet = workbook.addWorksheet('Main sheet');
-    const fileName = this.textExportFileName;
+    const fileName = this.textExportFileName + '.xlsx';
 
-    exportDataGrid({
-      component: e.component,
-      worksheet: worksheet,
-      customizeCell: function (options) {
-        options.excelCell.font = { name: 'Arial', size: 12 };
-        options.excelCell.alignment = { horizontal: 'left' };
-      }
-    }).then(function () {
-      workbook.xlsx.writeBuffer()
-        .then(function (buffer: BlobPart) {
-          saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
-        });
+    // Add header
+    worksheet.addRow(['Txt Id', 'Text']);
+    worksheet.getCell(1, 1).font = { bold: true };
+    worksheet.getCell(1, 2).font = { bold: true };
+
+    // Add data
+    this.textsData.forEach((text: any) => {
+      worksheet.addRow([text.txtId, text.text]);
     });
+
+    // Set column widths
+    worksheet.getColumn(1).width = 10;
+    worksheet.getColumn(2).width = 100;
+
+    workbook.xlsx.writeBuffer()
+      .then((buffer: BlobPart) => {
+        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+      });
+  }
+
+  getActiveLanguageId(): string {
+    if (this.languageTabs && this.languageTabs.length > this.languageIndex) {
+      return this.languageTabs[this.languageIndex].id.toUpperCase();
+    }
+    return '';
+  }
+
+  async onAITranslate() {
+    try {
+      this.aiTranslating = true;
+      const targetLanguage = this.languageTabs[this.languageIndex].id;
+
+      // Parse current JSON from textarea
+      const textsToTranslate = JSON.parse(this.textMLDataString);
+
+      // Find source language (first language that has text, usually 'it')
+      const sourceLanguage = this.mlTextData.data.find((lang: any) => lang.default)?.languageId || 'it';
+
+      // Call AI Reports service for translation (uses /api/ai-reports/translate)
+      this.aiReportsService.translateTexts({
+        texts: textsToTranslate,
+        targetLanguage: targetLanguage,
+        sourceLanguage: sourceLanguage
+      }).subscribe({
+        next: (result) => {
+          if (result.valid && result.texts) {
+            // Update textarea with translated texts
+            this.textMLDataString = JSON.stringify(result.texts, null, 2);
+            this.messageService.add({
+              severity: 'success',
+              summary: 'AI Translation',
+              detail: `Translated ${result.translatedCount || textsToTranslate.length} texts to ${targetLanguage.toUpperCase()}`,
+              life: 3000
+            });
+          } else {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Translation Error',
+              detail: result.message || 'Failed to translate texts',
+              life: 5000
+            });
+          }
+          this.aiTranslating = false;
+        },
+        error: (error) => {
+          this.aiTranslating = false;
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Translation Error',
+            detail: error.error?.message || 'Failed to translate texts',
+            life: 5000
+          });
+        }
+      });
+    } catch (e: any) {
+      this.aiTranslating = false;
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: e.message || 'Invalid JSON format',
+        life: 5000
+      });
+    }
   }
 }

@@ -1,40 +1,170 @@
+// Accordion header styles
+.accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
 
 .utenzaCode {
-    font-size: 0.8em;
-    margin: 10px;
-    color: #b81515;
-    float: right;
-    text-align: right;
-    width: 20%;
-    margin-right: 50px;
+  font-size: 0.8em;
+  color: #b81515;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .utenzaDescr {
-    font-size: 0.8em;
-    color: #0a095e;
-    font-weight: bold;
-    margin: 10px;
-    width: 80%;
+  font-size: 0.9em;
+  color: #0a095e;
+  font-weight: bold;
+  flex: 1;
 }
 
+// Accordion content - IMPORTANTE: deve occupare tutta la larghezza
+.accordion-content {
+  padding: 8px;
+  background: #fafafa;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+// Company logo panel
 .logo-soc {
-    display: block;
-    object-fit: contain;
-    margin-left: 20px;
-    margin-right: 20px;
-    height: 50px;
-    float: right;
+  display: block;
+  object-fit: contain;
+  margin-left: 20px;
+  margin-right: 20px;
+  height: 50px;
+  float: right;
 }
 
 .socTopPanel {
-    height: 50px;
-    background-color: #dde2f5;
+  height: 50px;
+  background-color: #dde2f5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .socRagioneSociale {
-    font-size: 1.5em;
-    color: #0a095e;
-    font-weight: bold;
-    padding-left: 20px;
-    padding-top: 12px;
+  font-size: 1.5em;
+  color: #0a095e;
+  font-weight: bold;
+  padding-left: 20px;
+}
+
+// Chart container
+.chart-container {
+  width: 100%;
+  height: 100%;
+
+  p-chart {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+// Ionic accordion customization
+ion-accordion-group {
+  margin: 0;
+  width: 100%;
+}
+
+ion-accordion {
+  margin-bottom: 8px;
+  width: 100%;
+
+  &.accordion-expanded {
+    ion-item[slot="header"] {
+      --background: #e8eaf6;
+    }
+  }
+
+  // Forza il contenuto dell'accordion a occupare tutta la larghezza
+  .ion-accordion-content {
+    width: 100%;
+  }
+}
+
+ion-item[slot="header"] {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --min-height: 56px;
+}
+
+// Page format inside accordion - deve essere largo
+.pageFormat {
+  min-height: 300px;
+  width: 100%;
+}
+
+// Fix per la griglia AG Grid dentro l'accordion
+:host ::ng-deep {
+  .ag-root-wrapper {
+    width: 100% !important;
+  }
+
+  .ag-body-viewport {
+    width: 100% !important;
+  }
+
+  // Fix toolbar overflow
+  app-gts-toolbar {
+    width: 100%;
+
+    .toolbar-container,
+    ion-toolbar {
+      width: 100%;
+    }
+  }
+}
+
+// Modal styles - Chart popup
+ion-modal {
+  --width: 90%;
+  --max-width: 800px;
+  --height: 70%;
+  --max-height: 550px;
+  --border-radius: 12px;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .accordion-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .utenzaCode {
+    text-align: left;
+  }
+
+  .socTopPanel {
+    height: auto;
+    padding: 10px;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .logo-soc {
+    float: none;
+    margin: 0;
+  }
+
+  .socRagioneSociale {
+    font-size: 1.2em;
+    padding-left: 0;
+    text-align: center;
+  }
+
+  ion-modal {
+    --width: 100%;
+    --height: 100%;
+    --border-radius: 0;
+  }
+
+  .chart-container {
+    height: 300px;
+  }
 }

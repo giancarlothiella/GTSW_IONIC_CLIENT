@@ -787,6 +787,30 @@ export class AiReportsService {
   }
 
   /**
+   * Traduci testi multilingua usando AI
+   *
+   * Usa l'endpoint /collaborate per inviare una richiesta di traduzione.
+   * Il server processerà i testi e restituirà le traduzioni.
+   *
+   * @param payload - Configurazione per la traduzione
+   * @param payload.texts - Array di testi da tradurre [{txtId, it, en, ...}]
+   * @param payload.targetLanguage - Codice lingua target (es. "en", "de", "fr")
+   * @param payload.sourceLanguage - Codice lingua sorgente (default: "it")
+   */
+  translateTexts(payload: {
+    texts: Array<{ txtId: number; [key: string]: any }>;
+    targetLanguage: string;
+    sourceLanguage?: string;
+  }): Observable<{
+    valid: boolean;
+    texts: Array<{ txtId: number; [key: string]: any }>;
+    translatedCount: number;
+    message?: string;
+  }> {
+    return this.http.post<any>(`${this.apiUrl}/translate`, payload);
+  }
+
+  /**
    * Applica le regole di aggregazione lato server
    *
    * Questo metodo invia i dati raw e le regole al server che esegue:

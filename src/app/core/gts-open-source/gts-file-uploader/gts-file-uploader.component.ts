@@ -3,27 +3,16 @@ import { CommonModule } from '@angular/common';
 import { GtsDataService } from '../../services/gts-data.service';
 import { Subscription } from 'rxjs';
 import { GtsLoaderComponent } from '../gts-loader/gts-loader.component';
-import {
-  IonModal,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonContent,
-  IonButtons,
-  IonButton,
-  IonList,
-  IonItem,
-  IonLabel,
-  IonIcon,
-  IonProgressBar
-} from '@ionic/angular/standalone';
-import { addIcons } from 'ionicons';
-import { cloudUpload, document, close } from 'ionicons/icons';
+
+// PrimeNG
+import { Dialog } from 'primeng/dialog';
+import { Button } from 'primeng/button';
+import { ProgressBar } from 'primeng/progressbar';
 
 /**
  * GTS File Uploader Component - Open Source Version
  *
- * Componente per l'upload di file usando Ionic invece di DevExtreme.
+ * Componente per l'upload di file usando PrimeNG Dialog.
  * Compatibile con i metadati GTS esistenti e gtsDataService.
  */
 @Component({
@@ -32,21 +21,182 @@ import { cloudUpload, document, close } from 'ionicons/icons';
   imports: [
     CommonModule,
     GtsLoaderComponent,
-    IonModal,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    IonContent,
-    IonButtons,
-    IonButton,
-    IonList,
-    IonItem,
-    IonLabel,
-    IonIcon,
-    IonProgressBar
+    Dialog,
+    Button,
+    ProgressBar
   ],
-  templateUrl: './gts-file-uploader.component.html',
-  styleUrls: ['./gts-file-uploader.component.scss']
+  template: `
+    <p-dialog
+      [header]="uploaderTitle"
+      [(visible)]="fileUploadVisible"
+      [modal]="true"
+      [dismissableMask]="true"
+      [style]="{ width: '500px' }"
+      [closable]="true"
+      (onHide)="closeModal()"
+    >
+      @if (loading) {
+        <app-gts-loader></app-gts-loader>
+      }
+
+      <div class="upload-container">
+        <!-- File Input Area -->
+        <div class="file-input-area" (click)="fileInput.click()">
+          <input
+            #fileInput
+            type="file"
+            (change)="onFileSelected($event)"
+            [accept]="acceptedFileTypes"
+            class="file-input"
+          />
+          <i class="pi pi-cloud-upload upload-icon"></i>
+          <p class="upload-text">Click to select a file</p>
+          @if (allowedExtensions.length > 0) {
+            <p class="allowed-types">Allowed types: {{ allowedExtensions.join(', ') }}</p>
+          }
+          @if (maxFileSize > 0) {
+            <p class="max-size">Max size: {{ getFileSize(maxFileSize) }}</p>
+          }
+        </div>
+
+        <!-- Selected File Info -->
+        @if (selectedFile) {
+          <div class="selected-file-info">
+            <i class="pi pi-file"></i>
+            <div class="file-details">
+              <span class="file-name">{{ selectedFile.name }}</span>
+              <span class="file-size">{{ getFileSize(selectedFile.size) }}</span>
+            </div>
+          </div>
+        }
+
+        <!-- Upload Progress -->
+        @if (uploadProgress > 0 && uploadProgress < 100) {
+          <div class="progress-container">
+            <p-progressBar [value]="uploadProgress"></p-progressBar>
+            <p class="progress-text">Uploading: {{ uploadProgress }}%</p>
+          </div>
+        }
+
+        <!-- Error Message -->
+        @if (errorMessage) {
+          <div class="error-message">
+            <p>{{ errorMessage }}</p>
+          </div>
+        }
+      </div>
+
+      <ng-template pTemplate="footer">
+        <p-button
+          label="Cancel"
+          icon="pi pi-times"
+          severity="secondary"
+          (onClick)="closeModal()"
+        ></p-button>
+        <p-button
+          label="Upload"
+          icon="pi pi-upload"
+          [disabled]="!selectedFile || loading"
+          (onClick)="uploadFile()"
+        ></p-button>
+      </ng-template>
+    </p-dialog>
+  `,
+  styles: [`
+    .upload-container {
+      padding: 10px 0;
+    }
+
+    .file-input-area {
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.3s, background-color 0.3s;
+
+      &:hover {
+        border-color: #007bff;
+        background-color: #f8f9fa;
+      }
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .upload-icon {
+      font-size: 48px;
+      color: #6c757d;
+      margin-bottom: 10px;
+    }
+
+    .upload-text {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .allowed-types, .max-size {
+      font-size: 12px;
+      color: #6c757d;
+      margin: 4px 0;
+    }
+
+    .selected-file-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      margin-top: 15px;
+
+      i {
+        font-size: 24px;
+        color: #007bff;
+      }
+
+      .file-details {
+        display: flex;
+        flex-direction: column;
+
+        .file-name {
+          font-weight: 500;
+          color: #333;
+        }
+
+        .file-size {
+          font-size: 12px;
+          color: #6c757d;
+        }
+      }
+    }
+
+    .progress-container {
+      margin-top: 15px;
+
+      .progress-text {
+        text-align: center;
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+      }
+    }
+
+    .error-message {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      border-radius: 6px;
+      color: #721c24;
+
+      p {
+        margin: 0;
+      }
+    }
+  `]
 })
 export class GtsFileUploaderComponent implements OnInit, OnDestroy {
   private gtsDataService = inject(GtsDataService);
@@ -65,16 +215,15 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
 
   fileLoaderListenerSubs: Subscription | undefined;
 
-  constructor() {
-    // Register Ionic icons
-    addIcons({ cloudUpload, document, close });
-  }
-
   ngOnInit() {
     this.fileLoaderListenerSubs = this.gtsDataService
       .getFileLoaderListener()
       .subscribe((status: any) => {
         this.fileUploadVisible = status.fileUploadVisible;
+        if (status.fileUploadVisible) {
+          // Reset state when opening
+          this.resetUploader();
+        }
       });
   }
 
@@ -144,9 +293,13 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
       this.uploadProgress = 100;
 
       if (result && result.success) {
-        // Success - close modal after a short delay
+        // Success - close modal after a short delay and notify with result
         setTimeout(() => {
-          this.closeModal();
+          this.gtsDataService.sendFileLoaderListener({
+            fileUploadVisible: false,
+            result: true,
+            fileUploadedName: result.fileName || this.selectedFile?.name
+          });
           this.resetUploader();
         }, 500);
       } else {
