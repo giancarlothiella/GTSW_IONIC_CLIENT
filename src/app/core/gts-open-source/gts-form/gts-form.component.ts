@@ -371,17 +371,30 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
       // Handle default values
       if (field.value === undefined || field.value === null) {
         if (this.metaData.fields[i].defaultValue !== undefined && this.metaData.fields[i].defaultValue !== null) {
-          if (isNaN(this.metaData.fields[i].defaultValue)) {
+          const defaultVal = this.metaData.fields[i].defaultValue;
+          if (isNaN(defaultVal)) {
             // Check for @NEXT first 5 chars
-            if (this.metaData.fields[i].defaultValue.substring(0, 5) === '@NEXT') {
-              field.value = this.gtsDataService.getNextFieldValue(this.prjId, this.formId, this.metaData.fields[i].defaultValue.substring(6));
-            } else if (this.metaData.fields[i].defaultValue.substring(0, 6) === '@FIELD') {
-              field.value = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, this.metaData.fields[i].defaultValue.substring(7));
+            if (defaultVal.substring(0, 5) === '@NEXT') {
+              field.value = this.gtsDataService.getNextFieldValue(this.prjId, this.formId, defaultVal.substring(6));
+            } else if (defaultVal.substring(0, 6) === '@FIELD') {
+              field.value = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, defaultVal.substring(7));
+            } else if (defaultVal === '@TODAY') {
+              // @TODAY: data del giorno - Date per DateBox, stringa per altri
+              const today = new Date();
+              if (this.metaData.fields[i].editorType === 'DateBox') {
+                field.value = today;
+              } else {
+                field.value = today.toLocaleDateString('it-IT');
+              }
+            } else if (defaultVal === '@NOW') {
+              // @NOW: data e ora corrente - sempre stringa (formato: dd/mm/yyyy HH:mm)
+              const now = new Date();
+              field.value = now.toLocaleDateString('it-IT') + ' ' + now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
             } else {
-              field.value = this.metaData.fields[i].defaultValue;
+              field.value = defaultVal;
             }
           } else {
-            field.value = this.metaData.fields[i].defaultValue;
+            field.value = defaultVal;
           }
         }
       }

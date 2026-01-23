@@ -139,17 +139,83 @@ export class GtsReportsComponent implements OnInit, OnDestroy {
    * basandosi sulla configurazione del reportServiceName
    */
   async generateReport(): Promise<void> {
+    // Build params from pageFields instead of using form fields
+    // This ensures reports work both when called from a form OK button
+    // and when called from a field loaded directly from a dataset
+    const reportParams = this.buildReportParams();
+
     const reportResponse = await this.gtsDataService.getReportData(
       this.prjId,
       this.formId,
       this.selectedReport,
-      this.params,
+      reportParams,
       this.connCode
     );
 
     if (reportResponse !== undefined && reportResponse !== null && reportResponse.valid === true) {
       await this.showReportData(reportResponse);
     }
+  }
+
+  /**
+   * Build report parameters from pageFields
+   * This reads parameter values from pageFields where form values are saved after post
+   */
+  private buildReportParams(): any {
+    const params: any = {};
+
+    if (!this.selectedReport?.sqlParams || this.selectedReport.sqlParams.length === 0) {
+      return params;
+    }
+
+    // Get all pageData and extract pageFields array
+    const pageData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', '');
+    const pageFields = pageData?.pageFields || [];
+
+    this.selectedReport.sqlParams.forEach((param: any) => {
+      // Get value from pageField by paramObjectName
+      if (param.paramObjectName) {
+        const field = pageFields.find((f: any) => f.pageFieldName === param.paramObjectName);
+        if (field) {
+          params[param.paramName] = this.formatParamValue(field);
+        }
+      }
+      // Get value from pageField by dataSetName and dbFieldName
+      else if (param.paramDataSetName && param.paramDataSetField) {
+        const field = pageFields.find((f: any) =>
+          f.dataSetName === param.paramDataSetName && f.dbFieldName === param.paramDataSetField
+        );
+        if (field) {
+          params[param.paramName] = this.formatParamValue(field);
+        }
+      }
+    });
+
+    // Set all null values to empty string
+    Object.keys(params).forEach(key => {
+      if (params[key] === null) {
+        params[key] = '';
+      }
+    });
+
+    return params;
+  }
+
+  /**
+   * Format parameter value based on field data type
+   */
+  private formatParamValue(field: any): any {
+    if (field.dataType === 'DateTime' || field.dataType === 'Date') {
+      if (field.value) {
+        const date = new Date(field.value);
+        // Format as DD/MM/YYYY
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+    }
+    return field.value;
   }
 
   async showReportData(reportResponse: any) {

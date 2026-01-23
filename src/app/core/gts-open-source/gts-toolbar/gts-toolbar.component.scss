@@ -88,13 +88,29 @@ ion-toolbar {
   }
 }
 
-// Titolo (come div invece di ion-title)
+// Container per elementi centrali (titoli e fields)
+.center-items {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  z-index: 1;
+  height: 100%;
+}
+
+// Titolo (come span invece di ion-title)
 .toolbar-title {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: white;
   white-space: nowrap;
-  padding: 0 12px;
+  padding: 0 8px;
+  letter-spacing: 0.3px;
 }
 
 // Bottoni

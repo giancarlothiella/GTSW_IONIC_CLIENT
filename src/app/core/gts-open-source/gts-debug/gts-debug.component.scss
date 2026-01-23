@@ -399,6 +399,68 @@
   }
 }
 
+// Rules Tab
+.rules-container {
+  .rules-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+
+    .rules-count {
+      font-size: 14px;
+      font-weight: 600;
+      color: #495057;
+    }
+  }
+
+  ::ng-deep .p-datatable {
+    font-size: 13px;
+
+    .p-datatable-thead > tr > th {
+      background: #1e3a5f;
+      color: #ffffff;
+      font-weight: 600;
+      padding: 10px 12px;
+      border: none;
+      border-bottom: 2px solid #00008b;
+    }
+
+    .p-datatable-tbody > tr {
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: #e3f2fd !important;
+      }
+
+      &.p-highlight,
+      &.row-selected {
+        background-color: #bbdefb !important;
+      }
+
+      > td {
+        padding: 8px 12px;
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+
+        &.rule-value {
+          font-weight: 700;
+          color: #00008b;
+          text-align: center;
+        }
+
+        &.cond-values,
+        &.field-values {
+          font-size: 11px;
+          color: #6c757d;
+          font-family: 'Consolas', 'Monaco', monospace;
+        }
+      }
+    }
+  }
+}
+
 // Dialogs
 ::ng-deep .sql-dialog,
 ::ng-deep .json-dialog {

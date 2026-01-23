@@ -5,7 +5,6 @@ import { PageService } from '../../services/pages.service';
 import { Subscription } from 'rxjs';
 import {
   IonToolbar,
-  IonTitle,
   IonButtons,
   IonButton,
   IonIcon,
@@ -28,7 +27,6 @@ import {
   imports: [
     CommonModule,
     IonToolbar,
-    IonTitle,
     IonButtons,
     IonButton,
     IonIcon,
@@ -70,6 +68,7 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
 
   // Items categorizzati per posizionamento
   titleItem: any = null;
+  centerItems: any[] = []; // Titoli e fields al centro
   startItems: any[] = [];
   endItems: any[] = [];
 
@@ -159,6 +158,7 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
     this.isMerged = false;
     this.itemsList = [];
     this.titleItem = null;
+    this.centerItems = [];
     this.startItems = [];
     this.endItems = [];
 
@@ -205,18 +205,10 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
         icon = '/assets/icons/icon_' + item.iconId + '.svg';
       }
 
-      // Check visibilità basato su viewData.objects
-      // Il service ha già valutato le execCond, quindi usiamo direttamente visible da viewData
-      if (!this.metaData.toolbarFlagSubmit && this.viewData.objects !== undefined && this.viewData.objects !== null) {
-        const viewItems = this.viewData.objects.filter((element: any) =>
-          element.objectType === 'toolbarItem' && element.objectName === item.objectName
-        );
-        if (viewItems.length > 0) {
-          const viewItem = viewItems[0];
-          item.visible = viewItem.visible;
-          item.disabled = viewItem.disabled || false;
-        }
-      }
+      // La visibilità degli item è già stata calcolata da setView() nel servizio
+      // che aggiorna direttamente metaData.itemsList[].visible e .disabled
+      // basandosi sulle execCond e le condizioni della view.
+      // Non serve più leggere da viewData.objects perché setView() ha già fatto tutto.
 
       // Se l'item è visibile, preparalo e aggiungilo alla lista
       if (item.visible) {
@@ -225,11 +217,15 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
           this.itemsList.push(preparedItem);
 
           // Categorizza per posizionamento
-          // center → titleItem (per titoli) o trattato come speciale
+          // center → centerItems (titoli e fields al centro)
           // before/left → startItems
           // after/right o default → endItems
           if (item.type === 'title' || item.location === 'center') {
-            this.titleItem = preparedItem;
+            this.centerItems.push(preparedItem);
+            // Mantieni anche titleItem per retrocompatibilità (primo titolo)
+            if (item.type === 'title' && !this.titleItem) {
+              this.titleItem = preparedItem;
+            }
           } else if (item.location === 'before' || item.location === 'left') {
             this.startItems.push(preparedItem);
           } else {

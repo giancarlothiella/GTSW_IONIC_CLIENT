@@ -286,7 +286,10 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Save current selection before reload
     if (this.gridApi && this.selectedRows.length > 0) {
       const keyField = this.gridObject?.keys?.[0] || 'id';
-      this.savedSelectedRowKeys = this.selectedRows.map((row: any) => row[keyField]);
+      // Filter out undefined/null rows before mapping
+      this.savedSelectedRowKeys = this.selectedRows
+        .filter((row: any) => row !== undefined && row !== null)
+        .map((row: any) => row[keyField]);
       console.log('[gts-grid] Saving selection before reload:', this.savedSelectedRowKeys);
     }
 

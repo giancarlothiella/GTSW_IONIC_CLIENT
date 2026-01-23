@@ -1,0 +1,180 @@
+<!-- GTS AI Chat Component -->
+<p-toast></p-toast>
+
+<!-- Main Dialog -->
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [appendTo]="'body'"
+  [blockScroll]="true"
+  [style]="{ width: config.dialogWidth || '700px', maxWidth: '95vw', height: config.dialogHeight || '80vh' }"
+  [header]="dialogTitle"
+  [closable]="true"
+  (onShow)="onDialogShow()"
+  (onHide)="onDialogHide()">
+
+  <div class="ai-chat-container">
+    <!-- Loading State -->
+    @if (loading) {
+      <div class="chat-loading">
+        <p-progressSpinner [style]="{ width: '50px', height: '50px' }"></p-progressSpinner>
+        <p>Inizializzazione chat...</p>
+      </div>
+    }
+
+    <!-- Error State -->
+    @if (error && !loading) {
+      <div class="chat-error">
+        <i class="pi pi-exclamation-triangle"></i>
+        <p>{{ error }}</p>
+        <p-button label="Riprova" icon="pi pi-refresh" (onClick)="onDialogShow()"></p-button>
+      </div>
+    }
+
+    <!-- Chat Content -->
+    @if (!loading && !error && sessionId) {
+      <!-- Messages Area -->
+      <div class="messages-container" #messagesContainer>
+        <!-- Welcome / Empty State -->
+        @if (messages.length === 0) {
+          <div class="chat-welcome">
+            <i class="pi pi-comments"></i>
+            <h3>{{ chatConfig?.chatName || 'AI Chat' }}</h3>
+            @if (chatConfig?.welcomeMessage) {
+              <p>{{ chatConfig.welcomeMessage }}</p>
+            }
+
+            <!-- Suggested Questions -->
+            @if (suggestedQuestions.length > 0) {
+              <div class="suggested-questions">
+                <p class="suggestions-label">Domande suggerite:</p>
+                <div class="suggestions-list">
+                  @for (question of suggestedQuestions; track question) {
+                    <button class="suggestion-btn" (click)="useSuggestedQuestion(question)">
+                      {{ question }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Message List -->
+        @for (message of messages; track $index) {
+          <div class="message" [class.user]="message.role === 'user'" [class.assistant]="message.role === 'assistant'">
+            <!-- Avatar -->
+            <div class="message-avatar">
+              @if (message.role === 'user') {
+                <i class="pi pi-user"></i>
+              } @else {
+                <i class="pi pi-sparkles"></i>
+              }
+            </div>
+
+            <!-- Content -->
+            <div class="message-content">
+              <!-- Attachments (for user messages) -->
+              @if (message.attachments && message.attachments.length > 0) {
+                <div class="message-attachments">
+                  @for (att of message.attachments; track att.fileName) {
+                    <div class="attachment-chip">
+                      <i class="pi" [class.pi-image]="att.type === 'image'" [class.pi-file-pdf]="att.type === 'document'"></i>
+                      <span>{{ att.fileName }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Text Content -->
+              @if (message.isStreaming) {
+                <div class="streaming-indicator">
+                  <span class="thinking-text">L'AI sta elaborando</span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </div>
+              } @else {
+                @if (message.role === 'assistant') {
+                  <div class="markdown-content" [innerHTML]="renderMarkdown(message.content)"></div>
+                } @else {
+                  <div class="text-content">{{ message.content }}</div>
+                }
+              }
+
+              <!-- Timestamp -->
+              <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Input Area -->
+      <div class="input-area">
+        <!-- Pending Attachments -->
+        @if (pendingAttachments.length > 0) {
+          <div class="pending-attachments">
+            @for (att of pendingAttachments; track $index) {
+              <div class="attachment-preview">
+                <i class="pi" [class.pi-image]="att.type === 'image'" [class.pi-file-pdf]="att.type === 'document'"></i>
+                <span class="att-name">{{ att.fileName }}</span>
+                <span class="att-size">{{ formatFileSize(att.fileSize || 0) }}</span>
+                <button class="remove-att" (click)="removeAttachment($index)">
+                  <i class="pi pi-times"></i>
+                </button>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Input Row -->
+        <div class="input-row">
+          <!-- File Upload Button -->
+          @if (allowFileUpload) {
+            <label class="upload-btn" pTooltip="Allega file">
+              <i class="pi pi-paperclip"></i>
+              <input
+                type="file"
+                [accept]="acceptFileTypes"
+                (change)="onFileSelect($event)"
+                [multiple]="true"
+                hidden>
+            </label>
+          }
+
+          <!-- Text Input -->
+          <textarea
+            #messageInput
+            pTextarea
+            [(ngModel)]="userMessage"
+            [rows]="1"
+            [autoResize]="true"
+            placeholder="Scrivi un messaggio..."
+            class="message-input"
+            (keydown)="onKeyDown($event)"
+            [disabled]="sendingMessage">
+          </textarea>
+
+          <!-- Send Button -->
+          <p-button
+            icon="pi pi-send"
+            [rounded]="true"
+            [text]="true"
+            severity="primary"
+            (onClick)="sendMessage()"
+            [disabled]="!userMessage.trim() || sendingMessage"
+            [loading]="sendingMessage"
+            pTooltip="Invia messaggio">
+          </p-button>
+        </div>
+
+        <!-- Hint -->
+        <div class="input-hint">
+          <span>Premi <kbd>Invio</kbd> per inviare, <kbd>Shift+Invio</kbd> per nuova riga</span>
+        </div>
+      </div>
+    }
+  </div>
+</p-dialog>

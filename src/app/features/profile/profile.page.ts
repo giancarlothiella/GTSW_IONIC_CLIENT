@@ -1,6 +1,7 @@
 // src/app/features/profile/profile.page.ts
 import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -331,6 +332,7 @@ export class ProfilePage implements OnInit {
   private gtsDataService = inject(GtsDataService);
   private translationService = inject(TranslationService);
   private router = inject(Router);
+  private location = inject(Location);
   private alertController = inject(AlertController);
   private toastController = inject(ToastController);
 
@@ -570,7 +572,7 @@ export class ProfilePage implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/home']);
+    this.location.back();
   }
 
   goToChangePassword() {

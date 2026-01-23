@@ -42,6 +42,7 @@
     "ionicons": "^7.0.0",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
+    "marked": "^17.0.1",
     "ngx-extended-pdf-viewer": "^25.6.0-alpha.3",
     "ngx-quill": "^30.0.1",
     "primeicons": "^7.0.0",

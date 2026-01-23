@@ -1,8 +1,22 @@
 @if (toolbarReady && objectName === metaData.objectName && toolbarVisible) {
   <ion-toolbar [ngClass]="cssClass">
-    <!-- Titolo centrale -->
-    @if (titleItem) {
-      <ion-title>{{ titleItem.text }}</ion-title>
+    <!-- Elementi centrali (titoli e fields) -->
+    @if (centerItems.length > 0) {
+      <div class="center-items">
+        @for (item of centerItems; track item.objectName) {
+          @if (item.type === 'title') {
+            <span class="toolbar-title">{{ item.text }}</span>
+          }
+          @if (item.type === 'field') {
+            <span class="toolbar-field">
+              @if (item.label) {
+                <strong>{{ item.label }}:</strong>
+              }
+              {{ item.value }}
+            </span>
+          }
+        }
+      </div>
     }
 
     <!-- Bottoni e controlli a sinistra (start) -->

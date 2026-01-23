@@ -58,6 +58,9 @@
         <ion-segment-button value="2">
           <ion-label>Action Log</ion-label>
         </ion-segment-button>
+        <ion-segment-button value="3">
+          <ion-label>Rules</ion-label>
+        </ion-segment-button>
       </ion-segment>
     </div>
 
@@ -200,7 +203,7 @@
               <div class="json-panel-header">
                 <span class="json-panel-title">JSON Data</span>
                 @if (selectedMetaDataRow) {
-                  <ion-button size="small" fill="clear" (click)="copySQLToClipboard()" title="Copy JSON">
+                  <ion-button size="small" fill="clear" (click)="copyJsonToClipboard(selectedMetaDataRow)" title="Copy JSON">
                     <ion-icon name="copy-outline"></ion-icon>
                   </ion-button>
                 }
@@ -323,6 +326,48 @@
                     <ion-icon name="document-text-outline"></ion-icon>
                   </ion-button>
                 </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      }
+
+      <!-- Tab 4: Rules -->
+      @if (activeTabIndex === '3' && selectedPage) {
+        <div class="rules-container">
+          <div class="rules-header">
+            <span class="rules-count">{{ rulesRows.length }} rules</span>
+          </div>
+          <p-table
+            [value]="rulesRows"
+            [rowHover]="true"
+            [showGridlines]="true"
+            [scrollable]="true"
+            scrollHeight="550px"
+            selectionMode="single"
+            [(selection)]="selectedRuleRow"
+            dataKey="condId"
+          >
+            <ng-template pTemplate="header">
+              <tr>
+                <th style="width: 60px">ID</th>
+                <th>Description</th>
+                <th style="width: 70px">Value</th>
+                <th style="width: 120px">DataSet</th>
+                <th style="width: 140px">Field</th>
+                <th style="width: 120px">Cond Values</th>
+                <th style="width: 120px">Field Values</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row>
+              <tr [pSelectableRow]="row" [class.row-selected]="selectedRuleRow === row">
+                <td>{{ row.condId }}</td>
+                <td>{{ row.condDescr }}</td>
+                <td class="rule-value">{{ row.condValue }}</td>
+                <td>{{ row.dataSetName || '-' }}</td>
+                <td>{{ row.fieldName || '-' }}</td>
+                <td class="cond-values">{{ formatFieldValues(row.dataSetCondValues) }}</td>
+                <td class="field-values">{{ formatFieldValues(row.fieldValues) }}</td>
               </tr>
             </ng-template>
           </p-table>

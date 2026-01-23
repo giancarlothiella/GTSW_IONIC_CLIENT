@@ -440,11 +440,12 @@ export class GtsDataService {
   }
 
   getPageFieldValue(prjId: string, formId: number, name: string) {
-    let fieldValue = this.metaData.filter((page) => page.prjId === prjId && page.formId == formId )[0]
-    .pageData
-    .pageFields
-    .filter((field: any) => field.pageFieldName === name)[0].value; 
-    return fieldValue;
+    const page = this.metaData.filter((page) => page.prjId === prjId && page.formId == formId)[0];
+    if (!page || !page.pageData || !page.pageData.pageFields) {
+      return null;
+    }
+    const field = page.pageData.pageFields.filter((field: any) => field.pageFieldName === name)[0];
+    return field ? field.value : null;
   }
 
   getPageFieldLabel(prjId: string, formId: number, name: string) {
@@ -2301,9 +2302,12 @@ export class GtsDataService {
     .pageData
     .pageFields.forEach((field: any) => {
       if (field.dataSetName === dataSetName) {
-        field.value = selectedRows[0][field.dbFieldName];
+        // Check if selectedRows has data and first row exists before accessing
+        field.value = (selectedRows && selectedRows.length > 0 && selectedRows[0])
+          ? selectedRows[0][field.dbFieldName]
+          : null;
       }
-    });  
+    });
   }
 
   setDDRules(prjId: string, formId: number, objectName: string, DDdata: any) {

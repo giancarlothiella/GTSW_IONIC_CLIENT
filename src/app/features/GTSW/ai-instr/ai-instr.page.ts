@@ -13,6 +13,7 @@ import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-gri
 import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
 import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
+import { GtsAiChatComponent, AiChatConfig } from '../../../core/gts-open-source/gts-ai-chat/gts-ai-chat.component';
 
 @Component({
   selector: 'app-aiinstr',
@@ -26,7 +27,8 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
     GtsGridComponent,
     GtsFormComponent,
     GtsFormPopupComponent,
-    GtsMessageComponent
+    GtsMessageComponent,
+    GtsAiChatComponent
   ],
   template: `
     @if (!nestedFormActive) {
@@ -106,6 +108,12 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
           [prjId]="prjId"
           [formId]="formId"
         ></app-gts-message>
+
+        <!-- AI Chat Dialog -->
+        <app-gts-ai-chat
+          [(visible)]="chatDialogVisible"
+          [config]="chatConfig">
+        </app-gts-ai-chat>
       </ng-container>
     }
   `
@@ -172,20 +180,18 @@ export class GTSW_AiInstrComponent implements OnInit, OnDestroy {
       .getPageCustomListener()
       .subscribe(async (customCode) => {
         //===== START CUSTOM CODE =====
-        if (customCode === 'SET_INSTR_STR') {
-          let instrValue = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqAIInstr_instructions');
-          // check if instrValue empty or not an object
-          if (instrValue === null)
-            instrValue = '';
-          else if (typeof instrValue === 'object') {
-            this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqAIInstr_instructions', JSON.stringify(instrValue, null, 2));
-          }
-        }
 
-        if (customCode === 'SET_INSTR_OBJ') {
-          let instrValue = this.gtsDataService.getFormFieldValue(this.prjId, this.formId, 'aiInstrDataForm', 'gtsFldqAIInstr_instructions');
-          if (instrValue !== null && instrValue !== '' && typeof instrValue === 'string') {
-            this.gtsDataService.setFormFieldValue(this.prjId, this.formId, 'aiInstrDataForm', 'gtsFldqAIInstr_instructions', JSON.parse(instrValue));
+        // Open AI Chat dialog with selected instruction
+        if (customCode === 'GET_CHAT') {
+          const chatCode = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqAIInstr_chatCode');
+          const chatName = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqAIInstr_chatName');
+          if (chatCode) {
+            this.chatConfig = {
+              prjId: this.prjId,
+              chatCode: chatCode,
+              dialogTitle: 'AI Chat - ' + (chatName || chatCode)
+            };
+            this.chatDialogVisible = true;
           }
         }
 
@@ -215,5 +221,9 @@ export class GTSW_AiInstrComponent implements OnInit, OnDestroy {
   nestedFormActive = false;
   nestedFormId = 0;
   nestedFormCargo: any = {};
+
+  // AI Chat
+  chatDialogVisible = false;
+  chatConfig: AiChatConfig = { prjId: 'GTSW', chatCode: '' };
 
 }

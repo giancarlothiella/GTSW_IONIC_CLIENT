@@ -100,6 +100,10 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
   // DB Action Log Tab
   dbLogRows: any[] = [];
 
+  // Rules Tab
+  rulesRows: any[] = [];
+  selectedRuleRow: any = null;
+
   // Actions Debug State
   actionDebugActive: boolean = false;
   actionDebugMessage: string = 'Debug Inactive';
@@ -208,6 +212,7 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
       this.selectedPage = this.pages[0];
       this.loadMetaDataCategory();
       this.loadDbLog();
+      this.loadRules();
     }
 
     this.actionDebugActive = this.appInfoService.appActionsDebug;
@@ -217,6 +222,7 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
   onPageChange(): void {
     this.loadMetaDataCategory();
     this.loadDbLog();
+    this.loadRules();
   }
 
   onTabChange(): void {
@@ -258,6 +264,17 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
     this.dbLogRows = this.selectedPage.dbLog || [];
+  }
+
+  private loadRules(): void {
+    if (!this.selectedPage) {
+      this.rulesRows = [];
+      this.selectedRuleRow = null;
+      return;
+    }
+    // Get condRules from metadata with current values from pageRules
+    this.rulesRows = this.selectedPage.metadata.condRules || [];
+    this.selectedRuleRow = this.rulesRows.length > 0 ? this.rulesRows[0] : null;
   }
 
   // Actions Debug Controls
@@ -375,11 +392,30 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
+  copyJsonToClipboard(data: any): void {
+    if (data) {
+      const jsonString = JSON.stringify(data, null, 2);
+      navigator.clipboard.writeText(jsonString).then(() => {
+        console.log('JSON copied to clipboard');
+      }).catch(err => {
+        console.error('Failed to copy JSON:', err);
+      });
+    }
+  }
+
   // JSON Dialog
   showRowJson(event: any): void {
     const row = event.data || event;
     this.jsonDataString = JSON.stringify(row, null, 2);
     this.jsonDataTitle = 'Row Data';
     this.jsonVisible = true;
+  }
+
+  // Format fieldValues array as string
+  formatFieldValues(fieldValues: any): string {
+    if (!fieldValues || !Array.isArray(fieldValues) || fieldValues.length === 0) {
+      return '-';
+    }
+    return fieldValues.join(', ');
   }
 }

@@ -395,20 +395,17 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
 
   // METHODS
   filterProject(objectName: string, selectedValue: any, dataSetName: string) {
-    if (this.metaData.grids
-        .filter((element: any) => element.objectName === objectName)[0]
-        .data !== undefined) {
-
-      this.metaData.grids
-        .filter((element: any) => element.objectName === objectName)[0]
-        .data.dataSource.load();
+    // Set filter on dataSet first
+    if (this.metaData.dataSets) {
+      this.metaData.dataSets.forEach((dataSet: any) => {
+        if (dataSet.dataSetName === dataSetName) {
+          dataSet.filterObject = { 'prjId': selectedValue };
+        }
+      });
     }
 
-    this.metaData.dataSets.forEach((dataSet: any) => {
-      if (dataSet.dataSetName === dataSetName) {
-        dataSet.filterObject = { 'prjId': selectedValue };
-      }
-    });
+    // Reload grid to apply the new filter (PrimeNG version)
+    this.gtsDataService.sendGridReload(dataSetName);
   }
 
   /**
