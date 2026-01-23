@@ -830,8 +830,41 @@ $border-color: #e5e7eb;
 
 @media (max-width: 768px) {
   .header {
+    .header-content {
+      flex-wrap: wrap;
+    }
+
+    .logo-section {
+      .logo-container {
+        width: 50px;
+        height: 50px;
+
+        .logo {
+          width: 50px;
+          height: 50px;
+        }
+      }
+
+      .brand-container {
+        height: 50px;
+
+        .brand-name {
+          font-size: 24px;
+        }
+      }
+    }
+
     .nav-menu {
-      display: none; // Implement mobile menu if needed
+      gap: 8px;
+
+      .nav-link {
+        display: none; // Nascondi i link su mobile
+      }
+
+      .btn-login {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
     }
   }
 

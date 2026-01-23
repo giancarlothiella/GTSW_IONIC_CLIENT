@@ -231,9 +231,11 @@ import { AppInfoService } from '../../core/services/app-info.service';
         </ion-toolbar>
       </ion-header>
 
-      <ion-content>
-        <!-- Router outlet per caricare le pagine figlie -->
-        <router-outlet></router-outlet>
+      <ion-content [scrollX]="true" [scrollY]="true">
+        <!-- Wrapper con scroll orizzontale per schermi piccoli -->
+        <div class="content-scroll-wrapper">
+          <router-outlet></router-outlet>
+        </div>
       </ion-content>
     </div>
 
@@ -286,9 +288,37 @@ import { AppInfoService } from '../../core/services/app-info.service';
     #main-content ion-content {
       --background: #f4f5f8;
       flex: 1;
-      --padding-start: 16px;
-      --padding-end: 16px;
-      --padding-top: 16px;
+      --padding-start: 0;
+      --padding-end: 0;
+      --padding-top: 0;
+      --overflow: auto;
+    }
+
+    /* Wrapper con scroll orizzontale per mobile */
+    .content-scroll-wrapper {
+      min-height: 100%;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    /* Su schermi piccoli, imposta una larghezza minima per forzare scroll */
+    @media (max-width: 768px) {
+      #main-content ion-content {
+        --overflow: scroll;
+      }
+
+      .content-scroll-wrapper {
+        width: max-content;
+        min-width: 900px;
+      }
+    }
+
+    /* Su schermi molto piccoli, padding ridotto */
+    @media (max-width: 480px) {
+      .content-scroll-wrapper {
+        padding: 8px;
+        min-width: 800px;
+      }
     }
 
     /* Menu laterale */
