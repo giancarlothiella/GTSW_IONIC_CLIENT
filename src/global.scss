@@ -678,3 +678,21 @@ p-datepicker .p-datepicker-next {
     }
   }
 }
+
+/* ============================================
+   Page Format - Scroll orizzontale per mobile
+   ============================================ */
+/* Le pagine con .pageFormat (griglie, form, etc.)
+   hanno min-width forzato per permettere scroll orizzontale su mobile */
+@media (max-width: 768px) {
+  .pageFormat {
+    width: max-content;
+    min-width: 900px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pageFormat {
+    min-width: 800px;
+  }
+}

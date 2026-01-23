@@ -189,22 +189,23 @@ export class AppInfoService {
   }
 
   public get getLanguageId() {
-    if (this.languageId == '') {
-      if (localStorage.getItem('languageId') !== null && localStorage.getItem('languageId') !== undefined) {
-        this.languageId = localStorage.getItem('languageId') || environment.languageId; 
-      } else {
-        if (localStorage.getItem('authUserData') !== null && localStorage.getItem('authUserData') !== undefined) {
-          this.languageId = JSON.parse(localStorage.getItem('authUserData') || '{}').languageId;
-        } else {
-          this.languageId = environment.languageId;
-        }     
-      } 
+    // Leggi sempre da localStorage per avere il valore aggiornato
+    const selectedLang = localStorage.getItem('selectedLanguage');
+    if (selectedLang) {
+      this.languageId = selectedLang; // Mantieni il formato originale
+    } else if (localStorage.getItem('authUserData') !== null && localStorage.getItem('authUserData') !== undefined) {
+      // Fallback: prova a leggere da authUserData
+      this.languageId = JSON.parse(localStorage.getItem('authUserData') || '{}').languageId || environment.languageId;
+    } else {
+      this.languageId = environment.languageId;
     }
     return this.languageId;
   }
 
   public setLanguageId(languageId: string) {
-    this.languageId = languageId;
+    this.languageId = languageId; // Mantieni il formato originale
+    // Sincronizza con localStorage
+    localStorage.setItem('selectedLanguage', this.languageId);
   }
 
   public get getCurrentYear() {

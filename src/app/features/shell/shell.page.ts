@@ -203,13 +203,18 @@ import { AppInfoService } from '../../core/services/app-info.service';
             }
           </ion-title>
           <ion-buttons slot="end">
-            <!-- Language indicator -->
-            <div class="language-indicator">
-              @if (getCurrentLanguageFlagIcon()) {
-                <img [src]="getCurrentLanguageFlagIcon()" [alt]="getCurrentLanguage()" class="flag-image">
-              } @else {
-                <span class="flag-emoji">{{ getCurrentLanguageFlag() }}</span>
-              }
+            <!-- Language indicator + Profile button insieme -->
+            <div class="language-profile-group">
+              <div class="language-indicator">
+                @if (getCurrentLanguageFlagIcon()) {
+                  <img [src]="getCurrentLanguageFlagIcon()" [alt]="getCurrentLanguage()" class="flag-image">
+                } @else {
+                  <span class="flag-emoji">{{ getCurrentLanguageFlag() }}</span>
+                }
+              </div>
+              <ion-button fill="clear" (click)="navigateToProfile()" class="profile-btn" title="{{ getText(600) }}">
+                <ion-icon slot="icon-only" name="person-circle-outline"></ion-icon>
+              </ion-button>
             </div>
 
             <!-- Debug button (only for developers) -->
@@ -219,10 +224,6 @@ import { AppInfoService } from '../../core/services/app-info.service';
               </ion-button>
             }
 
-            <ion-button (click)="navigateToProfile()">
-              <ion-icon slot="start" name="person-circle-outline"></ion-icon>
-              {{ getText(600) }}
-            </ion-button>
             <ion-button (click)="onLogout()">
               <ion-icon slot="start" name="log-out-outline"></ion-icon>
               {{ getText(601) }}
@@ -294,30 +295,17 @@ import { AppInfoService } from '../../core/services/app-info.service';
       --overflow: auto;
     }
 
-    /* Wrapper con scroll orizzontale per mobile */
+    /* Wrapper per il contenuto */
     .content-scroll-wrapper {
       min-height: 100%;
       padding: 16px;
       box-sizing: border-box;
     }
 
-    /* Su schermi piccoli, imposta una larghezza minima per forzare scroll */
-    @media (max-width: 768px) {
-      #main-content ion-content {
-        --overflow: scroll;
-      }
-
-      .content-scroll-wrapper {
-        width: max-content;
-        min-width: 900px;
-      }
-    }
-
     /* Su schermi molto piccoli, padding ridotto */
     @media (max-width: 480px) {
       .content-scroll-wrapper {
         padding: 8px;
-        min-width: 800px;
       }
     }
 
@@ -386,25 +374,39 @@ import { AppInfoService } from '../../core/services/app-info.service';
       object-fit: contain;
     }
 
+    /* Language + Profile group */
+    .language-profile-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
     /* Language indicator */
     .language-indicator {
       display: flex;
       align-items: center;
-      padding: 0 12px;
+      padding: 0 4px;
     }
 
     .language-indicator .flag-emoji {
-      font-size: 28px;
+      font-size: 24px;
       line-height: 1;
       display: block;
       font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
     }
 
     .language-indicator .flag-image {
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       object-fit: contain;
       display: block;
+    }
+
+    /* Profile button in header */
+    .profile-btn {
+      --color: #ffffff;
+      --padding-start: 4px;
+      --padding-end: 4px;
     }
 
     /* Connection badge in header */
@@ -550,10 +552,22 @@ export class ShellPage implements OnInit {
   }
 
   /**
-   * Inizializza le traduzioni
+   * Inizializza le traduzioni usando la lingua dell'utente
    */
   private async initializeTranslations() {
     try {
+      // Se l'utente è autenticato, usa la sua lingua
+      if (this.user?.languageId) {
+        const userLang = this.user.languageId.toUpperCase();
+        const currentLang = this.translationService.getCurrentLanguage().toUpperCase();
+
+        // Se la lingua dell'utente è diversa da quella corrente, aggiornala
+        if (userLang !== currentLang) {
+          await this.translationService.setLanguage(userLang);
+        }
+      }
+
+      // Inizializza le traduzioni
       await this.translationService.initialize();
     } catch (error) {
       console.error('Error initializing translations:', error);

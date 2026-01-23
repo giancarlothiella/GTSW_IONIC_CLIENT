@@ -168,7 +168,8 @@ export class TranslationService {
    * Cambia la lingua corrente
    */
   async setLanguage(languageId: string): Promise<void> {
-    if (languageId === this.currentLanguageSubject.value) {
+    // Mantieni il formato originale (es. "EN", "IT") senza modifiche
+    if (languageId.toUpperCase() === this.currentLanguageSubject.value.toUpperCase()) {
       return;
     }
 
@@ -178,6 +179,9 @@ export class TranslationService {
     // Aggiorna la lingua corrente
     this.currentLanguageSubject.next(languageId);
     localStorage.setItem(this.STORAGE_KEY, languageId);
+
+    // Rimuovi la vecchia chiave 'languageId' se esiste (legacy cleanup)
+    localStorage.removeItem('languageId');
   }
 
   /**

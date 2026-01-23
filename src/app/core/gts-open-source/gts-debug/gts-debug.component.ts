@@ -90,6 +90,7 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
   ];
   selectedMetaDataCategory: string = 'actions';
   metaDataRows: any[] = [];
+  selectedMetaDataRow: any = null; // Riga selezionata per visualizzare il JSON
 
   // DB Data Tab
   selectedAdapter: any = null;
@@ -229,9 +230,16 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
   private loadMetaDataCategory(): void {
     if (!this.selectedPage || !this.selectedMetaDataCategory) {
       this.metaDataRows = [];
+      this.selectedMetaDataRow = null;
       return;
     }
     this.metaDataRows = this.selectedPage.metadata[this.selectedMetaDataCategory] || [];
+    // Seleziona automaticamente la prima riga se disponibile
+    this.selectedMetaDataRow = this.metaDataRows.length > 0 ? this.metaDataRows[0] : null;
+  }
+
+  onMetaDataRowSelect(row: any): void {
+    this.selectedMetaDataRow = row;
   }
 
   onAdapterChange(): void {

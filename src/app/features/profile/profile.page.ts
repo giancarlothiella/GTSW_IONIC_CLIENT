@@ -68,18 +68,15 @@ import { TranslationService } from '../../core/services/translation.service';
     FormsModule
   ],
   template: `
-    <ion-header>
-      <ion-toolbar color="primary">
-        <ion-buttons slot="start">
-          <ion-button (click)="goBack()">
-            <ion-icon name="arrow-back-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-        <ion-title>{{ getText(600) }}</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <div class="profile-page">
+      <!-- Header interno alla pagina -->
+      <div class="profile-header">
+        <ion-button fill="clear" (click)="goBack()">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+        <h2>{{ getText(600) }}</h2>
+      </div>
 
-    <ion-content class="ion-padding">
       @if (loading) {
         <div class="loading-container">
           <ion-spinner></ion-spinner>
@@ -133,22 +130,25 @@ import { TranslationService } from '../../core/services/translation.service';
                   </ion-input>
                 </ion-item>
 
-                <ion-item button (click)="openLanguageModal()">
-                  <ion-icon slot="start" name="language-outline" color="primary"></ion-icon>
-                  <ion-label>
-                    <h3>{{ getText(633) }}</h3>
-                    <p>{{ languageDescription }}</p>
-                  </ion-label>
-                </ion-item>
-
-                @if (user?.authProfileCode) {
-                  <ion-item>
+                <!-- Language e Auth Profile sulla stessa riga -->
+                <div class="row-two-cols">
+                  <ion-item button (click)="openLanguageModal()" class="half-width">
+                    <ion-icon slot="start" name="language-outline" color="primary"></ion-icon>
                     <ion-label>
-                      <h3>{{ getText(617) }}</h3>
-                      <p>{{ user?.authProfileCode }}</p>
+                      <h3>{{ getText(633) }}</h3>
+                      <p>{{ languageDescription }}</p>
                     </ion-label>
                   </ion-item>
-                }
+
+                  @if (user?.authProfileCode) {
+                    <ion-item class="half-width">
+                      <ion-label>
+                        <h3>{{ getText(617) }}</h3>
+                        <p>{{ user?.authProfileCode }}</p>
+                      </ion-label>
+                    </ion-item>
+                  }
+                </div>
               </ion-list>
 
               <div class="save-button-container">
@@ -232,9 +232,33 @@ import { TranslationService } from '../../core/services/translation.service';
         accept="image/jpeg,image/jpg,image/png,image/gif"
         style="display: none"
         (change)="onFileSelected($event)">
-    </ion-content>
+    </div>
   `,
   styles: [`
+    .profile-page {
+      min-height: 100%;
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #e0e0e0;
+
+      ion-button {
+        --color: var(--ion-color-primary);
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--ion-color-primary);
+      }
+    }
+
     .loading-container {
       display: flex;
       flex-direction: column;
@@ -270,6 +294,17 @@ import { TranslationService } from '../../core/services/translation.service';
 
     .save-button-container {
       margin-top: 20px;
+    }
+
+    /* Riga a due colonne per Language e Auth Profile */
+    .row-two-cols {
+      display: flex;
+      gap: 8px;
+
+      .half-width {
+        flex: 1;
+        min-width: 0;
+      }
     }
 
     .selected-language {
@@ -376,16 +411,18 @@ export class ProfilePage implements OnInit {
 
   selectLanguage(language: any) {
     const oldLanguageId = this.languageId;
-    this.languageId = language.languageId;
+    this.languageId = language.languageId; // Mantieni il formato originale
     this.languageDescription = language.description;
     this.saveDisabled = false;
     this.languageModalOpen = false;
 
-    // Track if language was changed
-    this.languageChanged = (oldLanguageId !== this.languageId);
+    // Track if language was changed (confronto case-insensitive)
+    this.languageChanged = (oldLanguageId.toLowerCase() !== this.languageId.toLowerCase());
 
-    // Update localStorage
-    localStorage.setItem('languageId', this.languageId);
+    // Update localStorage (usa la stessa chiave del TranslationService)
+    localStorage.setItem('selectedLanguage', this.languageId);
+    // Rimuovi la vecchia chiave legacy
+    localStorage.removeItem('languageId');
   }
 
   async onSaveProfile() {

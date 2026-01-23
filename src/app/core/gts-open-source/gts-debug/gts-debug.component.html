@@ -47,21 +47,23 @@
 
   <!-- Tabs -->
   <div class="tabs-container">
-    <ion-segment [(ngModel)]="activeTabIndex" (ionChange)="onTabChange()">
-      <ion-segment-button value="0">
-        <ion-label>MetaData</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="1">
-        <ion-label>DB Data</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="2">
-        <ion-label>DB Action Log</ion-label>
-      </ion-segment-button>
-    </ion-segment>
+    <div class="debug-tabs">
+      <ion-segment [(ngModel)]="activeTabIndex" (ionChange)="onTabChange()">
+        <ion-segment-button value="0">
+          <ion-label>MetaData</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="1">
+          <ion-label>DB Data</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="2">
+          <ion-label>Action Log</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </div>
 
     <!-- Tab Content -->
     <div class="tab-content">
-      <!-- Tab 1: MetaData -->
+      <!-- Tab 1: MetaData - Layout a 2 pannelli -->
       @if (activeTabIndex === '0' && selectedPage) {
         <div class="metadata-container">
           <!-- Category Selector -->
@@ -79,119 +81,140 @@
             <span class="record-count">({{ metaDataRows.length }} records)</span>
           </div>
 
-          <!-- MetaData Grid -->
-          <div class="metadata-grid">
-            @if (selectedMetaDataCategory === 'actions') {
-              <p-table
-                [value]="metaDataRows"
-                [rowHover]="true"
-                [showGridlines]="true"
-                [scrollable]="true"
-                scrollHeight="500px"
-                (onRowDblClick)="showRowJson($event)"
-              >
-                <ng-template pTemplate="header">
-                  <tr>
-                    <th style="width: 150px">Object Name</th>
-                    <th style="width: 80px">Count</th>
-                    <th>Actions</th>
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="body" let-row>
-                  <tr>
-                    <td>{{ row.objectName }}</td>
-                    <td>{{ row.actions?.length || 0 }}</td>
-                    <td>
-                      <ion-button size="small" fill="clear" (click)="showRowJson(row)">
-                        <ion-icon name="code-outline"></ion-icon>
-                      </ion-button>
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
-            }
+          <!-- Layout a 2 pannelli: Griglia a sinistra, JSON a destra -->
+          <div class="metadata-split-layout">
+            <!-- Pannello sinistro: Griglia -->
+            <div class="metadata-grid-panel">
+              @if (selectedMetaDataCategory === 'actions') {
+                <p-table
+                  [value]="metaDataRows"
+                  [rowHover]="true"
+                  [showGridlines]="true"
+                  [scrollable]="true"
+                  scrollHeight="450px"
+                  selectionMode="single"
+                  [(selection)]="selectedMetaDataRow"
+                  dataKey="objectName"
+                >
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Object Name</th>
+                      <th style="width: 80px">Count</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr [pSelectableRow]="row" [class.row-selected]="selectedMetaDataRow === row">
+                      <td>{{ row.objectName }}</td>
+                      <td>{{ row.actions?.length || 0 }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
 
-            @if (selectedMetaDataCategory === 'condRules') {
-              <p-table
-                [value]="metaDataRows"
-                [rowHover]="true"
-                [showGridlines]="true"
-                [scrollable]="true"
-                scrollHeight="500px"
-                (onRowDblClick)="showRowJson($event)"
-              >
-                <ng-template pTemplate="header">
-                  <tr>
-                    <th style="width: 80px">ID</th>
-                    <th>Description</th>
-                    <th style="width: 120px">Value</th>
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="body" let-row>
-                  <tr>
-                    <td>{{ row.condId }}</td>
-                    <td>{{ row.condDescr }}</td>
-                    <td>{{ row.condValue }}</td>
-                  </tr>
-                </ng-template>
-              </p-table>
-            }
+              @if (selectedMetaDataCategory === 'condRules') {
+                <p-table
+                  [value]="metaDataRows"
+                  [rowHover]="true"
+                  [showGridlines]="true"
+                  [scrollable]="true"
+                  scrollHeight="450px"
+                  selectionMode="single"
+                  [(selection)]="selectedMetaDataRow"
+                  dataKey="condId"
+                >
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th style="width: 60px">ID</th>
+                      <th>Description</th>
+                      <th style="width: 100px">Value</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr [pSelectableRow]="row" [class.row-selected]="selectedMetaDataRow === row">
+                      <td>{{ row.condId }}</td>
+                      <td>{{ row.condDescr }}</td>
+                      <td>{{ row.condValue }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
 
-            @if (selectedMetaDataCategory === 'dataSets') {
-              <p-table
-                [value]="metaDataRows"
-                [rowHover]="true"
-                [showGridlines]="true"
-                [scrollable]="true"
-                scrollHeight="500px"
-                (onRowDblClick)="showRowJson($event)"
-              >
-                <ng-template pTemplate="header">
-                  <tr>
-                    <th style="width: 150px">Data Adapter</th>
-                    <th style="width: 150px">DataSet Name</th>
-                    <th style="width: 120px">SQL ID</th>
-                    <th style="width: 100px">Actions</th>
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="body" let-row>
-                  <tr>
-                    <td>{{ row.dataAdapterName }}</td>
-                    <td>{{ row.dataSetName }}</td>
-                    <td>{{ row.sqlId }}</td>
-                    <td>
-                      <ion-button size="small" fill="clear" (click)="showMetaDataSQL(row)">
-                        <ion-icon name="document-text-outline"></ion-icon>
-                      </ion-button>
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
-            }
+              @if (selectedMetaDataCategory === 'dataSets') {
+                <p-table
+                  [value]="metaDataRows"
+                  [rowHover]="true"
+                  [showGridlines]="true"
+                  [scrollable]="true"
+                  scrollHeight="450px"
+                  selectionMode="single"
+                  [(selection)]="selectedMetaDataRow"
+                  dataKey="dataSetName"
+                >
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>DataSet Name</th>
+                      <th style="width: 80px">SQL ID</th>
+                      <th style="width: 50px">SQL</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr [pSelectableRow]="row" [class.row-selected]="selectedMetaDataRow === row">
+                      <td>{{ row.dataSetName }}</td>
+                      <td>{{ row.sqlId }}</td>
+                      <td>
+                        <ion-button size="small" fill="clear" (click)="showMetaDataSQL(row); $event.stopPropagation()">
+                          <ion-icon name="document-text-outline"></ion-icon>
+                        </ion-button>
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
 
-            @if (selectedMetaDataCategory === 'forms' || selectedMetaDataCategory === 'grids' || selectedMetaDataCategory === 'pageFields' || selectedMetaDataCategory === 'tabs' || selectedMetaDataCategory === 'toolbars' || selectedMetaDataCategory === 'views') {
-              <p-table
-                [value]="metaDataRows"
-                [rowHover]="true"
-                [showGridlines]="true"
-                [scrollable]="true"
-                scrollHeight="500px"
-                (onRowDblClick)="showRowJson($event)"
-              >
-                <ng-template pTemplate="header">
-                  <tr>
-                    <th>Data</th>
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="body" let-row>
-                  <tr>
-                    <td>
-                      <pre>{{ row | json }}</pre>
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
-            }
+              @if (selectedMetaDataCategory === 'forms' || selectedMetaDataCategory === 'grids' || selectedMetaDataCategory === 'pageFields' || selectedMetaDataCategory === 'tabs' || selectedMetaDataCategory === 'toolbars' || selectedMetaDataCategory === 'views') {
+                <p-table
+                  [value]="metaDataRows"
+                  [rowHover]="true"
+                  [showGridlines]="true"
+                  [scrollable]="true"
+                  scrollHeight="450px"
+                  selectionMode="single"
+                  [(selection)]="selectedMetaDataRow"
+                >
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Name</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row let-i="rowIndex">
+                    <tr [pSelectableRow]="row" [class.row-selected]="selectedMetaDataRow === row">
+                      <td>{{ row.formName || row.gridName || row.fieldName || row.tabName || row.toolbarName || row.viewName || 'Item ' + (i + 1) }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
+            </div>
+
+            <!-- Pannello destro: JSON Viewer -->
+            <div class="metadata-json-panel">
+              <div class="json-panel-header">
+                <span class="json-panel-title">JSON Data</span>
+                @if (selectedMetaDataRow) {
+                  <ion-button size="small" fill="clear" (click)="copySQLToClipboard()" title="Copy JSON">
+                    <ion-icon name="copy-outline"></ion-icon>
+                  </ion-button>
+                }
+              </div>
+              <div class="json-panel-content">
+                @if (selectedMetaDataRow) {
+                  <pre class="json-code">{{ selectedMetaDataRow | json }}</pre>
+                } @else {
+                  <div class="json-placeholder">
+                    Select a row to view JSON data
+                  </div>
+                }
+              </div>
+            </div>
           </div>
         </div>
       }

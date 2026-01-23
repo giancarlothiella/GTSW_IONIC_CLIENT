@@ -62,29 +62,95 @@
   }
 }
 
-// Tabs
+// Tabs - stile grids-tabs dal componente reports
 .tabs-container {
   background: #ffffff;
   border-radius: 8px;
-  padding: 1rem;
+  overflow: hidden;
 
-  ion-segment {
-    margin-bottom: 1rem;
+  .debug-tabs {
+    width: 100%;
+    background-color: rgba(132, 177, 235, 0.3);
+    padding: 4px 4px 0 4px;
+    overflow: hidden;
+    height: 48px;
+    max-height: 48px;
+
+    ion-segment {
+      --background: transparent;
+      height: 44px;
+      min-height: 44px;
+      max-height: 44px;
+      margin: 0;
+      padding: 0;
+      width: fit-content;
+      overflow: visible !important;
+      display: inline-flex !important;
+      gap: 2px !important;
+    }
 
     ion-segment-button {
-      min-height: 40px;
-      font-size: 14px;
-      font-weight: 600;
-      text-transform: none;
+      --color: rgba(0, 0, 139, 0.6);
+      --color-checked: #00008b;
+      --indicator-color: transparent;
+      --indicator-height: 0px;
+      --padding-start: 16px;
+      --padding-end: 16px;
+
+      min-width: 100px;
+      max-width: 150px;
+      width: auto;
+      height: 40px !important;
+      max-height: 40px !important;
+      text-transform: uppercase;
+      font-weight: 500;
+      font-size: 12px;
+      background-color: rgba(200, 200, 200, 0.2);
+      border: 1px solid transparent !important;
+      border-radius: 6px 6px 0 0;
+      transition: all 0.2s ease;
+      margin: 0;
+
+      &::part(indicator-background) {
+        display: none;
+      }
+
+      // Tab selezionato
+      &.segment-button-checked {
+        background-color: white !important;
+        font-weight: bold;
+        border: 3px solid #00008b !important;
+        border-bottom: none !important;
+        box-shadow: 0 -2px 6px rgba(0, 0, 139, 0.3);
+        z-index: 10;
+        height: 44px !important;
+        max-height: 44px !important;
+
+        ion-label {
+          color: #00008b !important;
+        }
+      }
+
+      // Hover
+      &:hover:not(.segment-button-disabled):not(.segment-button-checked) {
+        background-color: rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(0, 0, 139, 0.3) !important;
+      }
+
+      ion-label {
+        color: rgba(0, 0, 139, 0.7);
+        font-size: 12px;
+      }
     }
   }
 
   .tab-content {
-    padding: 1rem 0;
+    padding: 1rem;
+    background: #ffffff;
   }
 }
 
-// MetaData Tab
+// MetaData Tab - Layout a 2 pannelli
 .metadata-container {
   .category-selector {
     display: flex;
@@ -109,27 +175,110 @@
     }
   }
 
-  .metadata-grid {
-    ::ng-deep .p-datatable {
-      font-size: 13px;
+  // Layout a 2 pannelli
+  .metadata-split-layout {
+    display: flex;
+    gap: 16px;
+    height: 500px;
 
-      .p-datatable-thead > tr > th {
-        background: #e9ecef;
-        color: #495057;
-        font-weight: 600;
-        padding: 8px;
-        border: 1px solid #dee2e6;
+    // Pannello sinistro: Griglia
+    .metadata-grid-panel {
+      flex: 0 0 45%;
+      min-width: 300px;
+      overflow: hidden;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+
+      ::ng-deep .p-datatable {
+        font-size: 12px;
+
+        .p-datatable-thead > tr > th {
+          background: #1e3a5f;
+          color: #ffffff;
+          font-weight: 600;
+          padding: 8px 10px;
+          border: none;
+          border-bottom: 2px solid #00008b;
+        }
+
+        .p-datatable-tbody > tr {
+          cursor: pointer;
+          transition: background-color 0.15s ease;
+
+          &:hover {
+            background-color: #e3f2fd !important;
+          }
+
+          &.p-highlight,
+          &.row-selected {
+            background-color: #bbdefb !important;
+          }
+
+          > td {
+            padding: 6px 10px;
+            border: none;
+            border-bottom: 1px solid #e9ecef;
+          }
+        }
+      }
+    }
+
+    // Pannello destro: JSON Viewer
+    .metadata-json-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #1e1e1e;
+
+      .json-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: #1e3a5f;
+        border-bottom: 2px solid #00008b;
+
+        .json-panel-title {
+          color: #ffffff;
+          font-weight: 600;
+          font-size: 13px;
+          text-transform: uppercase;
+        }
+
+        ion-button {
+          --color: #ffffff;
+          --padding-start: 8px;
+          --padding-end: 8px;
+          margin: 0;
+        }
       }
 
-      .p-datatable-tbody > tr > td {
-        padding: 6px 8px;
-        border: 1px solid #dee2e6;
+      .json-panel-content {
+        flex: 1;
+        overflow: auto;
+        padding: 12px;
 
-        pre {
+        .json-code {
           margin: 0;
-          font-size: 11px;
-          max-height: 100px;
-          overflow: auto;
+          color: #d4d4d4;
+          font-size: 12px;
+          font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+          line-height: 1.5;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+
+        .json-placeholder {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+          color: #6c757d;
+          font-style: italic;
+          font-size: 14px;
         }
       }
     }
@@ -293,6 +442,23 @@
 }
 
 // Responsive
+@media (max-width: 992px) {
+  .metadata-container .metadata-split-layout {
+    flex-direction: column;
+    height: auto;
+
+    .metadata-grid-panel {
+      flex: none;
+      min-width: 100%;
+      max-height: 300px;
+    }
+
+    .metadata-json-panel {
+      min-height: 300px;
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .debug-header {
     flex-direction: column;
