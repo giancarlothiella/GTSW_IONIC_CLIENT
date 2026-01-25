@@ -2081,17 +2081,18 @@ export class GtsDataService {
   ): Promise<any> {
     const connCode: string = this.getConnCode(prjId);
 
-    // Get the original params from the action that loaded this data
+    // Get the original action element that loaded this data to rebuild params from current field values
     const pageMetaData = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0];
     let params: any = {};
 
     if (pageMetaData?.pageData?.actions) {
-      // Find the getData action for this dataAdapter to get original params
+      // Find the getData action for this dataAdapter and rebuild params using buildParamsArray
       for (const action of pageMetaData.pageData.actions) {
         if (action.steps) {
           for (const step of action.steps) {
             if (step.actionType === 'getData' && step.dataAdapter === dataAdapter) {
-              params = step.params || {};
+              // Use buildParamsArray to get current field values, just like the original getData call
+              params = this.buildParamsArray(prjId, formId, step);
               break;
             }
           }
