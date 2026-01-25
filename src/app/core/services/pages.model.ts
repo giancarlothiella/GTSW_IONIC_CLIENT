@@ -11,6 +11,7 @@ export interface GetFileData {
     connCode: string;
     gridFilters?: any[];       // Filtri dalla grid AG Grid
     skipInitialLimit?: boolean; // Se true, salta il limite iniziale
+    dataSetName?: string;      // Dataset specifico a cui applicare i filtri
   }
   export interface ExecProcData {
     prjId: string;

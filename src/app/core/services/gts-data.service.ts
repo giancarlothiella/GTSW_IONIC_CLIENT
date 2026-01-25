@@ -2107,7 +2107,8 @@ export class GtsDataService {
       params: params,
       connCode: connCode,
       gridFilters: gridFilters,
-      skipInitialLimit: skipInitialLimit
+      skipInitialLimit: skipInitialLimit,
+      dataSetName: dataSetName  // Applica i filtri solo a questo dataset
     };
 
     console.log('[gts-data-service] reloadDataWithFilters request:', dataReq);
