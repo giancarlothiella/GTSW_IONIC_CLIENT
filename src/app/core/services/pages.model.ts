@@ -9,6 +9,8 @@ export interface GetFileData {
     formId: number;
     params: any;
     connCode: string;
+    gridFilters?: any[];       // Filtri dalla grid AG Grid
+    skipInitialLimit?: boolean; // Se true, salta il limite iniziale
   }
   export interface ExecProcData {
     prjId: string;

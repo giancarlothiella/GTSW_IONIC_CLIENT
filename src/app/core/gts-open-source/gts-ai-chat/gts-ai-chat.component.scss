@@ -2,6 +2,29 @@
  * GTS AI Chat Component Styles
  */
 
+// ============================================
+// DIALOG HEADER
+// ============================================
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  cursor: move; // Indica che l'header è trascinabile
+
+  .dialog-title {
+    flex: 1;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .clear-btn {
+    margin-right: 8px;
+    cursor: pointer; // Override cursor per il bottone
+  }
+}
+
 .ai-chat-container {
   display: flex;
   flex-direction: column;

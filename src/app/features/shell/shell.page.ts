@@ -41,8 +41,10 @@ import { MenuItem, ProjectInfo } from '../../core/models/menu.model';
 import { GtsLoaderComponent } from '../../core/gts-open-source/gts-loader/gts-loader.component';
 import { GtsDebugComponent } from '../../core/gts-open-source/gts-debug/gts-debug.component';
 import { GtsActionsDebugComponent } from '../../core/gts-open-source/gts-actions-debug/gts-actions-debug.component';
+import { GtsAiChatComponent, AiChatConfig } from '../../core/gts-open-source/gts-ai-chat/gts-ai-chat.component';
 import { GtsDataService } from '../../core/services/gts-data.service';
 import { AppInfoService } from '../../core/services/app-info.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-shell',
@@ -65,7 +67,8 @@ import { AppInfoService } from '../../core/services/app-info.service';
     IonModal,
     GtsLoaderComponent,
     GtsDebugComponent,
-    GtsActionsDebugComponent
+    GtsActionsDebugComponent,
+    GtsAiChatComponent
   ],
   template: `
     <!-- Loader globale -->
@@ -273,6 +276,13 @@ import { AppInfoService } from '../../core/services/app-info.service';
 
     <!-- Actions Debug Component -->
     <app-gts-actions-debug></app-gts-actions-debug>
+
+    <!-- AI Chat Component -->
+    <app-gts-ai-chat
+      [config]="aiChatConfig"
+      [(visible)]="aiChatVisible"
+      (messageSent)="onAiChatMessageSent($event)">
+    </app-gts-ai-chat>
   `,
   styles: [`
     /* Contenitore principale */
@@ -481,6 +491,12 @@ export class ShellPage implements OnInit {
   debugPageRules: any = [];
   actionsDebugActive = false;
 
+  // AI Chat
+  aiChatVisible = false;
+  aiChatConfig: AiChatConfig = { prjId: '', chatCode: '' };
+  private aiChatListenerSubs: Subscription | undefined;
+  private currentAiChatRequest: any = null;
+
   constructor() {
     // Registra le icone necessarie
     addIcons({
@@ -548,6 +564,11 @@ export class ShellPage implements OnInit {
     this.actionsDebugActive = this.appInfoService.appActionsDebug;
     this.appInfoService.getAppActionsDebugListener().subscribe((active) => {
       this.actionsDebugActive = active;
+    });
+
+    // Sottoscrivi al listener per le richieste AI Chat
+    this.aiChatListenerSubs = this.gtsDataService.getAiChatListener().subscribe((request) => {
+      this.onAiChatRequest(request);
     });
   }
 
@@ -806,5 +827,43 @@ export class ShellPage implements OnInit {
       // Chiudi il modal quando si attiva il debug
       this.debugModalOpen = false;
     }
+  }
+
+  // ============================================
+  // AI CHAT
+  // ============================================
+
+  /**
+   * Gestisce le richieste di apertura AI Chat da action types
+   */
+  onAiChatRequest(request: any) {
+    if (!request || !request.chatCode) {
+      console.error('AI Chat request missing chatCode:', request);
+      return;
+    }
+
+    this.currentAiChatRequest = request;
+
+    // Configura il componente AI Chat
+    this.aiChatConfig = {
+      prjId: request.prjId,
+      chatCode: request.chatCode,
+      contextData: request.contextData,
+      contextType: request.type, // 'grid' o 'form'
+      useTemplateMode: true,     // Usa template mode per non salvare i messaggi
+      showClearButton: true
+    };
+
+    // Apri il dialog
+    this.aiChatVisible = true;
+  }
+
+  /**
+   * Gestisce i messaggi inviati dalla chat AI
+   * Quando l'AI risponde con un JSON valido, lo invia al form/grid appropriato
+   */
+  onAiChatMessageSent(message: any) {
+    // Il messaggio inviato dall'utente - potremmo loggarlo o usarlo per analytics
+    console.log('AI Chat message sent:', message);
   }
 }

@@ -206,6 +206,15 @@ export class GtsDataService {
     return this.actionEventListener.asObservable();
   }
 
+  // AI Chat Listener - per aprire la chat AI da actions (gridSetAIMode, formAIAssist)
+  private aiChatListener = new Subject<any>();
+  getAiChatListener() {
+    return this.aiChatListener.asObservable();
+  }
+  sendAiChatRequest(config: any) {
+    this.aiChatListener.next(config);
+  }
+
   // END LISTENERS ========================================================================================
 
   async runPage(prjId: string, formId: number) {
@@ -779,9 +788,31 @@ export class GtsDataService {
             this.sendGridReload(element.dataSetName+';Delete:true');
             this.actionCanRun = true
           } else if (element.actionType === 'gridPostChanges') {
-            this.actionCanRun = await this.dataSetPost(prjId, formId, element.dataSetName, element.gridName);             
+            this.actionCanRun = await this.dataSetPost(prjId, formId, element.dataSetName, element.gridName);
           } else if (element.actionType === 'gridRollback') {
             this.actionCanRun = true
+          } else if (element.actionType === 'gridSetAIMode') {
+            // Apre AI Chat per import dati in griglia
+            this.sendAiChatRequest({
+              type: 'grid',
+              chatCode: element.customCode,
+              prjId: prjId,
+              formId: formId,
+              dataSetName: element.dataSetName,
+              gridName: element.gridName,
+              clFldGrpId: element.clFldGrpId
+            });
+            this.actionCanRun = true;
+          } else if (element.actionType === 'formAIAssist') {
+            // Apre AI Chat per compilazione campi form
+            this.sendAiChatRequest({
+              type: 'form',
+              chatCode: element.customCode,
+              prjId: prjId,
+              formId: formId,
+              clFldGrpId: element.clFldGrpId
+            });
+            this.actionCanRun = true;
           }
 
           lastActionType = element.actionType;
@@ -2034,6 +2065,82 @@ export class GtsDataService {
     }
     
     return valid;
+  }
+
+  /**
+   * Reload data for a specific dataset with optional grid filters and skip initial limit
+   * Used by gts-grid "Load All" button to fetch all data (filtered or not)
+   */
+  async reloadDataWithFilters(
+    prjId: string,
+    formId: number,
+    dataAdapter: string,
+    dataSetName: string,
+    gridFilters: any[] = [],
+    skipInitialLimit: boolean = true
+  ): Promise<any> {
+    const connCode: string = this.getConnCode(prjId);
+
+    // Get the original params from the action that loaded this data
+    const pageMetaData = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0];
+    let params: any = {};
+
+    if (pageMetaData?.pageData?.actions) {
+      // Find the getData action for this dataAdapter to get original params
+      for (const action of pageMetaData.pageData.actions) {
+        if (action.steps) {
+          for (const step of action.steps) {
+            if (step.actionType === 'getData' && step.dataAdapter === dataAdapter) {
+              params = step.params || {};
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    const dataReq: GetDBData = {
+      prjId: prjId,
+      formId: formId,
+      dataAdapterName: dataAdapter,
+      params: params,
+      connCode: connCode,
+      gridFilters: gridFilters,
+      skipInitialLimit: skipInitialLimit
+    };
+
+    console.log('[gts-data-service] reloadDataWithFilters request:', dataReq);
+
+    const responseData: any = await this.postServerData('db', 'getData', dataReq);
+
+    console.log('[gts-data-service] reloadDataWithFilters response:', responseData);
+
+    if (responseData.valid && responseData.data) {
+      // Update the pageData with new data
+      const adapter = this.pageData.find((data: any) =>
+        data.prjId === prjId && data.formId === formId && data.dataAdapter === dataAdapter
+      );
+
+      if (adapter) {
+        responseData.data.forEach((newDataSet: any) => {
+          if (newDataSet.dataSetName === dataSetName) {
+            const existingDataSet = adapter.data.find((ds: any) => ds.dataSetName === dataSetName);
+            if (existingDataSet) {
+              existingDataSet.rows = newDataSet.rows;
+              existingDataSet.totalCount = newDataSet.totalCount;
+              existingDataSet.limitApplied = newDataSet.limitApplied;
+              existingDataSet.limitInitialLoad = newDataSet.limitInitialLoad;
+              existingDataSet.initialLoadLimit = newDataSet.initialLoadLimit;
+              existingDataSet.status = 'idle';
+            }
+          }
+        });
+      }
+
+      return responseData;
+    }
+
+    return null;
   }
 
   // Reset Metadata Vibility

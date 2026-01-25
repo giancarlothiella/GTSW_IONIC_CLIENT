@@ -8,8 +8,8 @@
     }
 
     @if (gridReady && gridObject?.visible && gridKey) {
-      <!-- Toolbar for editing, filters, and export -->
-      @if (allowUpdating || hasActiveFilters || gridObject?.exportFlag) {
+      <!-- Toolbar for editing, filters, load all, and export -->
+      @if (allowUpdating || hasActiveFilters || limitApplied || (limitInitialLoad && !limitApplied) || gridObject?.exportFlag) {
         <div class="gts-grid-toolbar">
           <!-- Left side buttons -->
           <div class="gts-grid-toolbar-left">
@@ -18,27 +18,51 @@
                       (click)="saveEdits()"
                       [disabled]="editedRows.size === 0">
                 <span class="btn-icon">✓</span>
-                Save
+                {{ t(1800, 'Save') }}
               </button>
               <button class="gts-grid-toolbar-btn revert-btn"
                       (click)="cancelEdits()">
                 <span class="btn-icon">↺</span>
-                Cancel
+                {{ t(1801, 'Cancel') }}
               </button>
             }
             @if (hasActiveFilters) {
               <button class="gts-grid-toolbar-btn clear-filters-btn" (click)="clearAllFilters()">
                 <span class="btn-icon">✕</span>
-                Clear Filters
+                {{ t(1802, 'Clear Filters') }}
+              </button>
+            }
+            <!-- Load All button - shown when limit is applied -->
+            @if (limitApplied) {
+              <button class="gts-grid-toolbar-btn load-all-btn" (click)="loadAllData()">
+                <span class="btn-icon">⬇</span>
+                @if (hasActiveFilters) {
+                  {{ t(1803, 'Load all (filtered)') }}
+                } @else {
+                  {{ t(1804, 'Load all') }} ({{ totalRowCount }} {{ t(1805, 'rows') }})
+                }
+              </button>
+            }
+            <!-- Reset button - shown when all data is loaded but limit is configured -->
+            @if (limitInitialLoad && !limitApplied) {
+              <button class="gts-grid-toolbar-btn reset-limit-btn" (click)="resetToLimitedLoad()">
+                <span class="btn-icon">↻</span>
+                {{ t(1806, 'Return to limited load') }}
               </button>
             }
           </div>
           <!-- Right side buttons -->
           <div class="gts-grid-toolbar-right">
+            <!-- Info badge when limit is applied -->
+            @if (limitApplied) {
+              <span class="limit-info-badge">
+                {{ t(1807, 'Showing') }} {{ rowData.length }} {{ t(1808, 'of') }} {{ totalRowCount }} {{ t(1805, 'rows') }}
+              </span>
+            }
             @if (gridObject?.exportFlag) {
               <button class="gts-grid-toolbar-btn export-btn" (click)="exportToExcel()">
                 <span class="btn-icon">📊</span>
-                Export to Excel
+                {{ t(1809, 'Export to Excel') }}
               </button>
             }
           </div>
@@ -69,7 +93,7 @@
     @else if (!gridReady) {
       <div style="padding: 20px; text-align: center;">
         <ion-spinner></ion-spinner>
-        <p>Loading grid data...</p>
+        <p>{{ t(1810, 'Loading grid data...') }}</p>
       </div>
     }
   </div>

@@ -207,7 +207,7 @@ ion-item {
 
 .p-dialog {
   z-index: 9999 !important;
-  position: relative !important;
+  /* NON usare position: relative - blocca il drag di PrimeNG */
   background: #ffffff !important;
   border-radius: 16px !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
@@ -222,6 +222,7 @@ ion-item {
     padding: 16px 24px !important;
     border-bottom: none !important;
     flex-shrink: 0 !important;
+    cursor: move !important; /* Indica che l'header è trascinabile */
 
     .p-dialog-title {
       font-size: 18px !important;
@@ -236,6 +237,7 @@ ion-item {
         height: 36px !important;
         border-radius: 8px !important;
         transition: background 0.2s ease !important;
+        cursor: pointer !important; /* Override cursor per i bottoni */
 
         &:hover {
           background: rgba(255, 255, 255, 0.15) !important;

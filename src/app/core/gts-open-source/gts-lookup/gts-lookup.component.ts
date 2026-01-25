@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GtsDataService } from '../../services/gts-data.service';
 import { AppInfoService } from '../../services/app-info.service';
@@ -23,7 +23,9 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
   constructor(
     private gtsDataService: GtsDataService,
     private appInfo: AppInfoService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private cd: ChangeDetectorRef,
+    private ngZone: NgZone
   ) { }
 
   @Input()
@@ -67,31 +69,37 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
     this.formLookUpListenerSubs = this.gtsDataService
     .getLookUpListener()
     .subscribe((field) => {
-      this.lookUpField = field;
-      this.columns = this.lookUpField.columns;
-      this.lookUpTitle = this.lookUpField.caption;
-      this.gridColumn = this.lookUpField.gridColumn;
-      this.editorTypeML = this.lookUpField.editorTypeML || false;
+      // Run inside NgZone to ensure proper change detection in production
+      this.ngZone.run(() => {
+        this.lookUpField = field;
+        this.columns = this.lookUpField.columns;
+        this.lookUpTitle = this.lookUpField.caption;
+        this.gridColumn = this.lookUpField.gridColumn;
+        this.editorTypeML = this.lookUpField.editorTypeML || false;
 
-      if (this.lookUpField.rows === undefined) {
-        if (this.gridName !== "") {
-          this.popUpVisible = false;
-        } else {
-          this.getLookUpData();
-          this.gridData.grid = false;
-          this.gridData.gridName = undefined
-          this.gridData.gridColumn = undefined;
+        if (this.lookUpField.rows === undefined) {
+          if (this.gridName !== "") {
+            this.popUpVisible = false;
+            this.cd.detectChanges();
+          } else {
+            this.getLookUpData();
+            this.gridData.grid = false;
+            this.gridData.gridName = undefined
+            this.gridData.gridColumn = undefined;
+            // Note: popUpVisible and lookUpReady will be set in getLookUpData after data loads
+          }
+        } else if (this.gridName !== undefined && this.gridColumn !== undefined && this.gridName !== "" && this.gridColumn !== "" &&
+          ((this.gridData.gridName === undefined && this.gridData.gridColumn === undefined) || (this.gridData.gridName === this.gridName))) {
+          this.lookUpData = this.lookUpField.rows;
+          this.gridData = this.prepareGridData();
+          this.gridData.grid = true;
+          this.gridData.gridName = this.gridName;
+          this.gridData.gridColumn = this.gridColumn;
           this.popUpVisible = true;
+          this.lookUpReady = true;
+          this.cd.detectChanges();
         }
-      } else if (this.gridName !== undefined && this.gridColumn !== undefined && this.gridName !== "" && this.gridColumn !== "" &&
-        ((this.gridData.gridName === undefined && this.gridData.gridColumn === undefined) || (this.gridData.gridName === this.gridName))) {
-        this.lookUpData = this.lookUpField.rows;
-        this.gridData = this.prepareGridData();
-        this.gridData.grid = true;
-        this.gridData.gridName = this.gridName;
-        this.gridData.gridColumn = this.gridColumn;
-        this.popUpVisible = true;
-      }
+      });
     });
   }
 
@@ -140,8 +148,13 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
     const responseData = await this.gtsDataService.getExportedDSData(this.prjId, this.formId, this.lookUpField.groupId, this.lookUpField.fieldName, this.lookUpField.formData, this.lookUpField.objectName);
     this.lookUpData = responseData.data[0].rows;
     this.gridData = this.prepareGridData();
-    this.popUpVisible = true;
-    this.lookUpReady = true;
+
+    // Run inside NgZone to ensure change detection in production builds
+    this.ngZone.run(() => {
+      this.popUpVisible = true;
+      this.lookUpReady = true;
+      this.cd.detectChanges();
+    });
   }
 
   prepareGridData() {

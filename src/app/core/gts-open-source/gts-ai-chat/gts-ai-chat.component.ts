@@ -49,6 +49,8 @@ export interface AiChatConfig {
   dialogTitle?: string;   // Titolo custom dialog
   dialogWidth?: string;
   dialogHeight?: string;
+  useTemplateMode?: boolean;  // Se true, usa sessione template senza salvare nuovi messaggi
+  showClearButton?: boolean;  // Se true, mostra bottone per pulire la chat
 }
 
 export interface ChatMessage {
@@ -152,6 +154,9 @@ export class GtsAiChatComponent implements OnInit, OnDestroy {
   // Suggested questions
   suggestedQuestions: string[] = [];
 
+  // Template mode - messaggi base dalla sessione template
+  templateMessages: ChatMessage[] = [];
+
   // ============================================
   // LIFECYCLE
   // ============================================
@@ -185,8 +190,12 @@ export class GtsAiChatComponent implements OnInit, OnDestroy {
       // Load chat configuration
       await this.loadChatConfig();
 
-      // Create new session
-      await this.createSession();
+      // In template mode, load existing session; otherwise create new
+      if (this.config.useTemplateMode) {
+        await this.loadTemplateSession();
+      } else {
+        await this.createSession();
+      }
 
       // Focus input
       setTimeout(() => this.focusInput(), 100);
@@ -218,6 +227,7 @@ export class GtsAiChatComponent implements OnInit, OnDestroy {
     this.userMessage = '';
     this.pendingAttachments = [];
     this.suggestedQuestions = [];
+    this.templateMessages = [];
   }
 
   // ============================================
@@ -274,6 +284,44 @@ export class GtsAiChatComponent implements OnInit, OnDestroy {
     this.sessionCreated.emit(this.sessionId);
   }
 
+  /**
+   * Carica la sessione template esistente (prima sessione per questo chatCode)
+   * I messaggi vengono usati come contesto ma non modificati
+   */
+  private async loadTemplateSession(): Promise<void> {
+    const url = `${environment.apiUrl}/ai-chat/template-session?prjId=${this.config.prjId}&chatCode=${this.config.chatCode}`;
+    const response: any = await firstValueFrom(this.http.get(url));
+
+    if (!response.valid || !response.data) {
+      throw new Error('Sessione template non trovata. Creare prima una sessione di addestramento.');
+    }
+
+    this.sessionId = response.data.session._id;
+    this.sessionName = response.data.session.sessionName;
+
+    // Salva i messaggi template come riferimento
+    this.templateMessages = (response.data.session.messages || []).map((m: any) => ({
+      ...m,
+      timestamp: new Date(m.timestamp)
+    }));
+
+    // In template mode, non mostriamo i messaggi di training, partiamo vuoti
+    this.messages = [];
+
+    this.sessionCreated.emit(this.sessionId);
+  }
+
+  /**
+   * Pulisce i messaggi della chat corrente (non tocca i template)
+   */
+  clearChat(): void {
+    // Rimuovi solo i messaggi aggiunti in questa sessione, non i template
+    this.messages = [];
+    this.userMessage = '';
+    this.pendingAttachments = [];
+    this.focusInput();
+  }
+
   // ============================================
   // MESSAGING
   // ============================================
@@ -309,14 +357,29 @@ export class GtsAiChatComponent implements OnInit, OnDestroy {
     this.scrollToBottom();
 
     try {
-      const url = `${environment.apiUrl}/ai-chat/message`;
-      const body = {
-        sessionId: this.sessionId,
-        message: message,
-        attachments: userMsg.attachments
-      };
+      let response: any;
 
-      const response: any = await firstValueFrom(this.http.post(url, body));
+      if (this.config.useTemplateMode) {
+        // Template mode: usa endpoint che non salva i nuovi messaggi
+        const url = `${environment.apiUrl}/ai-chat/template-message`;
+        const body = {
+          sessionId: this.sessionId,
+          message: message,
+          attachments: userMsg.attachments,
+          // Passa i messaggi correnti della UI (escluso placeholder) come contesto aggiuntivo
+          currentMessages: this.messages.slice(0, -1).filter(m => !m.isStreaming)
+        };
+        response = await firstValueFrom(this.http.post(url, body));
+      } else {
+        // Normal mode: salva tutto nella sessione
+        const url = `${environment.apiUrl}/ai-chat/message`;
+        const body = {
+          sessionId: this.sessionId,
+          message: message,
+          attachments: userMsg.attachments
+        };
+        response = await firstValueFrom(this.http.post(url, body));
+      }
 
       if (!response.valid) {
         throw new Error(response.message || 'Errore durante l\'invio del messaggio');

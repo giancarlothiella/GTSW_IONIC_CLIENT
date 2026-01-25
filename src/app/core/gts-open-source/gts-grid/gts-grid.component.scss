@@ -115,6 +115,40 @@
       color: #fff;
     }
   }
+
+  &.load-all-btn {
+    color: #00008b;
+    border-color: #00008b;
+    background-color: #e8f4fd;
+
+    &:hover {
+      background-color: #00008b;
+      color: #fff;
+    }
+  }
+
+  &.reset-limit-btn {
+    color: #6c757d;
+    border-color: #6c757d;
+
+    &:hover {
+      background-color: #6c757d;
+      color: #fff;
+    }
+  }
+}
+
+// Info badge for limited data
+.limit-info-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #856404;
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
 }
 
 // Custom styling per AG Grid v35+

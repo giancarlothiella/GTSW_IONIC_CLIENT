@@ -222,8 +222,16 @@ export class GtsGridService {
             totalCount = set.totalCount;
           }
 
-          
-
+          // Estrai info sul limite iniziale dal server
+          if (set.limitApplied !== undefined) {
+            data.limitApplied = set.limitApplied;
+          }
+          if (set.limitInitialLoad !== undefined) {
+            data.limitInitialLoad = set.limitInitialLoad;
+          }
+          if (set.initialLoadLimit !== undefined) {
+            data.initialLoadLimit = set.initialLoadLimit;
+          }
 
 
           // Stringify any column that is a JSON Object
@@ -311,7 +319,12 @@ export class GtsGridService {
       DDTasksGroup: metaData.DDTasksGroup,
       DDActionTo: metaData.DDActionTo,
       DDActionFrom: metaData.DDActionFrom,
-      dataSetName: metaData.dataSetName
+      dataSetName: metaData.dataSetName,
+      // Initial load limit info from server
+      limitApplied: data.limitApplied || false,
+      limitInitialLoad: data.limitInitialLoad || false,
+      initialLoadLimit: data.initialLoadLimit || 0,
+      totalCount: totalCount
     };
 
     // store grid component data on metadata

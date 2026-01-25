@@ -5,15 +5,32 @@
 <p-dialog
   [(visible)]="visible"
   [modal]="true"
-  [draggable]="false"
+  [draggable]="true"
   [resizable]="false"
   [appendTo]="'body'"
   [blockScroll]="true"
   [style]="{ width: config.dialogWidth || '700px', maxWidth: '95vw', height: config.dialogHeight || '80vh' }"
-  [header]="dialogTitle"
   [closable]="true"
   (onShow)="onDialogShow()"
   (onHide)="onDialogHide()">
+
+  <!-- Header buttons -->
+  <ng-template pTemplate="header">
+    <div class="dialog-header">
+      <span class="dialog-title">{{ dialogTitle }}</span>
+      @if (config.showClearButton && messages.length > 0) {
+        <p-button
+          icon="pi pi-trash"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          (onClick)="clearChat()"
+          pTooltip="Pulisci chat"
+          class="clear-btn">
+        </p-button>
+      }
+    </div>
+  </ng-template>
 
   <div class="ai-chat-container">
     <!-- Loading State -->

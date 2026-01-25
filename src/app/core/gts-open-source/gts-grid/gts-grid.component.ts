@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { IonSpinner } from '@ionic/angular/standalone';
 import { GtsDataService } from '../../services/gts-data.service';
 import { GtsGridService } from './gts-grid.service';
+import { TranslationService } from '../../services/translation.service';
 import { Subscription } from 'rxjs';
 import { AgGridAngular, AgGridModule } from 'ag-grid-angular';
 import {
@@ -56,6 +57,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
   private gtsDataService = inject(GtsDataService);
   private gtsGridService = inject(GtsGridService);
+  private ts = inject(TranslationService);
 
   @Input() prjId: string = '';
   @Input() formId: number = 0;
@@ -143,7 +145,26 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   // Filter state tracking
   hasActiveFilters: boolean = false;
 
+  // Initial load limit state
+  limitApplied: boolean = false;          // True if server applied initial load limit
+  limitInitialLoad: boolean = false;      // True if dataset has limit enabled
+  initialLoadLimit: number = 0;           // Number of rows in initial load limit
+  totalRowCount: number = 0;              // Total rows available on server
+
   constructor() {}
+
+  // ============================================
+  // TRANSLATION HELPER
+  // ============================================
+
+  /**
+   * Translation helper method
+   * @param txtId Text ID from database
+   * @param fallback Fallback text if translation not found
+   */
+  t(txtId: number, fallback: string = ''): string {
+    return this.ts.getText(txtId, fallback);
+  }
 
   async ngOnInit() {
 
@@ -344,6 +365,16 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
     // Update gridObject with all data
     this.gridObject = newGridObject;
+
+    // Update initial load limit state from server response
+    this.limitApplied = newGridObject.limitApplied || false;
+    this.limitInitialLoad = newGridObject.limitInitialLoad || false;
+    this.initialLoadLimit = newGridObject.initialLoadLimit || 0;
+    this.totalRowCount = newGridObject.totalCount || newRowData.length;
+
+    if (this.limitApplied) {
+      console.log(`[gts-grid] ${this.objectName} - Initial load limited to ${this.initialLoadLimit} rows (total: ${this.totalRowCount})`);
+    }
 
     // Generate unique key based on selection mode to force grid recreation ONLY when selection mode changes
     // Don't use Date.now() as it forces grid recreation on every data reload, losing selection state
@@ -581,6 +612,149 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     console.log('[gts-grid] Clearing all filters');
     this.gridApi.setFilterModel(null);
     this.hasActiveFilters = false;
+  }
+
+  /**
+   * Convert AG Grid filter model to array format for server
+   * AG Grid filter model format:
+   * {
+   *   "columnName": { filterType: "text", type: "contains", filter: "value" },
+   *   "anotherCol": { filterType: "number", type: "greaterThan", filter: 100 }
+   * }
+   */
+  getGridFiltersForServer(): any[] {
+    if (!this.gridApi || this.gridApi.isDestroyed()) return [];
+
+    const filterModel = this.gridApi.getFilterModel();
+    const filters: any[] = [];
+
+    Object.keys(filterModel).forEach(columnName => {
+      const colFilter = filterModel[columnName];
+
+      // Handle simple filter (single condition)
+      if (colFilter.filter !== undefined || colFilter.dateFrom !== undefined) {
+        filters.push({
+          field: columnName,
+          filterType: colFilter.filterType || 'text',
+          type: colFilter.type || 'contains',
+          filter: colFilter.filter || colFilter.dateFrom
+        });
+      }
+
+      // Handle combined filter (condition1 AND/OR condition2)
+      if (colFilter.condition1) {
+        filters.push({
+          field: columnName,
+          filterType: colFilter.condition1.filterType || 'text',
+          type: colFilter.condition1.type || 'contains',
+          filter: colFilter.condition1.filter || colFilter.condition1.dateFrom
+        });
+      }
+      if (colFilter.condition2) {
+        filters.push({
+          field: columnName,
+          filterType: colFilter.condition2.filterType || 'text',
+          type: colFilter.condition2.type || 'contains',
+          filter: colFilter.condition2.filter || colFilter.condition2.dateFrom
+        });
+      }
+    });
+
+    console.log('[gts-grid] Grid filters for server:', filters);
+    return filters;
+  }
+
+  /**
+   * Load all data (bypassing initial load limit)
+   * If filters are active, load all filtered data
+   * If no filters, load everything
+   */
+  async loadAllData(): Promise<void> {
+    if (!this.metaData?.dataSetName || !this.metaData?.dataAdapter) {
+      console.warn('[gts-grid] Cannot load all data - missing metadata');
+      return;
+    }
+
+    console.log('[gts-grid] Loading all data for:', this.metaData.dataSetName);
+
+    // Get current grid filters
+    const gridFilters = this.getGridFiltersForServer();
+
+    // Show loading state
+    this.gridReady = false;
+
+    try {
+      // Call server with skipInitialLimit=true and current grid filters
+      const response = await this.gtsDataService.reloadDataWithFilters(
+        this.prjId,
+        this.formId,
+        this.metaData.dataAdapter,
+        this.metaData.dataSetName,
+        gridFilters,
+        true // skipInitialLimit
+      );
+
+      if (response && response.valid) {
+        // Refresh page data and reload grid
+        this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
+        await this.prepareGridData();
+
+        console.log('[gts-grid] All data loaded successfully');
+      } else {
+        console.error('[gts-grid] Failed to load all data');
+        this.gridReady = true; // Restore grid visibility on error
+      }
+    } catch (error) {
+      console.error('[gts-grid] Error loading all data:', error);
+      this.gridReady = true; // Restore grid visibility on error
+    }
+  }
+
+  /**
+   * Reset to initial limited load (when limit is configured on dataset)
+   */
+  async resetToLimitedLoad(): Promise<void> {
+    if (!this.metaData?.dataSetName || !this.metaData?.dataAdapter) {
+      console.warn('[gts-grid] Cannot reset - missing metadata');
+      return;
+    }
+
+    console.log('[gts-grid] Resetting to limited load for:', this.metaData.dataSetName);
+
+    // Clear filters first
+    if (this.gridApi && !this.gridApi.isDestroyed()) {
+      this.gridApi.setFilterModel(null);
+      this.hasActiveFilters = false;
+    }
+
+    // Show loading state
+    this.gridReady = false;
+
+    try {
+      // Call server with skipInitialLimit=false (use limit) and no filters
+      const response = await this.gtsDataService.reloadDataWithFilters(
+        this.prjId,
+        this.formId,
+        this.metaData.dataAdapter,
+        this.metaData.dataSetName,
+        [], // No filters
+        false // Don't skip limit - use initial load limit
+      );
+
+      if (response && response.valid) {
+        // Refresh page data and reload grid
+        this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
+        await this.prepareGridData();
+
+        console.log('[gts-grid] Reset to limited load successfully');
+      } else {
+        console.error('[gts-grid] Failed to reset to limited load');
+        this.gridReady = true;
+      }
+    } catch (error) {
+      console.error('[gts-grid] Error resetting to limited load:', error);
+      this.gridReady = true;
+    }
   }
 
   restoreSelection(): void {
