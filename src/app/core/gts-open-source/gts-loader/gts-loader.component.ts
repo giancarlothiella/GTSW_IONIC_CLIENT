@@ -29,6 +29,7 @@ export class GtsLoaderComponent implements OnInit, OnDestroy {
     this.appLoaderListenerSubs = this.gtsDataService
     .getAppLoaderListener()
     .subscribe((loading) => {
+      console.log('[gts-loader] Received loading event:', loading);
       this.ngZone.run(() => {
         this.loading = loading;
         this.cdr.detectChanges();

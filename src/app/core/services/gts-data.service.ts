@@ -229,7 +229,9 @@ export class GtsDataService {
   }
 
   sendAppLoaderListener(status: boolean) {
-    console.log('[sendAppLoaderListener]', status ? 'ATTIVO' : 'SPENTO');
+    const now = new Date();
+    const time = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}.${now.getMilliseconds()}`;
+    console.log(`[sendAppLoaderListener] ${time} - ${status ? 'ATTIVO' : 'SPENTO'}`);
     this.appLoaderListener.next(status);
   }
 
@@ -681,10 +683,10 @@ export class GtsDataService {
     const page: any = this.metaData.filter((page) => page.prjId === prjId && page.formId == formId)[0];
     const mainAction = page.pageData.actions.filter((action: any) => action.objectName === objectName);
     this.actionCanRun = true;
-    this.appLoaderListener.next(true);
+    this.sendAppLoaderListener(true);
 
     if (mainAction[0] === undefined) {
-      this.appLoaderListener.next(false);
+      this.sendAppLoaderListener(false);
       return;
     }
 
@@ -845,9 +847,9 @@ export class GtsDataService {
 
     }
     if (lastActionType !== 'execCustom') {
-      this.appLoaderListener.next(false);
+      this.sendAppLoaderListener(false);
     }
-  };      
+  };
   //========== END RUN ACTION LOOP =======================================================================
 
 
