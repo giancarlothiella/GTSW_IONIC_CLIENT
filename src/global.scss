@@ -698,3 +698,36 @@ p-datepicker .p-datepicker-next {
     min-width: 800px;
   }
 }
+
+/* ============================================
+   GTS Loader - Global Loading State
+   ============================================ */
+
+/* Quando il loader è attivo, forza tutto sotto di esso */
+body.gts-loading-active {
+  /* Forza tutti i dialog e mask PrimeNG sotto il loader */
+  .p-dialog-mask {
+    z-index: 90000 !important;
+  }
+
+  .p-dialog {
+    z-index: 90001 !important;
+  }
+
+  /* Forza tutti gli overlay/popup sotto il loader */
+  .p-component-overlay,
+  .p-overlay,
+  .p-overlaypanel,
+  .p-tooltip,
+  .p-dropdown-panel,
+  .p-select-overlay,
+  .p-datepicker,
+  .p-datepicker-panel {
+    z-index: 89999 !important;
+  }
+
+  /* Il loader overlay deve essere sempre sopra tutto */
+  .gts-loader-overlay {
+    z-index: 99999 !important;
+  }
+}

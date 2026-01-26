@@ -196,9 +196,8 @@ async function main() {
     const defaultPrefix = projectCode + '_';
     const componentPrefix = await question(`🏷️  Component class prefix [${defaultPrefix}]: `) || defaultPrefix;
 
-    // 5. Include Loader
-    const includeLoaderInput = await question('⏳ Include GTS Loader? (y/N): ');
-    const includeLoader = includeLoaderInput.toLowerCase() === 'y';
+    // 5. Include Loader - sempre incluso di default
+    const includeLoader = true;
 
     // 6. Include Reports
     const includeReportsInput = await question('📊 Include GTS Reports? (y/N): ');
@@ -225,7 +224,6 @@ async function main() {
     log(`  Page Name:          ${pageName}`, 'yellow');
     log(`  Form ID:            ${isDynamic ? 'Dynamic (from URL)' : formId}`, 'yellow');
     log(`  Component Class:    ${componentClassName}`, 'yellow');
-    log(`  Include Loader:     ${includeLoader ? 'Yes' : 'No'}`, 'yellow');
     log(`  Include Reports:    ${includeReports ? 'Yes' : 'No'}`, 'yellow');
     log(`  Target Path:        ${basePath}/${pageName}/`, 'yellow');
     log(`  Registry Update:    ${autoUpdate ? 'Automatic' : 'Manual'}`, 'yellow');
@@ -342,18 +340,18 @@ function generateTsComponent(projectCode, pageName, formId, componentPrefix, isD
   const selector = `app-${pageName}`;
 
   // Build imports dynamically
-  let gtsImports = `import { GtsToolbarComponent } from '../../../core/gts/gts-toolbar/gts-toolbar.component';
-import { GtsTabsComponent } from '../../../core/gts/gts-tabs/gts-tabs.component';
-import { GtsGridComponent } from '../../../core/gts/gts-grid/gts-grid.component';
-import { GtsFormComponent } from '../../../core/gts/gts-form/gts-form.component';
-import { GtsFormPopupComponent } from '../../../core/gts/gts-form-popup/gts-form-popup.component';
-import { GtsMessageComponent } from '../../../core/gts/gts-message/gts-message.component';`;
+  let gtsImports = `import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component';
+import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component';
+import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component';
+import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
+import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
+import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';`;
 
   if (includeLoader) {
-    gtsImports += `\nimport { GtsLoaderComponent } from '../../../core/gts/gts-loader/gts-loader.component';`;
+    gtsImports += `\nimport { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';`;
   }
   if (includeReports) {
-    gtsImports += `\nimport { GtsReportsComponent } from '../../../core/gts/gts-reports/gts-reports.component';`;
+    gtsImports += `\nimport { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';`;
   }
 
   // Build component imports array

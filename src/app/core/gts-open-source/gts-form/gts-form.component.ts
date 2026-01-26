@@ -680,7 +680,9 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       // Skip DB validation for multi-line lookups (editorTypeML) because the concatenated value doesn't exist as a single record
-      if (valid && field.sqlId !== undefined && field.sqlId !== null && field.sqlId !== '' && !field.updateFromLookUp && field.editorType === 'LookUpBox' && !field.editorTypeML) {
+      // Skip also if field allows empty and value is empty
+      const valueIsEmpty = value === undefined || value === null || value === '';
+      if (valid && field.sqlId !== undefined && field.sqlId !== null && field.sqlId !== '' && !field.updateFromLookUp && field.editorType === 'LookUpBox' && !field.editorTypeML && !(field.allowEmpty && valueIsEmpty)) {
         const responseData: any = await this.gtsDataService.getExportedData(this.prjId, this.formId, field.groupId, field.sqlQueryField, value, field.objectName);
         if (responseData.valid && responseData.data && responseData.data.length > 0 && responseData.data[0].rows && responseData.data[0].rows.length > 0) {
           this.metaData
