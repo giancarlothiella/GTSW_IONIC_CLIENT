@@ -5,6 +5,7 @@
   .p-dialog {
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 9000 !important;  // Sotto al gts-loader (99999)
 
     .p-dialog-header {
       background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
@@ -34,5 +35,6 @@
   // Modal overlay when not in debug mode
   .p-dialog-mask {
     background-color: rgba(0, 0, 0, 0.4);
+    z-index: 8999 !important;  // Sotto al dialog e al gts-loader
   }
 }
