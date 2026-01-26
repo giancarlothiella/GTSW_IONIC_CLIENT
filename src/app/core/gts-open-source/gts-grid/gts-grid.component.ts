@@ -18,6 +18,7 @@ import {
 } from 'ag-grid-community';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
+import { GtsSetFilterComponent } from './gts-set-filter.component';
 
 // Register AG Grid modules at component level
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -151,6 +152,18 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   initialLoadLimit: number = 0;           // Number of rows in initial load limit
   totalRowCount: number = 0;              // Total rows available on server
 
+  // Search panel (Quick Filter)
+  showSearchPanel: boolean = false;
+  searchText: string = '';
+
+  // Custom filter components for AG Grid
+  filterComponents: any = {
+    gtsSetFilter: GtsSetFilterComponent
+  };
+
+  // Header filter visibility (Set Filter dropdown)
+  headerFilterVisible: boolean = false;
+
   constructor() {}
 
   // ============================================
@@ -181,47 +194,35 @@ export class GtsGridComponent implements OnInit, OnDestroy {
           if (allowFlags.length > 0) {
             if (allowFlags[0] === 'Edit') {
               this.allowUpdating = allowFlags[1] === 'true';
-              console.log('[gts-grid]', this.objectName, '- Edit mode set to:', this.allowUpdating);
-
-              // Update editable state on existing columns without recreating them
               if (this.gridApi && !this.gridApi.isDestroyed() && this.metaData?.data?.columns) {
                 const columns = this.gridApi.getColumns();
                 columns?.forEach((column: any) => {
                   const colId = column.getColId();
-                  // Find metadata for this column
                   const colMetadata = this.metaData.data.columns.find((c: any) => c.dataField === colId);
                   if (colMetadata && colMetadata.allowEditing !== false) {
-                    // Update editable property directly on the column
                     const colDef = column.getColDef();
                     colDef.editable = this.allowUpdating;
                   }
                 });
-                // Refresh cells to apply new editable state
                 this.gridApi.refreshCells({ force: true });
-                console.log('[gts-grid]', this.objectName, '- Columns updated for editing (editable state changed)');
               }
-              return; // Don't reload data, just update editing mode
+              return;
             }
             if (allowFlags[0] === 'Insert') {
               this.allowInserting = allowFlags[1] === 'true';
-              console.log('[gts-grid]', this.objectName, '- Insert mode set to:', this.allowInserting);
               return;
             }
             if (allowFlags[0] === 'Delete') {
               this.allowDeleting = allowFlags[1] === 'true';
-              console.log('[gts-grid]', this.objectName, '- Delete mode set to:', this.allowDeleting);
               return;
             }
             if (allowFlags[0] === 'Idle') {
               this.allowUpdating = false;
               this.allowInserting = false;
               this.allowDeleting = false;
-              console.log('[gts-grid]', this.objectName, '- Idle mode - all editing disabled');
-              // Recreate columns with editing disabled
               if (this.metaData?.data?.columns && this.gridApi && !this.gridApi.isDestroyed()) {
                 this.convertColumnsToAGGrid(this.metaData.data.columns);
                 this.gridApi.setGridOption('columnDefs', this.columnDefs);
-                // Don't call autoSizeAllColumns here - preserve existing column widths
               }
               return;
             }
@@ -307,12 +308,22 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Save current selection before reload
     if (this.gridApi && this.selectedRows.length > 0) {
       const keyField = this.gridObject?.keys?.[0] || 'id';
-      // Filter out undefined/null rows before mapping
       this.savedSelectedRowKeys = this.selectedRows
         .filter((row: any) => row !== undefined && row !== null)
         .map((row: any) => row[keyField]);
-      console.log('[gts-grid] Saving selection before reload:', this.savedSelectedRowKeys);
     }
+
+    // Reset defaultColDef to base state (filter settings may vary per grid)
+    this.defaultColDef = {
+      sortable: true,
+      filter: true,
+      resizable: true,
+      floatingFilter: false,
+      minWidth: 100,
+      maxWidth: 500,
+      flex: 1
+    };
+    this.headerFilterVisible = false;
 
     // Keep grid hidden during data preparation
     this.gridReady = false;
@@ -353,7 +364,21 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       enableClickSelection: true  // Enable click-based selection (AG Grid v35+)
     };
 
-    // Convert columns to AG Grid format
+    // Update defaultColDef based on grid metadata BEFORE converting columns
+    if (newGridObject.filterRowVisible) {
+      this.defaultColDef = { ...this.defaultColDef, floatingFilter: true };
+    }
+
+    if (newGridObject.allowHeaderFiltering) {
+      // Enable custom Set Filter (dropdown with distinct values) for all columns
+      this.defaultColDef = { ...this.defaultColDef, filter: GtsSetFilterComponent };
+      this.headerFilterVisible = true;
+    }
+
+    // Enable search panel (Quick Filter)
+    this.showSearchPanel = newGridObject.searchPanelFlag || false;
+
+    // Convert columns to AG Grid format (AFTER setting filter options)
     this.convertColumnsToAGGrid(columns);
 
     // Extract row data - simple array for AG Grid
@@ -372,9 +397,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     this.initialLoadLimit = newGridObject.initialLoadLimit || 0;
     this.totalRowCount = newGridObject.totalCount || newRowData.length;
 
-    if (this.limitApplied) {
-      console.log(`[gts-grid] ${this.objectName} - Initial load limited to ${this.initialLoadLimit} rows (total: ${this.totalRowCount})`);
-    }
 
     // Generate unique key based on selection mode to force grid recreation ONLY when selection mode changes
     // Don't use Date.now() as it forces grid recreation on every data reload, losing selection state
@@ -412,7 +434,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     columns.forEach((col: any, index: number) => {
       // Handle column bands (column groups)
       if (col.columns && Array.isArray(col.columns)) {
-        console.log(`[gts-grid] ${this.objectName} - Processing column band:`, col.caption);
 
         // This is a column group (band)
         const groupDef: any = {
@@ -446,11 +467,9 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   private createColumnDef(col: any): ColDef | null {
     // Skip non-data columns (buttons, etc.) and hidden columns
     if (col.visible === false) {
-      console.log(`[gts-grid] ${this.objectName} - Skipping hidden column:`, col.dataField || col.caption);
       return null;
     }
     if (col.type === 'buttons') {
-      console.log(`[gts-grid] ${this.objectName} - Skipping buttons column:`, col.name || col.caption);
       return null;
     }
     if (!col.dataField) {
@@ -464,9 +483,23 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       minWidth: col.minWidth || 100,
       hide: col.visible === false,
       sortable: col.allowSorting !== false,
-      filter: col.allowFiltering !== false,
       editable: col.allowEditing !== false && this.allowUpdating, // Editable if column allows and grid allows updates
     };
+
+    // Set filter - if headerFilterVisible is true, use the custom set filter
+    // Otherwise, use the standard AG Grid filter based on column metadata
+    if (this.headerFilterVisible) {
+      // Use custom set filter unless column explicitly disables filtering
+      if (col.allowFiltering === false) {
+        colDef.filter = false;
+      } else {
+        // Use the GtsSetFilterComponent class directly (AG Grid v35+ approach)
+        colDef.filter = GtsSetFilterComponent;
+      }
+    } else {
+      // Use standard AG Grid filter
+      colDef.filter = col.allowFiltering !== false;
+    }
 
     // Se la colonna ha una larghezza specifica, usala; altrimenti usa flex
     if (col.width) {
@@ -565,12 +598,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   onGridReady(params: GridReadyEvent): void {
     this.gridApi = params.api;
 
-    console.log('[gts-grid] Grid ready for', this.objectName);
-    console.log('[gts-grid] Row count:', params.api.getDisplayedRowCount());
-    console.log('[gts-grid] Column count:', params.api.getColumns()?.length);
-    console.log('[gts-grid] Grid height:', this.gridObject?.height);
-    console.log('[gts-grid] Grid visible:', this.gridObject?.visible);
-
     // Listen for filter changes to update hasActiveFilters
     params.api.addEventListener('filterChanged', () => {
       this.checkActiveFilters();
@@ -600,7 +627,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
     const filterModel = this.gridApi.getFilterModel();
     this.hasActiveFilters = Object.keys(filterModel).length > 0;
-    console.log('[gts-grid] Active filters:', this.hasActiveFilters, filterModel);
   }
 
   /**
@@ -608,10 +634,22 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    */
   clearAllFilters(): void {
     if (!this.gridApi || this.gridApi.isDestroyed()) return;
-
-    console.log('[gts-grid] Clearing all filters');
     this.gridApi.setFilterModel(null);
+    this.searchText = '';
+    this.gridApi.setGridOption('quickFilterText', '');
     this.hasActiveFilters = false;
+  }
+
+  /**
+   * Apply quick filter (global search across all columns)
+   */
+  onQuickFilterChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.searchText = input.value;
+
+    if (!this.gridApi || this.gridApi.isDestroyed()) return;
+
+    this.gridApi.setGridOption('quickFilterText', this.searchText);
   }
 
   /**
@@ -660,7 +698,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       }
     });
 
-    console.log('[gts-grid] Grid filters for server:', filters);
     return filters;
   }
 
@@ -674,8 +711,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       console.warn('[gts-grid] Cannot load all data - missing metadata');
       return;
     }
-
-    console.log('[gts-grid] Loading all data for:', this.metaData.dataSetName);
 
     // Get current grid filters
     const gridFilters = this.getGridFiltersForServer();
@@ -695,18 +730,13 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       );
 
       if (response && response.valid) {
-        // Refresh page data and reload grid
         this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
         await this.prepareGridData();
-
-        console.log('[gts-grid] All data loaded successfully');
       } else {
-        console.error('[gts-grid] Failed to load all data');
-        this.gridReady = true; // Restore grid visibility on error
+        this.gridReady = true;
       }
     } catch (error) {
-      console.error('[gts-grid] Error loading all data:', error);
-      this.gridReady = true; // Restore grid visibility on error
+      this.gridReady = true;
     }
   }
 
@@ -718,8 +748,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       console.warn('[gts-grid] Cannot reset - missing metadata');
       return;
     }
-
-    console.log('[gts-grid] Resetting to limited load for:', this.metaData.dataSetName);
 
     // Clear filters first
     if (this.gridApi && !this.gridApi.isDestroyed()) {
@@ -742,17 +770,12 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       );
 
       if (response && response.valid) {
-        // Refresh page data and reload grid
         this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
         await this.prepareGridData();
-
-        console.log('[gts-grid] Reset to limited load successfully');
       } else {
-        console.error('[gts-grid] Failed to reset to limited load');
         this.gridReady = true;
       }
     } catch (error) {
-      console.error('[gts-grid] Error resetting to limited load:', error);
       this.gridReady = true;
     }
   }
@@ -761,8 +784,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     if (!this.gridApi || this.gridApi.isDestroyed() || !this.savedSelectedRowKeys || this.savedSelectedRowKeys.length === 0) {
       return;
     }
-
-    console.log('[gts-grid] Restoring selection:', this.savedSelectedRowKeys);
 
     // Set flag to prevent action execution during restore
     this.isRestoringSelection = true;
@@ -780,7 +801,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Select the nodes
     if (nodesToSelect.length > 0) {
       this.gridApi.setNodesSelected({ nodes: nodesToSelect, newValue: true });
-      console.log('[gts-grid] Selection restored:', nodesToSelect.length, 'rows');
     }
 
     // Clear saved keys and flag after restoring
@@ -795,7 +815,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   onSelectionChanged(event: SelectionChangedEvent): void {
     // If grid is disabled, prevent selection change by restoring previous selection
     if (this.gridObject?.disabled && !this.isRestoringSelection) {
-      console.log('[gts-grid] Grid is disabled, restoring previous selection');
       // Store the previous selection keys before the change
       const previousKeys = this.selectedRows;
 
@@ -865,12 +884,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    * Tracks changes for batch editing (like DevExtreme onSaved)
    */
   onCellValueChanged(event: any): void {
-    console.log('[gts-grid] Cell value changed:', event);
-    console.log('[gts-grid] Field:', event.colDef.field);
-    console.log('[gts-grid] Old value:', event.oldValue);
-    console.log('[gts-grid] New value:', event.newValue);
-    console.log('[gts-grid] Row data:', event.data);
-
     // Get the row key
     const keyField = this.gridObject?.keys?.[0] || 'id';
     const rowKey = event.data[keyField];
@@ -883,8 +896,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       const existingEdit = this.editedRows.get(rowKey);
       this.editedRows.set(rowKey, { ...existingEdit, ...event.data });
     }
-
-    console.log('[gts-grid] Edited rows count:', this.editedRows.size);
   }
 
   /**
@@ -909,11 +920,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    */
   saveEdits(): void {
     if (this.editedRows.size === 0) {
-      console.log('[gts-grid] No edits to save');
       return;
     }
-
-    console.log('[gts-grid] Saving edits, edited rows count:', this.editedRows.size);
 
     this.changeArray = [];
     const keyField = this.gridObject?.keys?.[0] || 'id';
@@ -945,15 +953,12 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       }
     });
 
-    console.log('[gts-grid] Changes to save:', this.changeArray);
-
     // Store changes in metadata (like DevExtreme)
     this.metaData.changeArray = this.changeArray;
 
     // Update backupDataSet to reflect saved state (so Cancel won't revert saved changes)
     if (this.gridObject.dataSet) {
       this.gridObject.backupDataSet = this.gridObject.dataSet.map((row: any) => ({ ...row }));
-      console.log('[gts-grid] BackupDataSet updated after save');
     }
 
     // Clear edited rows BEFORE executing action (toolbar will hide)
@@ -968,12 +973,10 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         colDef.editable = false;
       });
       this.gridApi.refreshCells({ force: true });
-      console.log('[gts-grid] Edit mode disabled after save');
     }
 
-    // Execute action if defined (like DevExtreme onSaved -> actionOnEditPost)
+    // Execute action if defined
     if (this.metaData.actionOnEditPost) {
-      console.log('[gts-grid] Executing actionOnEditPost:', this.metaData.actionOnEditPost);
       this.gtsDataService.runAction(
         this.prjId,
         this.formId,
@@ -987,8 +990,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    * This is called by the Revert button in the toolbar
    */
   cancelEdits(): void {
-    console.log('[gts-grid] Canceling edits, edited rows count:', this.editedRows.size);
-
     // Clear edited rows FIRST (toolbar will hide immediately)
     this.editedRows.clear();
     this.changeArray = [];
@@ -1014,12 +1015,10 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         colDef.editable = false;
       });
       this.gridApi.refreshCells({ force: true });
-      console.log('[gts-grid] Edit mode disabled after revert');
     }
 
-    // Execute rollback action if defined (like DevExtreme onEditCanceled -> actionOnEditRollback)
+    // Execute rollback action if defined
     if (this.metaData.actionOnEditRollback) {
-      console.log('[gts-grid] Executing actionOnEditRollback:', this.metaData.actionOnEditRollback);
       this.gtsDataService.runAction(
         this.prjId,
         this.formId,
@@ -1098,8 +1097,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       return;
     }
 
-    console.log('[gts-grid] Exporting to Excel...');
-
     // Determine file name from metadata, title, or object name
     const fileName = this.gridObject?.exportFileName
       || this.gridTitle
@@ -1110,11 +1107,82 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     const workbook = new Workbook();
     const worksheet = workbook.addWorksheet('Data');
 
-    // Get visible columns (excluding hidden ones)
-    const visibleColumns = this.columnDefs.filter(col => !col.hide);
+    // Flatten columnDefs to get leaf columns and track groups
+    const flatColumns: { col: ColDef; groupName: string | null }[] = [];
+    this.columnDefs.forEach((colDef: any) => {
+      if (colDef.children && Array.isArray(colDef.children)) {
+        // This is a column group - add its children
+        colDef.children.forEach((childCol: ColDef) => {
+          if (!childCol.hide) {
+            flatColumns.push({ col: childCol, groupName: colDef.headerName || null });
+          }
+        });
+      } else if (!colDef.hide && colDef.field) {
+        // Regular column
+        flatColumns.push({ col: colDef, groupName: null });
+      }
+    });
 
-    // Add header row
-    const headerRow = worksheet.addRow(visibleColumns.map(col => col.headerName || col.field));
+    // Check if we have any column groups
+    const hasGroups = flatColumns.some(fc => fc.groupName !== null);
+
+    if (hasGroups) {
+      // Add group header row - only put group name in first cell of each group
+      const groupHeaders: string[] = [];
+      let lastGroup: string | null = null;
+      flatColumns.forEach((fc, idx) => {
+        if (fc.groupName && fc.groupName !== lastGroup) {
+          groupHeaders.push(fc.groupName);
+          lastGroup = fc.groupName;
+        } else if (fc.groupName && fc.groupName === lastGroup) {
+          groupHeaders.push(''); // Empty for subsequent columns in same group
+        } else {
+          groupHeaders.push('');
+          lastGroup = null;
+        }
+      });
+
+      const groupRow = worksheet.addRow(groupHeaders);
+
+      // Find group spans and apply formatting only to group cells
+      let i = 0;
+      while (i < flatColumns.length) {
+        const groupName = flatColumns[i].groupName;
+        if (groupName) {
+          // Find how many columns this group spans
+          let groupEnd = i;
+          while (groupEnd < flatColumns.length - 1 && flatColumns[groupEnd + 1].groupName === groupName) {
+            groupEnd++;
+          }
+
+          // Apply formatting to all cells in this group (1-indexed for Excel)
+          for (let col = i; col <= groupEnd; col++) {
+            const cell = worksheet.getCell(1, col + 1);
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FF1E293B' }
+            };
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          }
+
+          // Merge if group spans more than one column
+          if (groupEnd > i) {
+            worksheet.mergeCells(1, i + 1, 1, groupEnd + 1);
+          }
+
+          // Center align the merged cell
+          worksheet.getCell(1, i + 1).alignment = { horizontal: 'center' };
+
+          i = groupEnd + 1;
+        } else {
+          i++;
+        }
+      }
+    }
+
+    // Add column header row
+    const headerRow = worksheet.addRow(flatColumns.map(fc => fc.col.headerName || fc.col.field));
     headerRow.font = { bold: true };
     headerRow.fill = {
       type: 'pattern',
@@ -1132,7 +1200,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
     // Add data rows
     allRows.forEach((rowData: any) => {
-      const row = visibleColumns.map(col => {
+      const row = flatColumns.map(fc => {
+        const col = fc.col;
         const value = rowData[col.field!];
 
         // Format dates
@@ -1185,7 +1254,5 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Add .xlsx extension if not present
     const finalFileName = fileName.endsWith('.xlsx') ? fileName : `${fileName}.xlsx`;
     saveAs(blob, finalFileName);
-
-    console.log('[gts-grid] Excel export complete:', finalFileName);
   }
 }

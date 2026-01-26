@@ -2052,12 +2052,25 @@ export class GtsDataService {
             });
           }
           data.data.forEach((data: any) => {
-            if (dataSet.dataSetName === data.dataSetName) {              
+            if (dataSet.dataSetName === data.dataSetName) {
               dataSet.rows = data.rows;
               dataSet.selectedRows = [];
               dataSet.status = 'idle';
               dataSet.selectedKeys = [];
               dataSet.isSelected = false;
+              // Update limit-related fields from server response
+              if (data.totalCount !== undefined) {
+                dataSet.totalCount = data.totalCount;
+              }
+              if (data.limitApplied !== undefined) {
+                dataSet.limitApplied = data.limitApplied;
+              }
+              if (data.limitInitialLoad !== undefined) {
+                dataSet.limitInitialLoad = data.limitInitialLoad;
+              }
+              if (data.initialLoadLimit !== undefined) {
+                dataSet.initialLoadLimit = data.initialLoadLimit;
+              }
            }
           });
         });

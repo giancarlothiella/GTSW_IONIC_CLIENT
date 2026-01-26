@@ -349,18 +349,10 @@ export class GtsGridService {
     sAction: string,
     gridObject: any
   ) {
-    console.log('[gts-grid-service] setGridObjectSelectedData called');
-    console.log('[gts-grid-service] selectedRowKeys.length:', selectedRowKeys.length);
-    console.log('[gts-grid-service] sAction:', sAction);
-
     this.gtsDataService.setSelectedRows(prjId, formId, dataAdapter, dataSetName, selectedRowsData, selectedRowKeys);
     if (selectedRowKeys.length > 0 && sAction !== undefined && sAction !== null && sAction !== '') {
-      console.log('[gts-grid-service] Executing action:', sAction);
       this.gtsDataService.runAction(prjId, formId, sAction);
-    } else {
-      console.log('[gts-grid-service] Action NOT executed - conditions not met');
     }
-
     gridObject.selectedRowKeys = selectedRowKeys;
   }
 

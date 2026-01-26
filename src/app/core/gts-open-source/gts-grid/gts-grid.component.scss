@@ -151,6 +151,44 @@
   border-radius: 4px;
 }
 
+// Quick Filter / Search Panel
+.gts-grid-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+
+  .search-icon {
+    font-size: 14px;
+    opacity: 0.6;
+  }
+
+  .gts-grid-search-input {
+    border: none;
+    outline: none;
+    font-size: 13px;
+    padding: 4px 0;
+    width: 180px;
+    background: transparent;
+
+    &::placeholder {
+      color: #999;
+    }
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  &:focus-within {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+  }
+}
+
 // Custom styling per AG Grid v35+
 :host ::ng-deep {
   .gts-grid {
