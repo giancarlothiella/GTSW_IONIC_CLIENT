@@ -2086,13 +2086,14 @@ export class GtsDataService {
     let params: any = {};
 
     if (pageMetaData?.pageData?.actions) {
-      // Find the getData action for this dataAdapter and rebuild params using buildParamsArray
-      for (const action of pageMetaData.pageData.actions) {
-        if (action.steps) {
-          for (const step of action.steps) {
-            if (step.actionType === 'getData' && step.dataAdapter === dataAdapter) {
+      // Actions are stored as array of action groups, each with an 'actions' array
+      for (const actionGroup of pageMetaData.pageData.actions) {
+        if (actionGroup.actions) {
+          for (const action of actionGroup.actions) {
+            if (action.actionType === 'getData' && action.dataAdapter === dataAdapter) {
               // Use buildParamsArray to get current field values, just like the original getData call
-              params = this.buildParamsArray(prjId, formId, step);
+              params = this.buildParamsArray(prjId, formId, action);
+              console.log('[gts-data-service] Found getData action, params:', params);
               break;
             }
           }
