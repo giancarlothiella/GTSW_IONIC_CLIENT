@@ -53,6 +53,8 @@ export class GtsGridService {
       column.dataField = col.fieldName;
       column.caption = col.text;
       column.allowEditing = col.allowEditing;
+      column.columnType = col.columnType; // Preserve columnType for multiline (B), checkbox (C), image (X)
+      column.colType = col.colType; // Preserve colType (String, Integer, Float, Date, etc.)
 
       if (groupData.length > 0) {
         let field = groupData.filter((field: any) => field.dbFieldName === col.fieldName)[0];
@@ -262,18 +264,24 @@ export class GtsGridService {
     data.dataFilter = dataFilter;
     data.keys = keys;
 
+    // Apply external filter (e.g., from toolbar) to the dataset
+    // filterRule format: ['fieldName', 'operator', 'value'] or [['field1', '=', 'val1'], 'and', ['field2', '=', 'val2']]
+    let filteredDataSet = dataSet;
+    if (dataFilter && dataFilter.length > 0) {
+      filteredDataSet = this.applyFilterRule(dataSet, dataFilter);
+    }
+
     // Per AG Grid: restitui direttamente i dati come array
     // Mantieni compatibilità con DevExtreme API structure per existing code (es. auth-details)
     data.dataSource = {
       _store: {
-        _array: dataSet // AG Grid component estrae i dati da qui
+        _array: filteredDataSet // AG Grid component estrae i dati da qui
       },
-      _items: dataSet // For compatibility with code that accesses data.dataSource._items
+      _items: filteredDataSet // For compatibility with code that accesses data.dataSource._items
     };
 
-    // Nota: il filtering in AG Grid è gestito nativamente dal component
-    // Non serve più applicare filtri qui
-    if (data.dataFilter !== undefined && data.dataFilter !== null && data.dataFilter.length > 0) {
+    // Mark if data is filtered by external rule
+    if (dataFilter && dataFilter.length > 0) {
       data.filtered = true;
     }
 
@@ -335,8 +343,94 @@ export class GtsGridService {
 
   getImage(metaData: any, data: any) {
     const col = metaData.columns[data.columnIndex];
-    const image = col.images.filter((img: any) => img.imgValue === data.value)[0];       
+    const image = col.images.filter((img: any) => img.imgValue === data.value)[0];
     return '/assets/icons/stdImage_' + image.stdImageId + '_16.png';
+  }
+
+  /**
+   * Apply filter rule to dataset (for external filters like toolbar)
+   * Supports simple format: ['fieldName', 'operator', 'value']
+   * Supports compound format: [['field1', '=', 'val1'], 'and', ['field2', '=', 'val2']]
+   */
+  private applyFilterRule(dataSet: any[], filterRule: any[]): any[] {
+    if (!dataSet || dataSet.length === 0 || !filterRule || filterRule.length === 0) {
+      return dataSet;
+    }
+
+    // Check if it's a simple filter: ['fieldName', 'operator', 'value']
+    if (filterRule.length === 3 && typeof filterRule[0] === 'string' && typeof filterRule[1] === 'string') {
+      const [fieldName, operator, value] = filterRule;
+      return dataSet.filter(row => this.evaluateCondition(row, fieldName, operator, value));
+    }
+
+    // Check if it's a compound filter: [condition1, 'and'/'or', condition2, ...]
+    if (Array.isArray(filterRule[0])) {
+      return dataSet.filter(row => this.evaluateCompoundFilter(row, filterRule));
+    }
+
+    // Unknown format, return original data
+    console.warn('[gts-grid.service] Unknown filterRule format:', filterRule);
+    return dataSet;
+  }
+
+  /**
+   * Evaluate a single condition against a row
+   */
+  private evaluateCondition(row: any, fieldName: string, operator: string, value: any): boolean {
+    const rowValue = row[fieldName];
+
+    switch (operator.toLowerCase()) {
+      case '=':
+      case 'equals':
+        return rowValue === value;
+      case '<>':
+      case '!=':
+      case 'notequals':
+        return rowValue !== value;
+      case '>':
+        return rowValue > value;
+      case '>=':
+        return rowValue >= value;
+      case '<':
+        return rowValue < value;
+      case '<=':
+        return rowValue <= value;
+      case 'contains':
+        return rowValue && String(rowValue).toLowerCase().includes(String(value).toLowerCase());
+      case 'startswith':
+        return rowValue && String(rowValue).toLowerCase().startsWith(String(value).toLowerCase());
+      case 'endswith':
+        return rowValue && String(rowValue).toLowerCase().endsWith(String(value).toLowerCase());
+      default:
+        console.warn('[gts-grid.service] Unknown operator:', operator);
+        return true;
+    }
+  }
+
+  /**
+   * Evaluate compound filter with 'and'/'or' logic
+   */
+  private evaluateCompoundFilter(row: any, filterRule: any[]): boolean {
+    let result = true;
+    let currentOperator = 'and';
+
+    for (let i = 0; i < filterRule.length; i++) {
+      const part = filterRule[i];
+
+      if (typeof part === 'string' && (part.toLowerCase() === 'and' || part.toLowerCase() === 'or')) {
+        currentOperator = part.toLowerCase();
+      } else if (Array.isArray(part) && part.length === 3) {
+        const conditionResult = this.evaluateCondition(row, part[0], part[1], part[2]);
+
+        if (currentOperator === 'and') {
+          result = result && conditionResult;
+        } else {
+          result = result || conditionResult;
+        }
+      }
+    }
+
+    return result;
   }
 
   setGridObjectSelectedData(

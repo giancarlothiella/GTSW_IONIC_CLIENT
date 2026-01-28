@@ -185,7 +185,16 @@ export class GtsDataService {
   getGridReloadListener() {
     return this.gridReloadListener.asObservable();
   }
-  
+
+  // Listener for single row updates (preserves selection, no full reload)
+  private gridRowUpdateListener = new Subject<{ dataSetName: string, rowData: any, keyField: string, keyValue: any }>();
+  getGridRowUpdateListener() {
+    return this.gridRowUpdateListener.asObservable();
+  }
+  sendGridRowUpdate(dataSetName: string, rowData: any, keyField: string, keyValue: any) {
+    this.gridRowUpdateListener.next({ dataSetName, rowData, keyField, keyValue });
+  }
+
   private messageListener = new Subject<any>();
   getMessageListener() {
     return this.messageListener.asObservable();
@@ -215,6 +224,147 @@ export class GtsDataService {
     this.aiChatListener.next(config);
   }
 
+  // Database Error Listener - per mostrare errori da operazioni database (POST, execProc, etc.)
+  private dbErrorListener = new Subject<{ title: string; message: string }>();
+  getDbErrorListener() {
+    return this.dbErrorListener.asObservable();
+  }
+  sendDbError(title: string, message: string) {
+    this.dbErrorListener.next({ title, message });
+  }
+
+  // AI Chat Data Received Listener - per ricevere i dati dall'AI e popolare grid/form
+  private aiDataReceivedListener = new Subject<any>();
+  getAiDataReceivedListener() {
+    return this.aiDataReceivedListener.asObservable();
+  }
+  sendAiDataReceived(data: any) {
+    this.aiDataReceivedListener.next(data);
+  }
+
+  // Contesto corrente per AI Chat (usato dal wrapper globale)
+  private currentAiChatContext: any = null;
+  setCurrentAiChatContext(context: any) {
+    this.currentAiChatContext = context;
+  }
+  getCurrentAiChatContext() {
+    return this.currentAiChatContext;
+  }
+  clearCurrentAiChatContext() {
+    this.currentAiChatContext = null;
+  }
+
+  /**
+   * Elabora i dati ricevuti dall'AI e li inserisce in grid o form
+   * Chiamato dall'app.component quando la chat AI restituisce dati strutturati
+   */
+  processAiData(aiData: { type: 'grid' | 'form', data: any, context: any }): void {
+    const { type, data, context } = aiData;
+    console.log('[gts-data.service] Processing AI data:', { type, data, context });
+
+    if (!context) {
+      console.error('[gts-data.service] No context provided for AI data');
+      return;
+    }
+
+    const { prjId, formId, dataSetName, gridName, clFldGrpId } = context;
+
+    if (type === 'grid' && Array.isArray(data)) {
+      // Per grid: aggiungi le righe al dataset e ricarica la griglia
+      this.processAiGridData(prjId, formId, dataSetName, gridName, data);
+    } else if (type === 'form' && typeof data === 'object') {
+      // Per form: imposta i valori dei campi
+      this.processAiFormData(prjId, formId, clFldGrpId, data);
+    } else {
+      console.warn('[gts-data.service] Invalid AI data type or format:', { type, data });
+    }
+  }
+
+  /**
+   * Inserisce le righe AI nella griglia
+   */
+  private processAiGridData(prjId: string, formId: number, dataSetName: string, gridName: string, rows: any[]): void {
+    console.log('[gts-data.service] Processing AI grid data:', { prjId, formId, dataSetName, rows });
+
+    try {
+      // Trova il pageData per questa pagina
+      const page = this.pageData.find((p: any) => p.prjId === prjId && p.formId === formId);
+      if (!page) {
+        console.error('[gts-data.service] Page data not found for AI grid data');
+        return;
+      }
+
+      // Trova il dataset
+      const dataSet = page.data?.find((ds: any) => ds.dataSetName === dataSetName);
+      if (!dataSet) {
+        console.error('[gts-data.service] Dataset not found:', dataSetName);
+        return;
+      }
+
+      // REPLACE: Svuota la griglia e carica i nuovi dati dall'AI
+      // Marca le righe come nuove per il salvataggio
+      const newRows = rows.map((row, index) => ({
+        ...row,
+        _aiInserted: true,  // Flag per identificare righe inserite da AI
+        _tempId: `ai_${Date.now()}_${index}`  // ID temporaneo per tracking
+      }));
+
+      // REPLACE existing rows (don't append)
+      dataSet.rows = newRows;
+
+      console.log('[gts-data.service] Replaced grid data with AI rows:', newRows.length);
+
+      // Metti la griglia in modalità edit/insert per permettere modifiche
+      this.sendGridReload(dataSetName + ';Insert:true');
+      this.sendGridReload(dataSetName + ';Edit:true');
+
+      // Ricarica la griglia per mostrare i nuovi dati
+      this.sendGridReload(dataSetName);
+
+    } catch (error) {
+      console.error('[gts-data.service] Error processing AI grid data:', error);
+    }
+  }
+
+  /**
+   * Imposta i valori dei campi form dai dati AI
+   */
+  private processAiFormData(prjId: string, formId: number, clFldGrpId: number, data: any): void {
+    console.log('[gts-data.service] Processing AI form data:', { prjId, formId, clFldGrpId, data });
+
+    try {
+      // Trova i pageFields per questo form group
+      const page = this.metaData.find((p: any) => p.prjId === prjId && p.formId === formId);
+      if (!page || !page.pageData?.pageFields) {
+        console.error('[gts-data.service] Page fields not found for AI form data');
+        return;
+      }
+
+      // Per ogni campo nei dati AI, imposta il valore se il campo esiste
+      Object.keys(data).forEach((fieldName) => {
+        const value = data[fieldName];
+
+        // Trova il campo nel pageFields
+        const field = page.pageData.pageFields.find((f: any) =>
+          f.dbFieldName === fieldName || f.pageFieldName === fieldName
+        );
+
+        if (field) {
+          field.value = value;
+          console.log(`[gts-data.service] Set field ${fieldName} = ${value}`);
+        } else {
+          console.warn(`[gts-data.service] Field not found: ${fieldName}`);
+        }
+      });
+
+      // Notifica il cambio di view per aggiornare i componenti form
+      this.appViewListener.next(this.actualView);
+
+    } catch (error) {
+      console.error('[gts-data.service] Error processing AI form data:', error);
+    }
+  }
+
   // END LISTENERS ========================================================================================
 
   async runPage(prjId: string, formId: number) {
@@ -229,9 +379,6 @@ export class GtsDataService {
   }
 
   sendAppLoaderListener(status: boolean) {
-    const now = new Date();
-    const time = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}.${now.getMilliseconds()}`;
-    console.log(`[sendAppLoaderListener] ${time} - ${status ? 'ATTIVO' : 'SPENTO'}`);
     this.appLoaderListener.next(status);
   }
 
@@ -818,8 +965,6 @@ export class GtsDataService {
           }
 
           lastActionType = element.actionType;
-          
-          console.log('ACTION END', formId, objectName, element.actionType, this.metaData, this.pageData)
         }
 
         let debugCanRun = this.actionCanRun;
@@ -942,12 +1087,12 @@ export class GtsDataService {
   }
 
   async dataSetRefresh(prjId: string, formId: number, dataSetName: string, all: boolean) {
-    
+
     let valid:  boolean = true;
-    
+
     const sqlId = this.getDataSetSqlId(prjId, formId, dataSetName, 'idle');
     const dataAdapter = this.getDataSetAdapter(prjId, formId, dataSetName).dataAdapter;
-    const selectedKeys = this.getDataSetSelectKeys(prjId, formId, dataAdapter, dataSetName);
+    let selectedKeys = this.getDataSetSelectKeys(prjId, formId, dataAdapter, dataSetName);
 
     let lookUpValue = '*';
     let lookupField = '';
@@ -971,7 +1116,7 @@ export class GtsDataService {
 
     if (!all && selectedKeys !== null) {
       lookupField = Object.keys(selectedKeys)[0];
-      lookUpValue = selectedKeys[lookupField];      
+      lookUpValue = selectedKeys[lookupField];
     }
 
     if (lookupField !== undefined && lookupField !== null && (all || selectedKeys !== null)) {
@@ -985,10 +1130,10 @@ export class GtsDataService {
         lookupValue: lookUpValue,
         connCode: connCode
       };
-      
+
       const responseData: any = await this.postServerData('db', 'getData', dataReq);
 
-      if (responseData.valid && responseData.data[0].rows.length > 0) {   
+      if (responseData.valid && responseData.data[0].rows.length > 0) {
         responseData.data.forEach((dataSet: any) => {
           if (dataSet.opFieldName !==null ) {
             this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
@@ -1009,23 +1154,28 @@ export class GtsDataService {
           .filter((dataSet: any) => dataSet.dataSetName === dataSetName)[0]
           .selectedRows = responseData.data[0].rows;
 
-          // get row index
-          const index = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId && data.dataAdapter === dataAdapter)[0]
+          // get dataset rows array
+          const dataSetObj = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId && data.dataAdapter === dataAdapter)[0]
           .data
-          .filter((dataSet: any) => dataSet.dataSetName === dataSetName)[0]
-          .rows
-          .findIndex((row: any) => row[lookupField] === lookUpValue);
+          .filter((dataSet: any) => dataSet.dataSetName === dataSetName)[0];
 
-          // get dataset row from index
-          const row = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId && data.dataAdapter === dataAdapter)[0]
-          .data
-          .filter((dataSet: any) => dataSet.dataSetName === dataSetName)[0]
-          .rows[index];
-          
-          // update all fields in the row
-          Object.keys(row).forEach((key: any) => {
-            row[key] = responseData.data[0].rows[0][key];
-          });
+          // get row index
+          const index = dataSetObj.rows.findIndex((row: any) => row[lookupField] === lookUpValue);
+
+          if (index !== -1) {
+            // get dataset row from index
+            const row = dataSetObj.rows[index];
+            const dbRow = responseData.data[0].rows[0];
+
+            // Update all fields from DB response (including new fields with DEFAULT values)
+            // Use DB response keys to ensure fields like "Stato" with DEFAULT are added
+            Object.keys(dbRow).forEach((key: any) => {
+              row[key] = dbRow[key];
+            });
+          }
+
+          // Notify grid to update just this row (without full reload)
+          this.sendGridRowUpdate(dataSetName, responseData.data[0].rows[0], lookupField, lookUpValue);
 
           // realign page fields data
           this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
@@ -1034,7 +1184,7 @@ export class GtsDataService {
             if (field.dataSetName === dataSetName) {
               field.value = responseData.data[0].rows[0][field.dbFieldName];
             }
-          });  
+          });
         } else {
           // change the selected row on selected array
           let allRows = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId && data.dataAdapter === dataAdapter)[0]
@@ -1067,7 +1217,9 @@ export class GtsDataService {
       }      
     }
 
-    if (valid) {
+    // Only trigger full grid reload for full dataset refresh (all=true)
+    // For single row refresh (all=false), the row is updated in place - no reload needed
+    if (valid && all) {
       this.sendGridReload(dataSetName);
     }
 
@@ -1084,8 +1236,9 @@ export class GtsDataService {
   } 
   
   setDataSetStatus(prjId: string, formId: number, dataSetName: string, status: string, action: any) {
-    this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId )
-    .forEach((dataAdapter: any) => {
+    const matches = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId);
+
+    matches.forEach((dataAdapter: any) => {
       let row = dataAdapter.data.filter((dataSet: any) => dataSet.dataSetName === dataSetName)[0];
       if (row !== undefined && row !== null) {
         row.status = status;
@@ -1108,8 +1261,8 @@ export class GtsDataService {
         status = dataSet.status;
         break;
       }
-    }    
-    
+    }
+
     return status;
   } 
 
@@ -1140,11 +1293,10 @@ export class GtsDataService {
     } else if (status === 'edit' || status === 'update') {
       sqlId = dataSet.sqlUpdateId;
     } else if (status === 'delete') {
-      sqlId = dataSet.sqlDeleteId
-      ;
+      sqlId = dataSet.sqlDeleteId;
     } else {
       sqlId = dataSet.sqlId;
-    } 
+    }
 
     return sqlId;
   }
@@ -1192,29 +1344,58 @@ export class GtsDataService {
     } 
     
     const sqlId = this.getDataSetSqlId(prjId, formId, action.dataSetName, status);
-    actionRow.sqlId = sqlId;  
-    
-    const params = this.buildParamsArray(prjId, formId, actionRow); 
+    actionRow.sqlId = sqlId;
+
+    const params = this.buildParamsArray(prjId, formId, actionRow);
     const valid = await this.execProc(prjId, formId, sqlId, params, sqlParams, dataSet);
- 
-    if (valid && status === 'insert') {     
+
+    if (valid && status === 'insert') {
       if (dataSet.outBinds !== undefined && dataSet.outBinds !== null && dataSet.outBinds.length > 0) {
-        dataSet.outBinds.forEach((outBind: any) => {            
-          this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId)[0]
-          .data
-          .filter((dataSet: any) => dataSet.dataSetName === action.dataSetName)[0]
-            .rows[0][outBind.dbFieldName] = outBind.value;
+        const targetDataSet = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId)[0]
+          ?.data
+          ?.filter((ds: any) => ds.dataSetName === action.dataSetName)[0];
+
+        // Get the primary key from the first outBind (usually the RETURNING ID)
+        let primaryKeyField: string | null = null;
+        let primaryKeyValue: any = null;
+
+        dataSet.outBinds.forEach((outBind: any) => {
+          // Aggiorna solo se rows esiste e ha almeno un elemento
+          if (targetDataSet?.rows && targetDataSet.rows.length > 0) {
+            targetDataSet.rows[0][outBind.dbFieldName] = outBind.value;
+          }
+
+          // Store the first outBind as primary key (usually the RETURNING ID)
+          if (primaryKeyField === null) {
+            primaryKeyField = outBind.dbFieldName;
+            primaryKeyValue = outBind.value;
+          }
         });
-      }       
+
+        // After INSERT, set selectedKeys and selectedRows to point to the new row
+        // This allows dataSetRefresh to fetch the complete row with DEFAULT values
+        if (primaryKeyField !== null && primaryKeyValue !== null && targetDataSet) {
+          const newSelectedKey: any = {};
+          newSelectedKey[primaryKeyField] = primaryKeyValue;
+          targetDataSet.selectedKeys = [newSelectedKey];
+
+          if (targetDataSet.rows && targetDataSet.rows.length > 0) {
+            targetDataSet.selectedRows = [targetDataSet.rows[0]];
+          }
+        }
+      }
     }
 
-    if (dataSet !== undefined && dataSet !== null) {
+    // Solo se l'operazione è riuscita, resetta lo stato a 'idle'
+    // Se fallisce, mantieni lo stato (insert/edit/delete) per permettere un nuovo tentativo
+    if (valid && dataSet !== undefined && dataSet !== null) {
       dataSet.status = 'idle';
     }
 
-    // if (status === 'delete' || status === 'insert') {
-    //   this.sendGridReload(action.dataSetName);
-    // }
+    // After successful INSERT, refresh the row from DB to get DEFAULT values
+    if (valid && status === 'insert') {
+      await this.dataSetRefresh(prjId, formId, action.dataSetName, false);
+    }
 
     this.sendGridReload(action.dataSetName);
 
@@ -1234,7 +1415,7 @@ export class GtsDataService {
       };
       this.dbLog.push(logReq);
     }
-    
+
     return valid;
   }
   
@@ -1831,10 +2012,10 @@ export class GtsDataService {
         });
       }
       
-      // set all null values empty string
+      // Converte stringhe vuote in null per permettere ai trigger Oracle di gestire i valori default
       Object.entries(params).forEach(([key, value]) => {
-        if (value === null) {
-          params[key] = '';
+        if (value === '') {
+          params[key] = null;
         }
       });
     }
@@ -1956,6 +2137,9 @@ export class GtsDataService {
         connCode: connCode
       };
       this.dbLog.push(logReq);
+    } else if (responseData.message) {
+      // Show error message to user
+      this.sendDbError('Errore Database', responseData.message);
     }
 
     return responseData.valid;
@@ -1975,8 +2159,6 @@ export class GtsDataService {
       connCode: connCode
     };
     const responseData: any = await this.postServerData('db', 'getData', dataReq);
-
-    console.log('Get Data Response:', responseData);
 
     if (responseData.valid) {  
       if (responseData.data && responseData.data[0]?.rows && responseData.data[0].rows.length > 0) { 
@@ -2108,7 +2290,6 @@ export class GtsDataService {
             if (action.actionType === 'getData' && action.dataAdapter === dataAdapter) {
               // Use buildParamsArray to get current field values, just like the original getData call
               params = this.buildParamsArray(prjId, formId, action);
-              console.log('[gts-data-service] Found getData action, params:', params);
               break;
             }
           }
@@ -2127,11 +2308,7 @@ export class GtsDataService {
       dataSetName: dataSetName  // Applica i filtri solo a questo dataset
     };
 
-    console.log('[gts-data-service] reloadDataWithFilters request:', dataReq);
-
     const responseData: any = await this.postServerData('db', 'getData', dataReq);
-
-    console.log('[gts-data-service] reloadDataWithFilters response:', responseData);
 
     if (responseData.valid && responseData.data) {
       // Update the pageData with new data
@@ -2632,9 +2809,6 @@ export class GtsDataService {
       reportConn = this.getConnCode();
     }
 
-    // DEBUG: Log per verificare quale connCode viene usato
-    console.log(`[getReportData] connCode param: "${connCode}", reportConn used: "${reportConn}", getConnCode(): "${this.getConnCode()}"`)
-    
     const dataReq: ExecReportData = {
       prjId: prjId,
       formId: formId,

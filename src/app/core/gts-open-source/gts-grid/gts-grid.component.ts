@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, Input, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonSpinner } from '@ionic/angular/standalone';
+import { IonSpinner, AlertController } from '@ionic/angular/standalone';
 import { GtsDataService } from '../../services/gts-data.service';
 import { GtsGridService } from './gts-grid.service';
 import { TranslationService } from '../../services/translation.service';
@@ -19,6 +19,7 @@ import {
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
 import { GtsSetFilterComponent } from './gts-set-filter.component';
+import { GtsSetFloatingFilterComponent } from './gts-set-floating-filter.component';
 
 // Register AG Grid modules at component level
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -59,6 +60,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   private gtsDataService = inject(GtsDataService);
   private gtsGridService = inject(GtsGridService);
   private ts = inject(TranslationService);
+  private alertController = inject(AlertController);
 
   @Input() prjId: string = '';
   @Input() formId: number = 0;
@@ -70,6 +72,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   appViewListenerSubs: Subscription | undefined;
   gridSelectListenerSubs: Subscription | undefined;
   gridReloadListenerSubs: Subscription | undefined;
+  gridRowUpdateListenerSubs: Subscription | undefined;
 
   // Grid state
   metaData: any = {};
@@ -99,8 +102,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   paginationPageSize: number = 20;
   paginationPageSizeSelector: number[] = [10, 20, 50, 100];
 
-  // AG Grid v35+ Theme
-  theme = themeQuartz.withParams({
+  // AG Grid v35+ Theme - base params without rowHeight (for dynamic height)
+  private baseThemeParams = {
     backgroundColor: '#ffffff',
     foregroundColor: '#000000',
     headerBackgroundColor: '#f4f5f8',
@@ -110,13 +113,25 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     selectedRowBackgroundColor: '#e3f2fd',
     borderColor: '#ddd',
     fontSize: 13,
-    rowHeight: 32,
     headerHeight: 36,
+    floatingFiltersHeight: 32,  // Match row height for filter row
     cellHorizontalPadding: 8,
     borderRadius: 0,
     wrapperBorder: false,
     wrapperBorderRadius: 0
+  };
+
+  // Theme with fixed row height (default)
+  theme = themeQuartz.withParams({
+    ...this.baseThemeParams,
+    rowHeight: 32
   });
+
+  // Flag to track if grid has multiline columns
+  hasMultilineColumns: boolean = false;
+
+  // Row height - undefined allows autoHeight to work for multiline columns
+  gridRowHeight: number | undefined = 32;
 
   // Selection (AG Grid v35+ format with checkboxes control)
   rowSelection: any = {
@@ -158,7 +173,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
   // Custom filter components for AG Grid
   filterComponents: any = {
-    gtsSetFilter: GtsSetFilterComponent
+    gtsSetFilter: GtsSetFilterComponent,
+    gtsSetFloatingFilter: GtsSetFloatingFilterComponent
   };
 
   // Header filter visibility (Set Filter dropdown)
@@ -198,7 +214,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
                 const columns = this.gridApi.getColumns();
                 columns?.forEach((column: any) => {
                   const colId = column.getColId();
-                  const colMetadata = this.metaData.data.columns.find((c: any) => c.dataField === colId);
+                  const colMetadata = this.metaData.data.columns.find((c: any) => (c.dataField || c.fieldName) === colId);
                   if (colMetadata && colMetadata.allowEditing !== false) {
                     const colDef = column.getColDef();
                     colDef.editable = this.allowUpdating;
@@ -231,8 +247,16 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
         // Normal data reload - check dataSetName and visibility
         if (this.metaData?.dataSetName === dataSetName && this.metaData?.visible) {
-          this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
-          await this.prepareGridData();
+          // Reload metadata to get updated filterRule from toolbar
+          this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'grids', this.objectName);
+
+          // If there's a toolbar filter (filterRule), reload data from server with that filter
+          if (this.metaData?.filterRule && this.metaData.filterRule.length > 0) {
+            await this.reloadWithToolbarFilter();
+          } else {
+            this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
+            await this.prepareGridData();
+          }
         }
       });
 
@@ -280,13 +304,77 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         }
       });
 
+    // Single row update listener - updates just one row without full grid reload
+    this.gridRowUpdateListenerSubs = this.gtsDataService
+      .getGridRowUpdateListener()
+      .subscribe((update) => {
+        // Only handle updates for this grid's dataSet
+        if (this.metaData?.dataSetName !== update.dataSetName) {
+          return;
+        }
+
+        if (!this.gridApi || this.gridApi.isDestroyed()) {
+          return;
+        }
+
+        // Find and update the row using AG Grid's transaction API
+        const rowNode = this.gridApi.getRowNode(String(update.keyValue));
+        if (rowNode) {
+          // Update the row data
+          rowNode.setData({ ...update.rowData });
+        } else {
+          // Fallback: find the row by iterating
+          this.gridApi.forEachNode((node: any) => {
+            if (node.data && node.data[update.keyField] === update.keyValue) {
+              node.setData({ ...update.rowData });
+            }
+          });
+        }
+
+        // Update this.selectedRows if the updated row is currently selected
+        const selectedRowIndex = this.selectedRows.findIndex(
+          (row: any) => row && row[update.keyField] === update.keyValue
+        );
+        if (selectedRowIndex !== -1) {
+          // Update the selected row data with new values
+          this.selectedRows[selectedRowIndex] = { ...update.rowData };
+
+          // Also update selectedRows in pageData through the service
+          const keyField = this.gridObject?.keys?.[0] || 'id';
+          const selectedRowKeys = this.selectedRows.map((row: any) => {
+            const keyObj: any = {};
+            keyObj[keyField] = row[keyField];
+            return keyObj;
+          });
+
+          this.gtsGridService.setGridObjectSelectedData(
+            this.prjId,
+            this.formId,
+            this.metaData.dataAdapter,
+            this.metaData.dataSetName,
+            this.selectedRows,
+            selectedRowKeys,
+            '', // No action to execute
+            this.gridObject
+          );
+        }
+
+        // Refresh the cells to show the updated values
+        this.gridApi.refreshCells({ force: true });
+      });
+
     // Initial load
     this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
     this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'grids', this.objectName);
 
     // Only load data if grid is visible and not already ready
     if (this.metaData !== undefined && !this.gridReady && this.metaData.visible) {
-      await this.prepareGridData();
+      // If there's a toolbar filter (filterRule) at startup, reload data from server with that filter
+      if (this.metaData?.filterRule && this.metaData.filterRule.length > 0) {
+        await this.reloadWithToolbarFilter();
+      } else {
+        await this.prepareGridData();
+      }
     }
 
     this.gridTitle = this.gridObject.caption || '';
@@ -297,6 +385,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     this.appViewListenerSubs?.unsubscribe();
     this.gridSelectListenerSubs?.unsubscribe();
     this.gridReloadListenerSubs?.unsubscribe();
+    this.gridRowUpdateListenerSubs?.unsubscribe();
   }
 
   async prepareGridData(): Promise<void> {
@@ -369,9 +458,18 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       this.defaultColDef = { ...this.defaultColDef, floatingFilter: true };
     }
 
-    if (newGridObject.allowHeaderFiltering) {
+    // Enable custom Set Filter when allowHeaderFiltering is true OR when filterRowVisible is true
+    // (filterRowVisible implies the user wants filtering, so use our custom filter for better UX)
+    if (newGridObject.allowHeaderFiltering || newGridObject.filterRowVisible) {
       // Enable custom Set Filter (dropdown with distinct values) for all columns
-      this.defaultColDef = { ...this.defaultColDef, filter: GtsSetFilterComponent };
+      // Also enable the floating filter component for text search
+      // suppressFloatingFilterButton: false ensures the dropdown button is always visible
+      this.defaultColDef = {
+        ...this.defaultColDef,
+        filter: GtsSetFilterComponent,
+        floatingFilterComponent: GtsSetFloatingFilterComponent,
+        suppressFloatingFilterButton: false
+      };
       this.headerFilterVisible = true;
     }
 
@@ -382,9 +480,12 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     this.convertColumnsToAGGrid(columns);
 
     // Extract row data - simple array for AG Grid
-    const newRowData = (data.dataSource && data.dataSource._store && data.dataSource._store._array)
+    // IMPORTANT: Create a deep copy of the data to ensure AG Grid detects changes
+    // when dsRefreshSel updates rows in place (same array/object references)
+    const sourceData = (data.dataSource && data.dataSource._store && data.dataSource._store._array)
       ? data.dataSource._store._array
       : [];
+    const newRowData = sourceData.map((row: any) => ({ ...row }));
 
     // No warning for empty data - it's normal for detail grids before master selection
 
@@ -398,9 +499,9 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     this.totalRowCount = newGridObject.totalCount || newRowData.length;
 
 
-    // Generate unique key based on selection mode to force grid recreation ONLY when selection mode changes
-    // Don't use Date.now() as it forces grid recreation on every data reload, losing selection state
-    const newGridKey = `${this.objectName}-${this.rowSelection.mode}`;
+    // Generate unique key based on selection mode and multiline flag to force grid recreation
+    // when these settings change. Don't use Date.now() as it forces grid recreation on every data reload
+    const newGridKey = `${this.objectName}-${this.rowSelection.mode}-${this.hasMultilineColumns}`;
     const gridKeyChanged = this.gridKey !== newGridKey;
 
     if (gridKeyChanged) {
@@ -425,7 +526,31 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   convertColumnsToAGGrid(columns: any[]): void {
     this.columnDefs = [];
 
-    // console.log(`[gts-grid] ${this.objectName} - Converting ${columns.length} columns`);
+    // Check if any column has columnType 'B' (multiline)
+    // Also check nested columns in bands
+    const checkMultiline = (cols: any[]): boolean => {
+      return cols.some((col: any) => {
+        if (col.columnType === 'B') return true;
+        if (col.columns && Array.isArray(col.columns)) {
+          return checkMultiline(col.columns);
+        }
+        return false;
+      });
+    };
+
+    this.hasMultilineColumns = checkMultiline(columns);
+
+    // Update theme and rowHeight based on multiline columns
+    if (this.hasMultilineColumns) {
+      this.theme = themeQuartz.withParams(this.baseThemeParams);
+      this.gridRowHeight = undefined; // Allow autoHeight to work
+    } else {
+      this.theme = themeQuartz.withParams({
+        ...this.baseThemeParams,
+        rowHeight: 32
+      });
+      this.gridRowHeight = 32;
+    }
 
     // AG Grid v35+ usa rowSelection.checkboxes in GridOptions invece di colonne separate
     // Non serve più aggiungere colonne checkbox manualmente
@@ -472,14 +597,16 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     if (col.type === 'buttons') {
       return null;
     }
-    if (!col.dataField) {
-      console.warn(`[gts-grid] ${this.objectName} - Skipping column without dataField:`, col);
+    // Support both dataField and fieldName properties
+    const fieldName = col.dataField || col.fieldName;
+    if (!fieldName) {
+      console.warn(`[gts-grid] ${this.objectName} - Skipping column without dataField/fieldName:`, col);
       return null;
     }
 
     const colDef: ColDef = {
-      field: col.dataField,
-      headerName: col.caption,
+      field: fieldName,
+      headerName: col.caption || col.text,
       minWidth: col.minWidth || 100,
       hide: col.visible === false,
       sortable: col.allowSorting !== false,
@@ -494,7 +621,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         colDef.filter = false;
       } else {
         // Use the GtsSetFilterComponent class directly (AG Grid v35+ approach)
+        // Also use the custom floating filter for text search input
+        // suppressFloatingFilterButton ensures the dropdown button is always visible
         colDef.filter = GtsSetFilterComponent;
+        colDef.floatingFilterComponent = GtsSetFloatingFilterComponent;
+        colDef.suppressFloatingFilterButton = false;
       }
     } else {
       // Use standard AG Grid filter
@@ -510,8 +641,12 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       colDef.maxWidth = 400; // Max width ragionevole
     }
 
+    // Normalize column type (supports both dataType and colType properties, case-insensitive)
+    // Priority: colType over dataType (colType is more specific, e.g. "DateTime" vs "date")
+    const columnType = (col.colType || col.dataType || '').toLowerCase();
+
     // Handle specific column types
-    if (col.dataType === 'boolean' || col.dataType === 'Boolean') {
+    if (columnType === 'boolean') {
       // For editable boolean columns, use checkbox editor
       if (colDef.editable) {
         colDef.cellEditor = 'agCheckboxCellEditor';
@@ -524,13 +659,13 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     }
 
     // Handle date columns
-    if (col.dataType === 'date' || col.dataType === 'datetime') {
+    if (columnType === 'date' || columnType === 'datetime') {
       colDef.valueFormatter = (params: any) => {
         if (!params.value) return '';
         const date = new Date(params.value);
         if (isNaN(date.getTime())) return params.value;
 
-        if (col.dataType === 'datetime') {
+        if (columnType === 'datetime') {
           return this.formatDateTime(date);
         } else {
           return this.formatDate(date);
@@ -561,6 +696,35 @@ export class GtsGridComponent implements OnInit, OnDestroy {
                      onerror="this.style.display='none'; this.nextSibling.style.display='inline';"
                 /><span style="display:none;">${params.value}</span>`;
       };
+    }
+
+    // Handle multiline text columns (columnType: "B" in metadata)
+    if (col.columnType === 'B') {
+      colDef.wrapText = true;
+      colDef.autoHeight = true;
+      // cellStyle for multiline - ensure proper display
+      colDef.cellStyle = {
+        'white-space': 'pre-wrap',
+        'word-wrap': 'break-word',
+        'line-height': '1.4',
+        'padding-top': '8px',
+        'padding-bottom': '8px'
+      };
+      // Custom cell renderer to preserve line breaks
+      colDef.cellRenderer = (params: any) => {
+        if (!params.value) return '';
+        // Convert \n and \r\n to <br> for HTML display
+        const escapedValue = String(params.value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\r\n/g, '<br>')
+          .replace(/\n/g, '<br>')
+          .replace(/\r/g, '<br>');
+        return `<div class="gts-multiline-cell">${escapedValue}</div>`;
+      };
+      // Remove maxWidth constraint for multiline columns
+      delete colDef.maxWidth;
     }
 
     return colDef;
@@ -669,6 +833,30 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     Object.keys(filterModel).forEach(columnName => {
       const colFilter = filterModel[columnName];
 
+      // Handle custom Set Filter (gtsSet) - values array and/or floating text filter
+      if (colFilter.filterType === 'gtsSet') {
+        // Add checkbox selection filter (values array)
+        if (colFilter.values && colFilter.values.length > 0) {
+          filters.push({
+            field: columnName,
+            filterType: 'gtsSet',
+            type: 'in',
+            filter: colFilter.values
+          });
+        }
+
+        // Add floating filter text (contains search)
+        if (colFilter.floatingFilterText && colFilter.floatingFilterText.trim() !== '') {
+          filters.push({
+            field: columnName,
+            filterType: 'text',
+            type: 'contains',
+            filter: colFilter.floatingFilterText.trim()
+          });
+        }
+        return; // Skip other checks for this filter
+      }
+
       // Handle simple filter (single condition)
       if (colFilter.filter !== undefined || colFilter.dateFrom !== undefined) {
         filters.push({
@@ -715,6 +903,21 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Get current grid filters
     const gridFilters = this.getGridFiltersForServer();
 
+    // Add toolbar filter (filterRule) if present - it's always priority
+    if (this.metaData.filterRule && this.metaData.filterRule.length > 0) {
+      const filterRule = this.metaData.filterRule;
+      // Simple format: ['fieldName', 'operator', 'value']
+      if (filterRule.length === 3 && typeof filterRule[0] === 'string' && typeof filterRule[1] === 'string') {
+        gridFilters.push({
+          field: filterRule[0],
+          filterType: 'text',
+          type: filterRule[1] === '=' ? 'equals' : filterRule[1],
+          filter: filterRule[2],
+          isExternal: true // Mark as external filter (toolbar)
+        });
+      }
+    }
+
     // Show loading state
     this.gridReady = false;
 
@@ -733,10 +936,82 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
         await this.prepareGridData();
       } else {
+        // Show error message if response is invalid
         this.gridReady = true;
+        const errorMsg = response?.message || response?.data?.[0]?.message || 'Errore nel caricamento dati';
+        await this.showErrorAlert('Errore', errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.gridReady = true;
+      const errorMsg = error?.message || 'Errore nel caricamento dati';
+      await this.showErrorAlert('Errore', errorMsg);
+    }
+  }
+
+  /**
+   * Show an error alert to the user
+   */
+  private async showErrorAlert(title: string, message: string): Promise<void> {
+    const alert = await this.alertController.create({
+      header: title,
+      message: message,
+      buttons: ['OK'],
+      cssClass: 'gts-error-alert'
+    });
+    await alert.present();
+  }
+
+  /**
+   * Reload data from server with toolbar filter (filterRule)
+   * This is called when toolbar filter changes and we need fresh data from server
+   */
+  async reloadWithToolbarFilter(): Promise<void> {
+    if (!this.metaData?.dataSetName || !this.metaData?.dataAdapter) {
+      console.warn('[gts-grid] Cannot reload with toolbar filter - missing metadata');
+      return;
+    }
+
+    // Convert filterRule to server filter format
+    const toolbarFilters: any[] = [];
+    const filterRule = this.metaData.filterRule;
+
+    // Simple format: ['fieldName', '=', 'value']
+    if (filterRule.length === 3 && typeof filterRule[0] === 'string' && typeof filterRule[1] === 'string') {
+      toolbarFilters.push({
+        field: filterRule[0],
+        filterType: 'text',
+        type: filterRule[1] === '=' ? 'equals' : filterRule[1],
+        filter: filterRule[2],
+        isExternal: true
+      });
+    }
+
+    // Show loading state
+    this.gridReady = false;
+
+    try {
+      // Call server with toolbar filter, respecting initial limit (skipInitialLimit=false)
+      const response = await this.gtsDataService.reloadDataWithFilters(
+        this.prjId,
+        this.formId,
+        this.metaData.dataAdapter,
+        this.metaData.dataSetName,
+        toolbarFilters,
+        false // Keep initial limit - toolbar filter should still show limited rows
+      );
+
+      if (response && response.valid) {
+        this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
+        await this.prepareGridData();
+      } else {
+        this.gridReady = true;
+        const errorMsg = response?.message || response?.data?.[0]?.message || 'Errore nel caricamento dati';
+        await this.showErrorAlert('Errore', errorMsg);
+      }
+    } catch (error: any) {
+      this.gridReady = true;
+      const errorMsg = error?.message || 'Errore nel caricamento dati';
+      await this.showErrorAlert('Errore', errorMsg);
     }
   }
 
@@ -749,23 +1024,39 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Clear filters first
+    // Clear grid filters first (but keep toolbar filter)
     if (this.gridApi && !this.gridApi.isDestroyed()) {
       this.gridApi.setFilterModel(null);
       this.hasActiveFilters = false;
+    }
+
+    // Build filters array - include toolbar filter (filterRule) if present
+    const filters: any[] = [];
+    if (this.metaData.filterRule && this.metaData.filterRule.length > 0) {
+      const filterRule = this.metaData.filterRule;
+      // Simple format: ['fieldName', 'operator', 'value']
+      if (filterRule.length === 3 && typeof filterRule[0] === 'string' && typeof filterRule[1] === 'string') {
+        filters.push({
+          field: filterRule[0],
+          filterType: 'text',
+          type: filterRule[1] === '=' ? 'equals' : filterRule[1],
+          filter: filterRule[2],
+          isExternal: true // Mark as external filter (toolbar)
+        });
+      }
     }
 
     // Show loading state
     this.gridReady = false;
 
     try {
-      // Call server with skipInitialLimit=false (use limit) and no filters
+      // Call server with skipInitialLimit=false (use limit) and toolbar filter if present
       const response = await this.gtsDataService.reloadDataWithFilters(
         this.prjId,
         this.formId,
         this.metaData.dataAdapter,
         this.metaData.dataSetName,
-        [], // No filters
+        filters, // Include toolbar filter if present
         false // Don't skip limit - use initial load limit
       );
 
@@ -774,26 +1065,46 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         await this.prepareGridData();
       } else {
         this.gridReady = true;
+        const errorMsg = response?.message || response?.data?.[0]?.message || 'Errore nel reset dati';
+        await this.showErrorAlert('Errore', errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.gridReady = true;
+      const errorMsg = error?.message || 'Errore nel reset dati';
+      await this.showErrorAlert('Errore', errorMsg);
     }
   }
 
   restoreSelection(): void {
-    if (!this.gridApi || this.gridApi.isDestroyed() || !this.savedSelectedRowKeys || this.savedSelectedRowKeys.length === 0) {
+    if (!this.gridApi || this.gridApi.isDestroyed()) {
+      return;
+    }
+
+    const keyField = this.gridObject?.keys?.[0] || 'id';
+    let keysToSelect: any[] = [];
+
+    // First, check if we have saved selection keys from previous state
+    if (this.savedSelectedRowKeys && this.savedSelectedRowKeys.length > 0) {
+      keysToSelect = this.savedSelectedRowKeys;
+    }
+    // If no saved keys, check gridObject.selectedRowKeys (set after INSERT)
+    else if (this.gridObject?.selectedRowKeys && this.gridObject.selectedRowKeys.length > 0) {
+      // gridObject.selectedRowKeys is array of objects: [{fieldName: value}]
+      keysToSelect = this.gridObject.selectedRowKeys.map((keyObj: any) => keyObj[keyField]);
+    }
+
+    if (keysToSelect.length === 0) {
       return;
     }
 
     // Set flag to prevent action execution during restore
     this.isRestoringSelection = true;
 
-    const keyField = this.gridObject?.keys?.[0] || 'id';
     const nodesToSelect: any[] = [];
 
-    // Find nodes matching the saved keys
+    // Find nodes matching the keys
     this.gridApi.forEachNode((node: any) => {
-      if (node.data && this.savedSelectedRowKeys.includes(node.data[keyField])) {
+      if (node.data && keysToSelect.includes(node.data[keyField])) {
         nodesToSelect.push(node);
       }
     });
@@ -801,6 +1112,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Select the nodes
     if (nodesToSelect.length > 0) {
       this.gridApi.setNodesSelected({ nodes: nodesToSelect, newValue: true });
+
+      // Ensure the selected row is visible (scroll to it)
+      if (nodesToSelect[0]) {
+        this.gridApi.ensureNodeVisible(nodesToSelect[0], 'middle');
+      }
     }
 
     // Clear saved keys and flag after restoring
@@ -854,7 +1170,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Notify GTS grid service about selection and execute action if defined
     if (this.metaData?.dataSetName) {
       this.gtsGridService.setGridObjectSelectedData(
         this.prjId,
@@ -1055,8 +1370,12 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       if (!field) return;
 
       // Find column metadata
-      const colMetadata = this.metaData?.data?.columns?.find((c: any) => c.dataField === field);
-      if (!colMetadata || colMetadata.dataType !== 'boolean') return;
+      const colMetadata = this.metaData?.data?.columns?.find((c: any) => (c.dataField || c.fieldName) === field);
+      if (!colMetadata) return;
+      // Normalize column type (supports both dataType and colType properties, case-insensitive)
+      // Priority: colType over dataType (colType is more specific)
+      const metaColumnType = (colMetadata.colType || colMetadata.dataType || '').toLowerCase();
+      if (metaColumnType !== 'boolean') return;
 
       const value = mapped[field];
       if (value === null || value === undefined) return;
@@ -1205,13 +1524,17 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         const value = rowData[col.field!];
 
         // Format dates
-        const colMetadata = this.metaData?.data?.columns?.find((c: any) => c.dataField === col.field);
+        const colMetadata = this.metaData?.data?.columns?.find((c: any) => (c.dataField || c.fieldName) === col.field);
         if (colMetadata) {
-          if (colMetadata.dataType === 'date' || colMetadata.dataType === 'datetime') {
+          // Normalize column type (supports both dataType and colType properties, case-insensitive)
+          // Priority: colType over dataType (colType is more specific)
+          const metaColumnType = (colMetadata.colType || colMetadata.dataType || '').toLowerCase();
+
+          if (metaColumnType === 'date' || metaColumnType === 'datetime') {
             if (value) {
               const date = new Date(value);
               if (!isNaN(date.getTime())) {
-                return colMetadata.dataType === 'datetime'
+                return metaColumnType === 'datetime'
                   ? this.formatDateTime(date)
                   : this.formatDate(date);
               }
@@ -1219,12 +1542,12 @@ export class GtsGridComponent implements OnInit, OnDestroy {
           }
 
           // Format booleans
-          if (colMetadata.dataType === 'boolean') {
+          if (metaColumnType === 'boolean') {
             return value ? 'Yes' : 'No';
           }
 
           // Format numbers
-          if (colMetadata.dataType === 'number' && typeof value === 'number') {
+          if (metaColumnType === 'number' && typeof value === 'number') {
             return value;
           }
         }
