@@ -8,9 +8,8 @@
     }
 
     @if (gridReady && gridObject?.visible && gridKey) {
-      <!-- Toolbar for editing, filters, load all, search, and export -->
-      @if (allowUpdating || hasActiveFilters || limitApplied || (limitInitialLoad && !limitApplied) || gridObject?.exportFlag || showSearchPanel) {
-        <div class="gts-grid-toolbar">
+      <!-- Toolbar for editing, filters, load all, search, and menu -->
+      <div class="gts-grid-toolbar">
           <!-- Left side buttons -->
           <div class="gts-grid-toolbar-left">
             @if (allowUpdating) {
@@ -70,15 +69,14 @@
                        (input)="onQuickFilterChange($event)" />
               </div>
             }
-            @if (gridObject?.exportFlag) {
-              <button class="gts-grid-toolbar-btn export-btn" (click)="exportToExcel()">
-                <span class="btn-icon">📊</span>
-                {{ t(1809, 'Export to Excel') }}
-              </button>
-            }
+            <!-- Grid Menu Button -->
+            <button class="gts-grid-toolbar-btn menu-btn" (click)="toggleGridMenu($event)">
+              <span class="btn-icon">☰</span>
+              {{ t(1819, 'Menu') }}
+            </button>
+            <p-menu #gridMenu [model]="gridMenuItems" [popup]="true" [appendTo]="'body'" />
           </div>
         </div>
-      }
 
       <ag-grid-angular
         class="gts-grid"
@@ -87,6 +85,7 @@
         [columnDefs]="columnDefs"
         [defaultColDef]="defaultColDef"
         [rowSelection]="rowSelection"
+        [rowHeight]="gridRowHeight"
         [pagination]="enablePagination"
         [paginationPageSize]="paginationPageSize"
         [paginationPageSizeSelector]="paginationPageSizeSelector"
@@ -110,3 +109,190 @@
     }
   </div>
 </div>
+
+<!-- Show Original Data Dialog -->
+<p-dialog
+  [(visible)]="showOriginalDataDialog"
+  [header]="t(1828, 'Show Original Data')"
+  [modal]="true"
+  [draggable]="true"
+  [resizable]="true"
+  [style]="{width: '800px', maxHeight: '80vh'}"
+  [appendTo]="'body'">
+  <div class="original-data-container">
+    <div class="original-data-info">
+      <strong>{{ t(1831, 'Dataset') }}:</strong> {{ metaData?.dataSetName || objectName }}
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+      <strong>{{ t(1832, 'SQL ID') }}:</strong> {{ originalDataSqlId }}
+      <button class="sql-code-btn" (click)="getSqlCode()">
+        {{ t(1833, 'Show SQL Code') }}
+      </button>
+    </div>
+
+    @if (showSqlCode) {
+      <div class="sql-code-panel">
+        <button class="copy-sql-btn" [class.copied]="sqlCopied" (click)="copySqlToClipboard()">
+          @if (sqlCopied) {
+            ✓ {{ t(1843, 'Copied!') }}
+          } @else {
+            {{ t(1842, 'Copy') }}
+          }
+        </button>
+        <pre>{{ originalDataSqlCode }}</pre>
+      </div>
+    }
+
+    @if (selectedRows.length === 0) {
+      <div class="no-selection-warning">
+        {{ t(1840, 'Select a row to see its data') }}
+      </div>
+    }
+
+    <div class="original-data-fields">
+      <table class="fields-table">
+        <thead>
+          <tr>
+            <th>{{ t(1834, 'Field Name') }}</th>
+            <th>{{ t(1836, 'Data Type') }}</th>
+            <th>{{ t(1841, 'Value') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (field of originalDataFields; track field.fieldName) {
+            <tr [class.pk-row]="field.isPK">
+              <td class="field-name">
+                {{ field.fieldName }}
+                @if (field.isPK) {
+                  <span class="pk-badge">PK</span>
+                }
+              </td>
+              <td class="data-type">{{ field.dataType }}</td>
+              <td class="field-value">{{ field.value }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</p-dialog>
+
+<!-- Icons Legend Dialog -->
+<p-dialog
+  [(visible)]="showIconsLegendDialog"
+  [header]="t(1827, 'Icons Legend')"
+  [modal]="true"
+  [draggable]="true"
+  [style]="{width: '500px', maxHeight: '70vh'}"
+  [appendTo]="'body'">
+  <div class="icons-legend-container">
+    @for (column of iconsLegendData; track column.columnName) {
+      <div class="icons-legend-column">
+        <h4>{{ column.columnName }}</h4>
+        <div class="icons-list">
+          @for (icon of column.icons; track icon.value) {
+            <div class="icon-item">
+              <img [src]="'/assets/icons/' + icon.image" class="legend-icon" />
+              <span class="icon-value">[{{ icon.value }}]</span>
+              <span class="icon-description">{{ icon.description }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+    @if (iconsLegendData.length === 0) {
+      <p>{{ t(1839, 'No icon columns found') }}</p>
+    }
+  </div>
+</p-dialog>
+
+<!-- Column Chooser Dialog -->
+<p-dialog
+  [(visible)]="showColumnChooserDialog"
+  [header]="t(1825, 'Column Chooser')"
+  [modal]="true"
+  [draggable]="true"
+  [style]="{width: '400px', maxHeight: '70vh'}"
+  [appendTo]="'body'">
+  <div class="column-chooser-container">
+    @for (col of columnChooserData; track col.field) {
+      <div class="column-chooser-item">
+        <label>
+          <input type="checkbox"
+                 [checked]="col.visible"
+                 (change)="toggleColumnVisibility(col.field, !col.visible)" />
+          {{ col.headerName }}
+        </label>
+      </div>
+    }
+  </div>
+</p-dialog>
+
+<!-- AI Assist Dialog - Select Chat Code -->
+<p-dialog
+  [(visible)]="showAiAssistDialog"
+  [header]="t(1824, 'AI Assist')"
+  [modal]="true"
+  [draggable]="true"
+  [style]="{width: '450px', minHeight: '400px'}"
+  [contentStyle]="{'overflow': 'visible', 'display': 'flex', 'flex-direction': 'column'}"
+  [appendTo]="'body'">
+  <div class="ai-assist-container">
+    @if (loadingAiConfigs) {
+      <div class="ai-assist-loading">
+        <ion-spinner></ion-spinner>
+        <span>{{ t(1844, 'Loading configurations...') }}</span>
+      </div>
+    } @else if (aiChatConfigs.length === 0) {
+      <div class="ai-assist-empty">
+        <p>{{ t(1845, 'No AI configurations available for this project.') }}</p>
+      </div>
+    } @else {
+      <div class="ai-assist-form">
+        <label>{{ t(1846, 'Select AI Configuration') }}</label>
+        <p-select
+          [(ngModel)]="selectedAiChatCode"
+          [options]="aiChatConfigs"
+          optionLabel="chatName"
+          optionValue="chatCode"
+          [placeholder]="t(1847, 'Select...')"
+          [style]="{width: '100%'}"
+          [filter]="true"
+          filterBy="chatName,chatCode">
+          <ng-template pTemplate="item" let-item>
+            <div class="ai-config-item">
+              <span class="config-name">{{ item.chatName }}</span>
+              <span class="config-code">({{ item.chatCode }})</span>
+            </div>
+          </ng-template>
+        </p-select>
+
+        @if (selectedAiChatCode) {
+          @for (config of aiChatConfigs; track config.chatCode) {
+            @if (config.chatCode === selectedAiChatCode && config.chatDescription) {
+              <div class="ai-assist-description">
+                {{ config.chatDescription }}
+              </div>
+            }
+          }
+        }
+      </div>
+    }
+  </div>
+  <!-- Buttons inside content -->
+  <div class="ai-assist-footer">
+    <button class="ai-assist-btn cancel" (click)="showAiAssistDialog = false">
+      {{ t(1848, 'Cancel') }}
+    </button>
+    <button class="ai-assist-btn start" [disabled]="!selectedAiChatCode" (click)="startAiChat()">
+      {{ t(1849, 'Start Chat') }}
+    </button>
+  </div>
+</p-dialog>
+
+<!-- AI Chat Component -->
+<app-gts-ai-chat
+  [(visible)]="showAiChat"
+  [config]="aiChatConfig"
+  (visibleChange)="onAiChatVisibleChange($event)"
+  (dataReceived)="onAiDataReceived($event)">
+</app-gts-ai-chat>

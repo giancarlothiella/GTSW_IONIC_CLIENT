@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, Input, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { IonSpinner, AlertController } from '@ionic/angular/standalone';
 import { GtsDataService } from '../../services/gts-data.service';
 import { GtsGridService } from './gts-grid.service';
@@ -20,6 +21,15 @@ import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
 import { GtsSetFilterComponent } from './gts-set-filter.component';
 import { GtsSetFloatingFilterComponent } from './gts-set-floating-filter.component';
+
+// PrimeNG components for grid menu
+import { Menu } from 'primeng/menu';
+import { MenuItem } from 'primeng/api';
+import { Dialog } from 'primeng/dialog';
+import { Select } from 'primeng/select';
+
+// GTS AI Chat
+import { GtsAiChatComponent, AiChatConfig } from '../gts-ai-chat/gts-ai-chat.component';
 
 // Register AG Grid modules at component level
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -51,7 +61,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 @Component({
   selector: 'app-gts-grid',
   standalone: true,
-  imports: [CommonModule, AgGridModule, IonSpinner],
+  imports: [CommonModule, FormsModule, AgGridModule, IonSpinner, Menu, Dialog, Select, GtsAiChatComponent],
   templateUrl: './gts-grid.component.html',
   styleUrls: ['./gts-grid.component.scss']
 })
@@ -179,6 +189,36 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
   // Header filter visibility (Set Filter dropdown)
   headerFilterVisible: boolean = false;
+
+  // Grid Menu
+  @ViewChild('gridMenu') gridMenu!: Menu;
+  gridMenuItems: MenuItem[] = [];
+
+  // Show Original Data Dialog
+  showOriginalDataDialog: boolean = false;
+  originalDataFields: any[] = [];
+  originalDataSqlId: number = 0;
+  originalDataSqlCode: string = '';
+  showSqlCode: boolean = false;
+  sqlCopied: boolean = false;
+
+  // Icons Legend Dialog
+  showIconsLegendDialog: boolean = false;
+  iconsLegendData: any[] = [];
+
+  // Column Chooser Dialog
+  showColumnChooserDialog: boolean = false;
+  columnChooserData: any[] = [];
+
+  // AI Assist Dialog
+  showAiAssistDialog: boolean = false;
+  aiChatConfigs: any[] = [];
+  selectedAiChatCode: string = '';
+  loadingAiConfigs: boolean = false;
+
+  // AI Chat
+  showAiChat: boolean = false;
+  aiChatConfig: any = { prjId: '', chatCode: '' };
 
   constructor() {}
 
@@ -1577,5 +1617,474 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Add .xlsx extension if not present
     const finalFileName = fileName.endsWith('.xlsx') ? fileName : `${fileName}.xlsx`;
     saveAs(blob, finalFileName);
+  }
+
+  // ============================================
+  // GRID MENU
+  // ============================================
+
+  /**
+   * Build the grid menu items based on available features
+   */
+  buildGridMenu(): void {
+    this.gridMenuItems = [];
+
+    // Export section
+    this.gridMenuItems.push({
+      label: this.t(1820, 'Export to Excel'),
+      icon: 'pi pi-file-excel',
+      command: () => this.exportToExcel()
+    });
+    this.gridMenuItems.push({
+      label: this.t(1821, 'Export to CSV'),
+      icon: 'pi pi-file',
+      command: () => this.exportToCSV()
+    });
+    this.gridMenuItems.push({
+      label: this.t(1822, 'Copy to Clipboard'),
+      icon: 'pi pi-copy',
+      command: () => this.copyToClipboard()
+    });
+    this.gridMenuItems.push({
+      label: this.t(1823, 'Print'),
+      icon: 'pi pi-print',
+      command: () => this.printGrid()
+    });
+
+    // Separator
+    this.gridMenuItems.push({ separator: true });
+
+    // AI Assist (if enabled)
+    this.gridMenuItems.push({
+      label: this.t(1824, 'AI Assist'),
+      icon: 'pi pi-sparkles',
+      command: () => this.openAiAssist()
+    });
+
+    // Separator
+    this.gridMenuItems.push({ separator: true });
+
+    // Column management
+    this.gridMenuItems.push({
+      label: this.t(1825, 'Column Chooser'),
+      icon: 'pi pi-th-large',
+      command: () => this.openColumnChooser()
+    });
+    this.gridMenuItems.push({
+      label: this.t(1826, 'Reset Columns'),
+      icon: 'pi pi-replay',
+      command: () => this.resetColumns()
+    });
+
+    // Icons Legend (only if grid has icon columns)
+    if (this.hasIconColumns()) {
+      this.gridMenuItems.push({ separator: true });
+      this.gridMenuItems.push({
+        label: this.t(1827, 'Icons Legend'),
+        icon: 'pi pi-info-circle',
+        command: () => this.openIconsLegend()
+      });
+    }
+
+    // Separator and Debug section
+    this.gridMenuItems.push({ separator: true });
+    this.gridMenuItems.push({
+      label: this.t(1828, 'Show Original Data'),
+      icon: 'pi pi-database',
+      command: () => this.openOriginalData()
+    });
+  }
+
+  /**
+   * Toggle the grid menu
+   */
+  toggleGridMenu(event: Event): void {
+    this.buildGridMenu();
+    this.gridMenu.toggle(event);
+  }
+
+  /**
+   * Check if grid has columns with icons
+   */
+  hasIconColumns(): boolean {
+    if (!this.metaData?.columns) return false;
+    return this.metaData.columns.some((col: any) =>
+      col.images && col.images.length > 0
+    );
+  }
+
+  /**
+   * Export grid data to CSV
+   */
+  exportToCSV(): void {
+    if (!this.gridApi || this.gridApi.isDestroyed()) return;
+
+    const fileName = this.gridObject?.exportFileName || this.gridTitle || this.objectName || 'export';
+
+    // Get visible columns
+    const visibleCols = this.columnDefs.filter((col: any) => !col.hide && col.field);
+
+    // Build CSV header
+    const headers = visibleCols.map((col: any) => `"${col.headerName || col.field}"`).join(',');
+
+    // Build CSV rows
+    const rows: string[] = [];
+    this.gridApi.forEachNodeAfterFilterAndSort((node: any) => {
+      if (node.data) {
+        const row = visibleCols.map((col: any) => {
+          const value = node.data[col.field];
+          if (value === null || value === undefined) return '""';
+          // Escape quotes and wrap in quotes
+          return `"${String(value).replace(/"/g, '""')}"`;
+        }).join(',');
+        rows.push(row);
+      }
+    });
+
+    // Combine and download
+    const csv = [headers, ...rows].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }); // BOM for Excel
+    const finalFileName = fileName.endsWith('.csv') ? fileName : `${fileName}.csv`;
+    saveAs(blob, finalFileName);
+  }
+
+  /**
+   * Copy grid data to clipboard
+   */
+  async copyToClipboard(): Promise<void> {
+    if (!this.gridApi || this.gridApi.isDestroyed()) return;
+
+    // Get visible columns
+    const visibleCols = this.columnDefs.filter((col: any) => !col.hide && col.field);
+
+    // Build tab-separated data (for Excel paste)
+    const headers = visibleCols.map((col: any) => col.headerName || col.field).join('\t');
+
+    const rows: string[] = [];
+    this.gridApi.forEachNodeAfterFilterAndSort((node: any) => {
+      if (node.data) {
+        const row = visibleCols.map((col: any) => {
+          const value = node.data[col.field];
+          return value === null || value === undefined ? '' : String(value);
+        }).join('\t');
+        rows.push(row);
+      }
+    });
+
+    const text = [headers, ...rows].join('\n');
+
+    try {
+      await navigator.clipboard.writeText(text);
+      // Show success message
+      const alert = await this.alertController.create({
+        header: this.t(1829, 'Copied'),
+        message: this.t(1830, 'Data copied to clipboard'),
+        buttons: ['OK'],
+        cssClass: 'gts-alert-success'
+      });
+      await alert.present();
+      setTimeout(() => alert.dismiss(), 1500);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
+  }
+
+  /**
+   * Print grid data
+   */
+  printGrid(): void {
+    if (!this.gridApi || this.gridApi.isDestroyed()) return;
+
+    // Get visible columns
+    const visibleCols = this.columnDefs.filter((col: any) => !col.hide && col.field);
+
+    // Build HTML table
+    let html = `
+      <html>
+      <head>
+        <title>${this.gridTitle || this.objectName}</title>
+        <style>
+          body { font-family: Arial, sans-serif; font-size: 12px; }
+          table { border-collapse: collapse; width: 100%; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f4f5f8; font-weight: bold; }
+          tr:nth-child(even) { background-color: #f9f9f9; }
+          h1 { font-size: 16px; margin-bottom: 10px; }
+          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        </style>
+      </head>
+      <body>
+        <h1>${this.gridTitle || this.objectName}</h1>
+        <table>
+          <thead><tr>${visibleCols.map((col: any) => `<th>${col.headerName || col.field}</th>`).join('')}</tr></thead>
+          <tbody>
+    `;
+
+    this.gridApi.forEachNodeAfterFilterAndSort((node: any) => {
+      if (node.data) {
+        html += '<tr>';
+        visibleCols.forEach((col: any) => {
+          const value = node.data[col.field];
+          html += `<td>${value === null || value === undefined ? '' : value}</td>`;
+        });
+        html += '</tr>';
+      }
+    });
+
+    html += '</tbody></table></body></html>';
+
+    // Open print window
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    }
+  }
+
+  /**
+   * Open AI Assist - shows dialog to select chat code
+   */
+  async openAiAssist(): Promise<void> {
+    console.log('[gts-grid] openAiAssist called for prjId:', this.prjId);
+
+    this.loadingAiConfigs = true;
+    this.aiChatConfigs = [];
+    this.selectedAiChatCode = '';
+    this.showAiAssistDialog = true;
+
+    try {
+      // Load available chat configs for this project (type = grid)
+      const configs = await this.gtsDataService.getAiChatConfigs(this.prjId, 'grid');
+      console.log('[gts-grid] AI chat configs loaded:', configs);
+      this.aiChatConfigs = configs || [];
+    } catch (error) {
+      console.error('[gts-grid] Error loading AI chat configs:', error);
+      this.aiChatConfigs = [];
+    } finally {
+      this.loadingAiConfigs = false;
+    }
+  }
+
+  /**
+   * Start AI Chat with selected config
+   */
+  startAiChat(): void {
+    if (!this.selectedAiChatCode) return;
+
+    // Build grid columns info for AI context
+    const gridColumns = this.metaData?.columns?.map((col: any) => ({
+      fieldName: col.fieldName || col.dataField,
+      caption: col.text || col.caption,
+      dataType: col.colType || col.dataType || 'String',
+      required: false
+    })) || [];
+
+    this.aiChatConfig = {
+      prjId: this.prjId,
+      chatCode: this.selectedAiChatCode,
+      useTemplateMode: true,
+      contextType: 'grid',
+      formId: this.formId,
+      gridName: this.objectName,
+      gridColumns: gridColumns
+    };
+
+    console.log('[gts-grid] Starting AI Chat with config:', this.aiChatConfig);
+
+    this.showAiAssistDialog = false;
+
+    // Small delay to ensure config is propagated before dialog opens
+    setTimeout(() => {
+      this.showAiChat = true;
+    }, 50);
+  }
+
+  /**
+   * Handle data received from AI Chat
+   * @param event Contains type, data array, and mode ('append' or 'replace')
+   */
+  onAiDataReceived(event: { type: 'grid' | 'form', data: any, mode?: 'append' | 'replace' }): void {
+    console.log('[gts-grid] AI Data received:', event);
+
+    if (event.type === 'grid' && event.data && Array.isArray(event.data)) {
+      if (event.mode === 'replace') {
+        // Replace all grid data
+        this.rowData = [...event.data];
+        console.log('[gts-grid] Replaced grid data with', event.data.length, 'rows');
+      } else {
+        // Append to existing data (default)
+        this.rowData = [...this.rowData, ...event.data];
+        console.log('[gts-grid] Appended', event.data.length, 'rows to grid');
+      }
+
+      // Update grid
+      if (this.gridApi && !this.gridApi.isDestroyed()) {
+        this.gridApi.setGridOption('rowData', this.rowData);
+      }
+
+      // Mark rows as edited so they can be saved
+      const keyField = this.gridObject?.keys?.[0] || 'id';
+      event.data.forEach((row: any) => {
+        const rowKey = row[keyField];
+        if (rowKey) {
+          this.editedRows.set(rowKey, { ...row });
+        }
+      });
+    }
+
+    this.showAiChat = false;
+  }
+
+  /**
+   * Handle AI Chat visibility change
+   */
+  onAiChatVisibleChange(visible: boolean): void {
+    this.showAiChat = visible;
+  }
+
+  /**
+   * Open Column Chooser dialog
+   */
+  openColumnChooser(): void {
+    this.columnChooserData = this.columnDefs
+      .filter((col: any) => col.field) // Only columns with field
+      .map((col: any) => ({
+        field: col.field,
+        headerName: col.headerName || col.field,
+        visible: !col.hide
+      }));
+    this.showColumnChooserDialog = true;
+  }
+
+  /**
+   * Toggle column visibility from Column Chooser
+   */
+  toggleColumnVisibility(field: string, visible: boolean): void {
+    if (!this.gridApi) return;
+    this.gridApi.setColumnsVisible([field], visible);
+
+    // Update columnChooserData
+    const colData = this.columnChooserData.find(c => c.field === field);
+    if (colData) colData.visible = visible;
+  }
+
+  /**
+   * Reset columns to original state
+   */
+  resetColumns(): void {
+    if (!this.gridApi) return;
+
+    // Reset column widths and visibility
+    this.gridApi.resetColumnState();
+
+    // Rebuild grid to reset everything
+    // this.prepareColumnDefs();
+    // this.gridApi.setGridOption('columnDefs', this.columnDefs);
+  }
+
+  /**
+   * Open Icons Legend dialog
+   */
+  openIconsLegend(): void {
+    this.iconsLegendData = [];
+
+    if (!this.metaData?.columns) return;
+
+    // Find columns with images
+    this.metaData.columns.forEach((col: any) => {
+      if (col.images && col.images.length > 0) {
+        const caption = col.text || col.fieldName;
+        const fieldName = col.fieldName;
+        this.iconsLegendData.push({
+          columnName: `${caption} (${fieldName})`,
+          icons: col.images.map((img: any) => ({
+            value: img.imgValue,
+            image: `stdImage_${img.stdImageId}.png`,
+            description: img.imgText || img.imgValue
+          }))
+        });
+      }
+    });
+
+    this.showIconsLegendDialog = true;
+  }
+
+  /**
+   * Open Show Original Data dialog
+   * Shows all fields from the selected row with DB field names, types, and values
+   */
+  openOriginalData(): void {
+    this.originalDataFields = [];
+    this.originalDataSqlCode = '';
+    this.showSqlCode = false;
+
+    // Get sqlId from dataset metadata using the grid's dataSetName
+    const dataSetName = this.metaData?.dataSetName;
+    const dataSetMeta = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'dataSets', dataSetName);
+    this.originalDataSqlId = dataSetMeta?.sqlId || 0;
+
+    // Get selected row data
+    const selectedRow = this.selectedRows.length > 0 ? this.selectedRows[0] : null;
+
+    // Build field list from grid columns metadata with values from selected row
+    if (this.metaData?.columns) {
+      this.originalDataFields = this.metaData.columns.map((col: any) => {
+        const fieldName = col.dataField || col.fieldName;
+        return {
+          fieldName: fieldName,
+          caption: col.caption || col.text || fieldName,
+          dataType: col.colType || col.dataType || 'String',
+          value: selectedRow ? selectedRow[fieldName] : null,
+          visible: col.visible !== false,
+          isPK: col.isPK || false
+        };
+      });
+    }
+
+    this.showOriginalDataDialog = true;
+  }
+
+  /**
+   * Get SQL code for the current dataset
+   */
+  async getSqlCode(): Promise<void> {
+    if (!this.originalDataSqlId) {
+      this.originalDataSqlCode = 'No SQL ID available';
+      this.showSqlCode = true;
+      return;
+    }
+
+    try {
+      // Call service to get SQL code
+      const sqlCode = await this.gtsDataService.getSqlCode(this.prjId, this.originalDataSqlId);
+      this.originalDataSqlCode = sqlCode || 'SQL code not available';
+    } catch (error) {
+      this.originalDataSqlCode = 'Error retrieving SQL code';
+      console.error('[gts-grid] Error getting SQL code:', error);
+    }
+
+    this.showSqlCode = true;
+  }
+
+  /**
+   * Copy SQL code to clipboard
+   */
+  async copySqlToClipboard(): Promise<void> {
+    if (!this.originalDataSqlCode) return;
+
+    try {
+      await navigator.clipboard.writeText(this.originalDataSqlCode);
+      this.sqlCopied = true;
+      setTimeout(() => {
+        this.sqlCopied = false;
+      }, 2000);
+    } catch (err) {
+      console.error('[gts-grid] Failed to copy SQL:', err);
+    }
   }
 }

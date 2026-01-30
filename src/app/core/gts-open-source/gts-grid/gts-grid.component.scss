@@ -280,5 +280,485 @@
       font-size: 12px !important;
       color: #666 !important;
     }
+
+    // Multiline cell styling (columnType: "B")
+    .ag-cell {
+      &[col-id] {
+        // Allow cells to grow with content when autoHeight is enabled
+        line-height: 1.4 !important;
+      }
+    }
+
+    // Style for multiline cell content
+    .gts-multiline-cell {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      line-height: 1.4;
+      padding: 4px 0;
+    }
+
+    // Vertical centering of cell content
+    .ag-cell {
+      display: flex !important;
+      align-items: center !important;
+    }
+
+    // Reduce floating filter row height to match data row height (32px)
+    .ag-header-row-floating-filter {
+      height: 32px !important;
+      min-height: 32px !important;
+    }
+
+    .ag-floating-filter {
+      height: 32px !important;
+      min-height: 32px !important;
+    }
+
+    .ag-floating-filter-body {
+      height: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      padding: 0 4px !important;
+    }
+
+    .ag-floating-filter-input {
+      flex: 1 !important;
+      min-width: 0 !important;
+      height: 24px !important;
+    }
+
+    .ag-floating-filter-input input,
+    .ag-floating-filter-input .ag-input-field-input {
+      height: 24px !important;
+      padding: 2px 6px !important;
+      font-size: 12px !important;
+      border: 1px solid #ddd !important;
+      border-radius: 3px !important;
+    }
+
+    .ag-floating-filter-button {
+      flex: none !important;
+      margin: 0 !important;
+    }
+
+    // Center the filter button when no input is present (custom filter)
+    .ag-floating-filter-full-body {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      height: 100% !important;
+
+      .ag-floating-filter-button {
+        margin: 0 !important;
+        width: auto !important;
+        flex: none !important;
+      }
+    }
+
+    // Text input in floating filter
+    .ag-text-field-input {
+      height: 24px !important;
+      padding: 2px 6px !important;
+    }
+  }
+}
+
+// ============================================
+// Grid Menu Button
+// ============================================
+.gts-grid-toolbar-btn.menu-btn {
+  color: #1e293b;
+  border-color: #1e293b;
+  background-color: #f8fafc;
+
+  &:hover {
+    background-color: #1e293b;
+    color: #fff;
+  }
+}
+
+// ============================================
+// Show Original Data Dialog
+// ============================================
+.original-data-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.original-data-info {
+  padding: 12px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+
+  strong {
+    color: #1e293b;
+  }
+}
+
+.sql-code-btn {
+  margin-left: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #2563eb;
+  }
+}
+
+.sql-code-panel {
+  position: relative;
+  background-color: #1e293b;
+  border-radius: 6px;
+  padding: 12px;
+  max-height: 200px;
+  overflow: auto;
+
+  .copy-sql-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    font-size: 11px;
+    background-color: #475569;
+    color: #e2e8f0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: #64748b;
+    }
+
+    &.copied {
+      background-color: #22c55e;
+      color: white;
+    }
+  }
+
+  pre {
+    margin: 0;
+    color: #e2e8f0;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+}
+
+.original-data-fields {
+  max-height: 400px;
+  overflow: auto;
+}
+
+.fields-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+
+  th, td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  th {
+    background-color: #f1f5f9;
+    font-weight: 600;
+    color: #1e293b;
+    position: sticky;
+    top: 0;
+  }
+
+  tr:hover {
+    background-color: #f8fafc;
+  }
+
+  tr.pk-row {
+    background-color: #fef3c7;
+
+    &:hover {
+      background-color: #fde68a;
+    }
+  }
+
+  .field-name {
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #3b82f6;
+  }
+
+  .data-type {
+    color: #64748b;
+    font-size: 11px;
+  }
+
+  .field-value {
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #1e293b;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pk-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 4px;
+    font-size: 9px;
+    font-weight: 600;
+    color: #92400e;
+    background-color: #fef3c7;
+    border-radius: 3px;
+  }
+}
+
+.no-selection-warning {
+  padding: 16px;
+  text-align: center;
+  color: #f59e0b;
+  background-color: #fef3c7;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+// ============================================
+// Icons Legend Dialog
+// ============================================
+.icons-legend-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.icons-legend-column {
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: #1e293b;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 4px;
+  }
+}
+
+.icons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.icon-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background-color: #f8fafc;
+  border-radius: 4px;
+
+  .legend-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+  }
+
+  .icon-value {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 11px;
+    color: #64748b;
+    min-width: 30px;
+  }
+
+  .icon-description {
+    font-size: 13px;
+    color: #334155;
+  }
+}
+
+// ============================================
+// Column Chooser Dialog
+// ============================================
+.column-chooser-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow: auto;
+}
+
+.column-chooser-item {
+  padding: 8px 12px;
+  background-color: #f8fafc;
+  border-radius: 4px;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+  }
+
+  &:hover {
+    background-color: #e2e8f0;
+  }
+}
+
+// ============================================
+// AI Assist Dialog
+// ============================================
+.ai-assist-container {
+  flex: 1;
+  padding: 8px;
+}
+
+.ai-assist-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 8px 8px 8px;
+  margin-top: auto;
+  border-top: 1px solid #e2e8f0;
+}
+
+.ai-assist-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  color: #64748b;
+
+  ion-spinner {
+    --color: #3b82f6;
+  }
+}
+
+.ai-assist-empty {
+  text-align: center;
+  padding: 24px;
+  color: #64748b;
+
+  p {
+    margin: 0;
+  }
+}
+
+.ai-assist-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+
+  label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1e293b;
+    margin-bottom: 2px;
+  }
+
+  // p-select styling
+  ::ng-deep .p-select {
+    width: 100% !important;
+    min-height: 36px;
+    font-size: 12px;
+  }
+
+  // Dropdown panel styling - smaller rows
+  ::ng-deep .p-select-overlay {
+    max-height: 200px !important;
+
+    .p-select-option {
+      padding: 6px 12px !important;
+      font-size: 12px !important;
+      min-height: 28px !important;
+    }
+
+    .p-select-filter {
+      font-size: 12px !important;
+      padding: 6px 10px !important;
+    }
+  }
+}
+
+.ai-config-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+
+  .config-name {
+    font-weight: 500;
+  }
+
+  .config-code {
+    color: #64748b;
+    font-size: 11px;
+  }
+}
+
+.ai-assist-description {
+  padding: 12px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #475569;
+}
+
+// AI Assist Dialog Footer
+::ng-deep .p-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.ai-assist-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &.cancel {
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+
+    &:hover {
+      background-color: #e2e8f0;
+    }
+  }
+
+  &.start {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+
+    &:hover {
+      background-color: #2563eb;
+    }
+
+    &:disabled {
+      background-color: #94a3b8;
+      cursor: not-allowed;
+    }
   }
 }

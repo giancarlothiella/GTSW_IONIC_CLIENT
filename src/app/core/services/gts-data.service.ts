@@ -674,6 +674,9 @@ export class GtsDataService {
           const fieldGrpId = Number(name);
           return this.metaData.filter((page) => page.prjId === prjId && page.formId == formId )[0].pageData[objects]
           .filter((object: any) => object.fieldGrpId === fieldGrpId)[0];
+        } else if (objects === 'dataSets') {
+          return this.metaData.filter((page) => page.prjId === prjId && page.formId == formId )[0].pageData[objects]
+          .filter((object: any) => object.dataSetName === name)[0];
         } else {
           return this.metaData.filter((page) => page.prjId === prjId && page.formId == formId )[0].pageData[objects]
           .filter((object: any) => object.objectName === name)[0];
@@ -965,6 +968,8 @@ export class GtsDataService {
           }
 
           lastActionType = element.actionType;
+
+          console.log('ACTION END', formId, objectName, element.actionType, this.metaData, this.pageData)
         }
 
         let debugCanRun = this.actionCanRun;
@@ -1351,9 +1356,9 @@ export class GtsDataService {
 
     if (valid && status === 'insert') {
       if (dataSet.outBinds !== undefined && dataSet.outBinds !== null && dataSet.outBinds.length > 0) {
-        const targetDataSet = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId)[0]
-          ?.data
-          ?.filter((ds: any) => ds.dataSetName === action.dataSetName)[0];
+        // FIX: Use getDataSetAdapter to find the correct dataAdapter instead of taking [0]
+        const adapter = this.getDataSetAdapter(prjId, formId, action.dataSetName);
+        const targetDataSet = adapter?.data?.filter((ds: any) => ds.dataSetName === action.dataSetName)[0];
 
         // Get the primary key from the first outBind (usually the RETURNING ID)
         let primaryKeyField: string | null = null;
@@ -1455,26 +1460,49 @@ export class GtsDataService {
 
   // set metadata fields value to null
   clearFields(prjId: string, formId: number, clFldGrpId: number) {
-    const fields: any[] = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-    .pageData
-    .forms
-    .filter((form: any) => form.groupId === clFldGrpId)[0]
-    .fields;
+    const page = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0];
+    const form = page.pageData.forms.filter((form: any) => form.groupId === clFldGrpId)[0];
+    const fields: any[] = form.fields;
+
+    // Build array of cleared fields to notify form component
+    const clearedFields: any[] = [];
 
     fields.forEach((field: any) => {
-      this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-      .pageData
-      .pageFields.forEach((pageField: any) => {
+      // Clear value in pageFields
+      page.pageData.pageFields.forEach((pageField: any) => {
         if (pageField.pageFieldName === field.objectName) {
           pageField.value = null;
         }
-        if (field.details !== undefined && field.details !== null && field.details.length > 0) {
-          field.details.forEach((detail: any) => {
-            detail.value = null;
-          });
-        }
       });
+
+      // Also clear value in metadata fields array (used by form component)
+      field.value = null;
+
+      // Add to cleared fields array for notification
+      clearedFields.push({
+        fieldName: field.objectName,
+        fieldValue: null
+      });
+
+      // Clear detail values if present
+      if (field.details !== undefined && field.details !== null && field.details.length > 0) {
+        field.details.forEach((detail: any) => {
+          detail.value = null;
+        });
+      }
     });
+
+    // Notify form component to update its local formData
+    // Include prjId, formId, groupId so form can filter
+    if (clearedFields.length > 0) {
+      this.formExternalListener.next({
+        type: 'clearFields',
+        prjId: prjId,
+        formId: formId,
+        groupId: clFldGrpId,
+        fields: clearedFields
+      });
+    }
   }
 
   // set PK form fields as readOnly
@@ -1983,13 +2011,26 @@ export class GtsDataService {
             .pageData
             .pageFields
             .forEach((field: any) => {
-              if (field.pageFieldName === param.paramObjectName) {    
+              if (field.pageFieldName === param.paramObjectName) {
                 params[param.paramName] = field.value;
 
-                // Convert DateTime or Date to string from Date to String DD/MM/YYYY
+                // Convert DateTime or Date to string DD/MM/YYYY
                 if (field.dataType === 'DateTime' || field.dataType === 'Date') {
                   const date = new Date(field.value);
-                  params[param.paramName] = this.pageService.formatDate(date);
+                  if (!isNaN(date.getTime())) {
+                    params[param.paramName] = this.pageService.formatDate(date);
+                  }
+                }
+                // Also detect ISO date strings even if dataType is not set correctly
+                else if (typeof field.value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(field.value)) {
+                  const date = new Date(field.value);
+                  if (!isNaN(date.getTime())) {
+                    params[param.paramName] = this.pageService.formatDate(date);
+                  }
+                }
+                // Handle Date objects
+                else if (field.value instanceof Date) {
+                  params[param.paramName] = this.pageService.formatDate(field.value);
                 }
               }
             });        
@@ -1998,13 +2039,26 @@ export class GtsDataService {
             .pageData
             .pageFields
             .forEach((field: any) => {
-              if (field.dataSetName === param.paramDataSetName && field.dbFieldName === param.paramDataSetField) {    
+              if (field.dataSetName === param.paramDataSetName && field.dbFieldName === param.paramDataSetField) {
                 params[param.paramName] = field.value;
 
-                // Convert DateTime to string from Date to String DD/MM/YYYY
-                if (field.dataType === 'DateTime') {
+                // Convert DateTime or Date to string DD/MM/YYYY
+                if (field.dataType === 'DateTime' || field.dataType === 'Date') {
                   const date = new Date(field.value);
-                  params[param.paramName] = this.pageService.formatDate(date);
+                  if (!isNaN(date.getTime())) {
+                    params[param.paramName] = this.pageService.formatDate(date);
+                  }
+                }
+                // Also detect ISO date strings even if dataType is not set correctly
+                else if (typeof field.value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(field.value)) {
+                  const date = new Date(field.value);
+                  if (!isNaN(date.getTime())) {
+                    params[param.paramName] = this.pageService.formatDate(date);
+                  }
+                }
+                // Handle Date objects
+                else if (field.value instanceof Date) {
+                  params[param.paramName] = this.pageService.formatDate(field.value);
                 }
               }
             });     
@@ -2943,5 +2997,58 @@ export class GtsDataService {
     link.download = theBlob.name;
     link.click();
   }
-  
+
+  /**
+   * Get list of AI chat configurations for a project
+   * Used by grid's "AI Assist" feature
+   * @param prjId Project ID
+   * @param configType Type of config: 'grid', 'form', or 'all'
+   */
+  async getAiChatConfigs(prjId: string, contextType: string = ''): Promise<any[]> {
+    try {
+      let url = `${environment.apiUrl}/ai-chat/configs?prjId=${prjId}`;
+      if (contextType) {
+        url += `&contextType=${contextType}`;
+      }
+      console.log('[GtsDataService] getAiChatConfigs - calling:', url);
+
+      const response: any = await this.http.get(url).toPromise();
+      console.log('[GtsDataService] getAiChatConfigs - response:', response);
+
+      if (response && response.valid && response.data) {
+        return response.data;
+      }
+      return [];
+    } catch (error) {
+      console.error('[GtsDataService] Error getting AI chat configs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get SQL code for a given sqlId
+   * Used by grid's "Show Original Data" feature
+   * Uses the same approach as gts-debug component
+   */
+  async getSqlCode(prjId: string, sqlId: number): Promise<string> {
+    try {
+      const connCode = this.getActualConnCode();
+      const params = {
+        prjId: prjId,
+        sqlId: sqlId,
+        connCode: connCode,
+        getConnCode: true
+      };
+      const result = await this.execMethod('data', 'getSQLSpec', params);
+
+      if (result.valid && result.sql) {
+        return result.sql.sqlCode;
+      }
+      return 'SQL code not available';
+    } catch (error) {
+      console.error('[GtsDataService] Error getting SQL code:', error);
+      return 'Error retrieving SQL code';
+    }
+  }
+
 }

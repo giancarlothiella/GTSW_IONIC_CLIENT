@@ -18,17 +18,29 @@
   <ng-template pTemplate="header">
     <div class="dialog-header">
       <span class="dialog-title">{{ dialogTitle }}</span>
-      @if (config.showClearButton && messages.length > 0) {
+      <div class="header-actions">
+        <!-- Help Button -->
         <p-button
-          icon="pi pi-trash"
+          icon="pi pi-question-circle"
           [rounded]="true"
           [text]="true"
           severity="secondary"
-          (onClick)="clearChat()"
-          pTooltip="Pulisci chat"
-          class="clear-btn">
+          (onClick)="helpVisible = true"
+          pTooltip="Come usare la chat"
+          class="help-btn">
         </p-button>
-      }
+        @if (config.showClearButton && messages.length > 0) {
+          <p-button
+            icon="pi pi-trash"
+            [rounded]="true"
+            [text]="true"
+            severity="secondary"
+            (onClick)="clearChat()"
+            pTooltip="Pulisci chat"
+            class="clear-btn">
+          </p-button>
+        }
+      </div>
     </div>
   </ng-template>
 
@@ -128,6 +140,34 @@
         }
       </div>
 
+      <!-- Apply Data Bar (appears when array is detected and context is grid) -->
+      @if (detectedArrayData && detectedArrayRowCount > 0 && config.contextType === 'grid') {
+        <div class="apply-data-bar">
+          <div class="apply-data-info">
+            <i class="pi pi-database"></i>
+            <span>Rilevati <strong>{{ detectedArrayRowCount }}</strong> record pronti per l'import</span>
+          </div>
+          <div class="apply-data-buttons">
+            <p-button
+              label="Aggiungi"
+              icon="pi pi-plus"
+              severity="info"
+              size="small"
+              (onClick)="applyDetectedData('append')"
+              pTooltip="Aggiunge i dati alla griglia esistente">
+            </p-button>
+            <p-button
+              label="Sostituisci"
+              icon="pi pi-refresh"
+              severity="warn"
+              size="small"
+              (onClick)="applyDetectedData('replace')"
+              pTooltip="Sostituisce tutti i dati della griglia">
+            </p-button>
+          </div>
+        </div>
+      }
+
       <!-- Input Area -->
       <div class="input-area">
         <!-- Pending Attachments -->
@@ -171,6 +211,7 @@
             placeholder="Scrivi un messaggio..."
             class="message-input"
             (keydown)="onKeyDown($event)"
+            (paste)="onPaste($event)"
             [disabled]="sendingMessage">
           </textarea>
 
@@ -189,9 +230,52 @@
 
         <!-- Hint -->
         <div class="input-hint">
-          <span>Premi <kbd>Invio</kbd> per inviare, <kbd>Shift+Invio</kbd> per nuova riga</span>
+          <span>Premi <kbd>Invio</kbd> per inviare, <kbd>Shift+Invio</kbd> per nuova riga. Puoi incollare immagini con <kbd>Ctrl+V</kbd></span>
         </div>
       </div>
     }
   </div>
+</p-dialog>
+
+<!-- Help Popup -->
+<p-dialog
+  [(visible)]="helpVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '500px', maxWidth: '90vw' }"
+  header="Come usare la chat">
+  <div class="help-content">
+    @if (chatConfig?.helpText) {
+      <div [innerHTML]="renderMarkdown(chatConfig.helpText)"></div>
+    } @else {
+      <!-- Default help text -->
+      <div class="help-section">
+        <h4><i class="pi pi-send"></i> Inviare messaggi</h4>
+        <ul>
+          <li>Scrivi il messaggio e premi <kbd>Invio</kbd> per inviare</li>
+          <li>Usa <kbd>Shift+Invio</kbd> per andare a capo senza inviare</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h4><i class="pi pi-paperclip"></i> Allegare file</h4>
+        <ul>
+          <li>Clicca l'icona <i class="pi pi-paperclip"></i> per allegare file</li>
+          <li>Puoi incollare immagini direttamente con <kbd>Ctrl+V</kbd></li>
+          <li>I file Excel vengono convertiti automaticamente in CSV</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h4><i class="pi pi-sparkles"></i> Suggerimenti</h4>
+        <ul>
+          <li>Sii specifico nelle tue richieste</li>
+          <li>Puoi fare domande di follow-up</li>
+          <li>L'AI ricorda il contesto della conversazione</li>
+        </ul>
+      </div>
+    }
+  </div>
+  <ng-template pTemplate="footer">
+    <p-button label="Ho capito" icon="pi pi-check" (onClick)="helpVisible = false"></p-button>
+  </ng-template>
 </p-dialog>
