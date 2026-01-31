@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, ViewChild, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonSpinner, AlertController } from '@ionic/angular/standalone';
@@ -71,6 +71,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   private gtsGridService = inject(GtsGridService);
   private ts = inject(TranslationService);
   private alertController = inject(AlertController);
+  private cdr = inject(ChangeDetectorRef);
 
   @Input() prjId: string = '';
   @Input() formId: number = 0;
@@ -159,6 +160,15 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   // Flag to prevent action execution during programmatic selection restore
   isRestoringSelection: boolean = false;
 
+  // Flag to prevent action execution during AI data loading
+  isLoadingAiData: boolean = false;
+
+  // Store initial column state for reset functionality
+  initialColumnState: any[] | null = null;
+
+  // Store current column state to preserve during reloads (after user resizes columns)
+  savedColumnState: any[] | null = null;
+
   // Editing properties
   allowInserting: boolean = false;
   allowUpdating: boolean = false;
@@ -244,13 +254,18 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         const dataArray = data.split(';');
         const dataSetName = dataArray[0];
 
-        // Check for editing mode flags FIRST (like DevExtreme - no dataSetName check for these!)
-        if (dataArray.length > 1) {
+        // Check for editing mode flags - only process if dataSetName matches THIS grid
+        if (dataArray.length > 1 && this.metaData?.dataSetName === dataSetName) {
           const allowFlags = dataArray[1].split(':');
           if (allowFlags.length > 0) {
             if (allowFlags[0] === 'Edit') {
               this.allowUpdating = allowFlags[1] === 'true';
-              if (this.gridApi && !this.gridApi.isDestroyed() && this.metaData?.data?.columns) {
+              // Also enable delete if grid has canDelete capability
+              if (this.allowUpdating && this.gridObject?.canDelete) {
+                this.allowDeleting = true;
+                this.addDeleteColumn();
+              }
+              if (this.gridApi && !this.gridApi.isDestroyed()) {
                 const columns = this.gridApi.getColumns();
                 columns?.forEach((column: any) => {
                   const colId = column.getColId();
@@ -262,24 +277,42 @@ export class GtsGridComponent implements OnInit, OnDestroy {
                 });
                 this.gridApi.refreshCells({ force: true });
               }
+              // Trigger Angular change detection to update toolbar buttons
+              this.cdr.detectChanges();
               return;
             }
             if (allowFlags[0] === 'Insert') {
               this.allowInserting = allowFlags[1] === 'true';
+              this.cdr.detectChanges();
               return;
             }
             if (allowFlags[0] === 'Delete') {
+              const wasDeleting = this.allowDeleting;
               this.allowDeleting = allowFlags[1] === 'true';
+              // Add or remove delete column without rebuilding all columns
+              if (this.allowDeleting && !wasDeleting) {
+                this.addDeleteColumn();
+              } else if (!this.allowDeleting && wasDeleting) {
+                this.removeDeleteColumn();
+              }
+              this.cdr.detectChanges();
               return;
             }
             if (allowFlags[0] === 'Idle') {
               this.allowUpdating = false;
               this.allowInserting = false;
               this.allowDeleting = false;
-              if (this.metaData?.data?.columns && this.gridApi && !this.gridApi.isDestroyed()) {
-                this.convertColumnsToAGGrid(this.metaData.data.columns);
-                this.gridApi.setGridOption('columnDefs', this.columnDefs);
+              // Remove delete column and disable editing without rebuilding all columns
+              this.removeDeleteColumn();
+              if (this.gridApi && !this.gridApi.isDestroyed()) {
+                const columns = this.gridApi.getColumns();
+                columns?.forEach((column: any) => {
+                  const colDef = column.getColDef();
+                  colDef.editable = false;
+                });
+                this.gridApi.refreshCells({ force: true });
               }
+              this.cdr.detectChanges();
               return;
             }
           }
@@ -287,6 +320,12 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
         // Normal data reload - check dataSetName and visibility
         if (this.metaData?.dataSetName === dataSetName && this.metaData?.visible) {
+
+          // Save current column state before reload (preserves user's column widths)
+          if (this.gridApi && !this.gridApi.isDestroyed()) {
+            this.savedColumnState = this.gridApi.getColumnState();
+          }
+
           // Reload metadata to get updated filterRule from toolbar
           this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'grids', this.objectName);
 
@@ -296,6 +335,20 @@ export class GtsGridComponent implements OnInit, OnDestroy {
           } else {
             this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
             await this.prepareGridData();
+          }
+
+          // Restore column state after reload (preserves column widths)
+          // Use setTimeout to ensure AG Grid has finished processing new columnDefs
+          if (this.savedColumnState) {
+            const stateToRestore = this.savedColumnState;
+            setTimeout(() => {
+              if (this.gridApi && !this.gridApi.isDestroyed()) {
+                this.gridApi.applyColumnState({
+                  state: stateToRestore,
+                  applyOrder: true
+                });
+              }
+            }, 100);
           }
         }
       });
@@ -477,12 +530,27 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     this.paginationPageSize = newGridObject.pageSize || 20;
     this.paginationPageSizeSelector = newGridObject.allowedPageSizes || [10, 20, 50, 100];
 
-    // Set editing permissions from metaData
-    this.allowInserting = this.metaData.allowInserting || false;
-    this.allowUpdating = this.metaData.allowUpdating || false;
-    this.allowDeleting = newGridObject.allowDeleting || false;
+    // Grid starts in IDLE mode - editing is disabled until explicitly enabled via action
+    this.allowInserting = false;  // Will be set via listener
+    this.allowUpdating = false;   // Will be set via listener
+    this.allowDeleting = false;   // Will be set via listener
 
-    // Debug: console.log('[gts-grid] Editing permissions:', { allowInserting, allowUpdating, allowDeleting });
+    // Store capabilities on newGridObject (will be copied to this.gridObject later)
+    newGridObject.canInsert = this.metaData.allowInserting || false;
+    newGridObject.canUpdate = this.metaData.allowUpdating || false;
+    newGridObject.canDelete = this.metaData.allowDeleting || newGridObject.allowDeleting || false;
+
+    // Extract primary key field names from sqlKeys array
+    // sqlKeys is array of objects like [{keyField: "FIELD1"}, {keyField: "FIELD2"}]
+    // Check both newGridObject and this.metaData for sqlKeys
+    const sqlKeys = newGridObject.sqlKeys || this.metaData?.sqlKeys;
+    if (sqlKeys && Array.isArray(sqlKeys)) {
+      newGridObject.keys = sqlKeys.map((k: any) => k.keyField || k.fieldName || k.dataField);
+      newGridObject.sqlKeys = sqlKeys; // Ensure sqlKeys is copied to gridObject
+    } else {
+      newGridObject.keys = [];
+    }
+
 
     // Set selection mode (AG Grid v35+ format with checkboxes control)
     const isMultiple = newGridObject.selectionMode === 'multiple';
@@ -624,6 +692,56 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         this.columnDefs.push(colDef);
       }
     });
+
+    // Always add delete column at the end (hidden by default)
+    // Will be shown/hidden via addDeleteColumn/removeDeleteColumn without rebuilding columns
+    this.columnDefs.push({
+      headerName: '',
+      field: '__delete__',
+      width: 50,
+      minWidth: 50,
+      maxWidth: 50,
+      sortable: false,
+      filter: false,
+      resizable: false,
+      pinned: 'right',
+      hide: true,  // Hidden by default
+      cellRenderer: (params: any) => {
+        const button = document.createElement('button');
+        button.innerHTML = '🗑️';
+        button.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 16px; padding: 2px 6px;';
+        button.title = 'Delete row';
+        button.onclick = (e) => {
+          e.stopPropagation();
+          this.deleteRow(params.node.data);
+        };
+        return button;
+      }
+    });
+  }
+
+  /**
+   * Show the delete column (make it visible)
+   * Uses setColumnsVisible to avoid resetting column widths
+   */
+  private addDeleteColumn(): void {
+
+    if (this.gridApi && !this.gridApi.isDestroyed()) {
+      // Just show the column - it's already in columnDefs but hidden
+      this.gridApi.setColumnsVisible(['__delete__'], true);
+    }
+  }
+
+  /**
+   * Hide the delete column
+   * Uses setColumnsVisible to avoid resetting column widths
+   */
+  private removeDeleteColumn(): void {
+
+    if (this.gridApi && !this.gridApi.isDestroyed()) {
+      // Just hide the column
+      this.gridApi.setColumnsVisible(['__delete__'], false);
+    }
   }
 
   /**
@@ -767,6 +885,13 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       delete colDef.maxWidth;
     }
 
+    // Handle numeric columns - right align both data and header
+    const numericTypes = ['number', 'int', 'integer', 'decimal', 'float', 'double', 'numeric', 'money', 'currency'];
+    if (numericTypes.includes(columnType)) {
+      colDef.cellClass = 'gts-cell-right';
+      colDef.headerClass = 'gts-header-right';
+    }
+
     return colDef;
   }
 
@@ -807,6 +932,13 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       this.checkActiveFilters();
     });
 
+    // Expose test method on window for easy console access
+    // Usage: window.testGridAI([{field: 'value'}], 'append')
+    (window as any).testGridAI = (data: any[], mode: 'append' | 'replace' = 'append') => {
+      this.testAiDataMerge(data, mode);
+    };
+    (window as any).gtsGrid = this; // Full access to grid component
+
     // Initial grid setup
     setTimeout(() => {
       // Go to first page to ensure rows are displayed
@@ -814,6 +946,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
       // Auto-size all columns to fit their content (best fit) on first load
       params.api.autoSizeAllColumns(false); // false = don't skip header
+
+      // Save initial column state for reset functionality (only on first load)
+      if (!this.initialColumnState) {
+        this.initialColumnState = params.api.getColumnState();
+      }
 
       // Restore selection if there was one saved
       this.restoreSelection();
@@ -1205,8 +1342,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       return keyObj;
     });
 
-    // Skip action execution if we're restoring selection programmatically
-    if (this.isRestoringSelection) {
+    // Skip action execution if we're restoring selection programmatically or loading AI data
+    if (this.isRestoringSelection || this.isLoadingAiData) {
       return;
     }
 
@@ -1274,17 +1411,32 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    * This is called by the Save button in the toolbar
    */
   saveEdits(): void {
-    if (this.editedRows.size === 0) {
+    // Check if there are any changes to save (edits, deletes, OR inserts)
+    const hasDeletes = this.changeArray.some((c: any) => c.type === 'delete');
+    const hasInserts = this.changeArray.some((c: any) => c.type === 'insert');
+    const hasEdits = this.editedRows.size > 0 && !this.editedRows.has('__ai_changes__');
+
+    if (!hasEdits && !hasDeletes && !hasInserts) {
       return;
     }
 
-    this.changeArray = [];
+
+    // Preserve existing delete AND insert records, only rebuild updates
+    const deleteRecords = this.changeArray.filter((c: any) => c.type === 'delete');
+    const insertRecords = this.changeArray.filter((c: any) => c.type === 'insert');
+    this.changeArray = [...deleteRecords, ...insertRecords];  // Start with delete + insert records
+
     const keyField = this.gridObject?.keys?.[0] || 'id';
 
-    // Build change array like DevExtreme
+    // Build change array for updates (manual cell edits, not AI marker)
     this.editedRows.forEach((editedData, rowKey) => {
+      // Skip the AI changes marker - it's just a flag, not actual row data
+      if (rowKey === '__ai_changes__') {
+        return;
+      }
+
       // Find original row
-      const originalRow = this.gridObject.dataSet.find((row: any) => row[keyField] === rowKey);
+      const originalRow = this.gridObject?.dataSet?.find((row: any) => row[keyField] === rowKey);
 
       if (originalRow) {
         // Update type - row existed before
@@ -1308,19 +1460,24 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Store changes in metadata (like DevExtreme)
+
+    // Store changes in the correct location for dataSetPost to read
     this.metaData.changeArray = this.changeArray;
+    this.gtsDataService.setGridChangeArray(this.prjId, this.formId, this.objectName, this.changeArray);
 
     // Update backupDataSet to reflect saved state (so Cancel won't revert saved changes)
-    if (this.gridObject.dataSet) {
+    if (this.gridObject?.dataSet) {
       this.gridObject.backupDataSet = this.gridObject.dataSet.map((row: any) => ({ ...row }));
     }
 
     // Clear edited rows BEFORE executing action (toolbar will hide)
     this.editedRows.clear();
 
-    // Exit edit mode (like DevExtreme) - disable editing on all columns
+    // Exit edit mode - disable editing on all columns and hide delete column
     this.allowUpdating = false;
+    this.allowDeleting = false;
+    this.removeDeleteColumn();
+
     if (this.gridApi && !this.gridApi.isDestroyed() && this.metaData?.data?.columns) {
       const columns = this.gridApi.getColumns();
       columns?.forEach((column: any) => {
@@ -1330,6 +1487,9 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       this.gridApi.refreshCells({ force: true });
     }
 
+    // Trigger change detection to update toolbar
+    this.cdr.detectChanges();
+
     // Execute action if defined
     if (this.metaData.actionOnEditPost) {
       this.gtsDataService.runAction(
@@ -1337,6 +1497,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         this.formId,
         this.metaData.actionOnEditPost
       );
+    } else {
     }
   }
 
@@ -1380,6 +1541,65 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         this.metaData.actionOnEditRollback
       );
     }
+  }
+
+  /**
+   * Delete a row from the grid
+   * Removes row from display and adds DELETE record to changeArray
+   */
+  deleteRow(rowData: any): void {
+    if (!rowData) return;
+
+    // Get primary key fields
+    const keyFields = this.gridObject?.keys || [];
+
+    // Build key and keyParams for delete record
+    const key: any = {};
+    const keyParams: any = {};
+    keyFields.forEach((keyField: string) => {
+      key[keyField] = rowData[keyField];
+      keyParams['P_' + keyField] = rowData[keyField];
+    });
+
+    // Add delete record to changeArray
+    this.changeArray.push({
+      type: 'delete',
+      key: key,
+      keyParams: keyParams
+    });
+
+
+    // Remove from rowData array
+    const index = this.rowData.findIndex(row => {
+      return keyFields.every((keyField: string) => row[keyField] === rowData[keyField]);
+    });
+    if (index > -1) {
+      this.rowData.splice(index, 1);
+    }
+
+    // Remove from gridObject.dataSet if it exists
+    if (this.gridObject?.dataSet) {
+      const dsIndex = this.gridObject.dataSet.findIndex((row: any) => {
+        return keyFields.every((keyField: string) => row[keyField] === rowData[keyField]);
+      });
+      if (dsIndex > -1) {
+        this.gridObject.dataSet.splice(dsIndex, 1);
+      }
+    }
+
+    // Update grid display using applyTransaction (doesn't reset column widths)
+    if (this.gridApi && !this.gridApi.isDestroyed()) {
+      this.gridApi.applyTransaction({ remove: [rowData] });
+    }
+
+    // Store changes in the correct location for dataSetPost to read
+    // dataSetPost reads from: metaData[page].pageData.grids[grid].changeArray
+    this.metaData.changeArray = this.changeArray;
+    this.gtsDataService.setGridChangeArray(this.prjId, this.formId, this.objectName, this.changeArray);
+
+    // Mark that we have unsaved changes (show save button)
+    this.editedRows.set('__deleted__', true);
+
   }
 
   /**
@@ -1707,8 +1927,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    * Check if grid has columns with icons
    */
   hasIconColumns(): boolean {
-    if (!this.metaData?.columns) return false;
-    return this.metaData.columns.some((col: any) =>
+    if (!this.metaData?.data?.columns) return false;
+    return this.metaData.data.columns.some((col: any) =>
       col.images && col.images.length > 0
     );
   }
@@ -1850,7 +2070,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    * Open AI Assist - shows dialog to select chat code
    */
   async openAiAssist(): Promise<void> {
-    console.log('[gts-grid] openAiAssist called for prjId:', this.prjId);
 
     this.loadingAiConfigs = true;
     this.aiChatConfigs = [];
@@ -1860,7 +2079,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     try {
       // Load available chat configs for this project (type = grid)
       const configs = await this.gtsDataService.getAiChatConfigs(this.prjId, 'grid');
-      console.log('[gts-grid] AI chat configs loaded:', configs);
       this.aiChatConfigs = configs || [];
     } catch (error) {
       console.error('[gts-grid] Error loading AI chat configs:', error);
@@ -1894,7 +2112,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       gridColumns: gridColumns
     };
 
-    console.log('[gts-grid] Starting AI Chat with config:', this.aiChatConfig);
 
     this.showAiAssistDialog = false;
 
@@ -1908,36 +2125,240 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    * Handle data received from AI Chat
    * @param event Contains type, data array, and mode ('append' or 'replace')
    */
-  onAiDataReceived(event: { type: 'grid' | 'form', data: any, mode?: 'append' | 'replace' }): void {
-    console.log('[gts-grid] AI Data received:', event);
+  async onAiDataReceived(event: { type: 'grid' | 'form', data: any, mode?: 'append' | 'replace' }): Promise<void> {
 
     if (event.type === 'grid' && event.data && Array.isArray(event.data)) {
-      if (event.mode === 'replace') {
-        // Replace all grid data
-        this.rowData = [...event.data];
-        console.log('[gts-grid] Replaced grid data with', event.data.length, 'rows');
-      } else {
-        // Append to existing data (default)
-        this.rowData = [...this.rowData, ...event.data];
-        console.log('[gts-grid] Appended', event.data.length, 'rows to grid');
+      // Set flag to prevent action execution during AI data loading
+      this.isLoadingAiData = true;
+      // Save original rows BEFORE any changes (needed for DELETE in replace mode and for rollback)
+      const originalRows = [...this.rowData];
+
+      // Save backup for rollback (so Cancel button can restore original state)
+      this.gridObject.backupDataSet = this.rowData.map((row: any) => ({ ...row }));
+      if (this.gridObject.dataSet) {
+        this.gridObject.dataSet = [...this.rowData];
       }
 
-      // Update grid
+      // Get hidden fields from first existing row (fields not in grid columns)
+      const hiddenFields = this.getHiddenFieldsFromExistingData();
+
+      // Merge hidden fields into each AI row (only AI values that are not null/undefined)
+      const enrichedData = event.data.map((row: any) => {
+        const mergedRow = { ...hiddenFields };  // Start with hidden fields
+
+        // Only copy AI values that are not null/undefined/empty string
+        Object.keys(row).forEach((key) => {
+          const value = row[key];
+          if (value !== null && value !== undefined && value !== '') {
+            mergedRow[key] = value;
+          }
+        });
+
+        return mergedRow;
+      });
+
+
+      // Build changeArray
+      this.changeArray = [];
+
+      // Get primary key fields from gridObject
+      const keyFields = this.gridObject?.keys || [];
+
+      if (event.mode === 'replace') {
+        // REPLACE MODE: First DELETE all existing rows, then INSERT new ones
+
+        // Build DELETE records for all original rows
+        originalRows.forEach((row: any) => {
+          const key: any = {};
+          const keyParams: any = {};
+
+          // Build key and keyParams using primary key fields
+          keyFields.forEach((keyField: string) => {
+            key[keyField] = row[keyField];
+            keyParams['P_' + keyField] = row[keyField];
+          });
+
+          this.changeArray.push({
+            type: 'delete',
+            key: key,
+            keyParams: keyParams
+          });
+        });
+
+
+        // Update grid data
+        this.rowData = [...enrichedData];
+      } else {
+        // APPEND MODE: Just insert new rows
+        this.rowData = [...this.rowData, ...enrichedData];
+      }
+
+      // Build INSERT records for new rows
+      enrichedData.forEach((row: any) => {
+        // Map boolean values from UI to storage values
+        const mappedRow = this.mapBooleanValues(row, 'toStorage');
+
+        this.changeArray.push({
+          type: 'insert',
+          key: {},
+          data: mappedRow,
+          dataParams: this.buildParams(mappedRow, 'P_')
+        });
+      });
+
+
+      // Update grid display with new rows only
       if (this.gridApi && !this.gridApi.isDestroyed()) {
         this.gridApi.setGridOption('rowData', this.rowData);
+
+        // Verify the data was set correctly
+        const currentRowCount = this.gridApi.getDisplayedRowCount();
+
+        // Auto-size columns after loading new data (especially important if grid was empty)
+        setTimeout(() => {
+          if (this.gridApi && !this.gridApi.isDestroyed()) {
+            this.gridApi.autoSizeAllColumns(false);
+            // Update initial column state so Reset Columns works correctly
+            this.initialColumnState = this.gridApi.getColumnState();
+          }
+        }, 50);
       }
 
-      // Mark rows as edited so they can be saved
-      const keyField = this.gridObject?.keys?.[0] || 'id';
-      event.data.forEach((row: any) => {
-        const rowKey = row[keyField];
-        if (rowKey) {
-          this.editedRows.set(rowKey, { ...row });
+      // Store changeArray in the correct location for dataSetPost (same as grid edit)
+      this.metaData.changeArray = this.changeArray;
+      this.gtsDataService.setGridChangeArray(this.prjId, this.formId, this.objectName, this.changeArray);
+
+      // Mark that we have unsaved changes (shows Save button)
+      this.editedRows.set('__ai_changes__', true);
+
+      // Put grid in edit mode directly (instead of relying on async sendGridReload)
+      this.allowUpdating = true;
+      if (this.gridObject?.canDelete) {
+        this.allowDeleting = true;
+        this.addDeleteColumn();
+      }
+
+      // Trigger change detection to update toolbar buttons
+      this.cdr.detectChanges();
+
+      // Also notify via service for consistency
+      this.gtsDataService.sendGridReload(this.metaData.dataSetName + ';Edit:true');
+
+
+      // Reset flag after a short delay to allow all events to settle
+      setTimeout(() => {
+        this.isLoadingAiData = false;
+      }, 100);
+    }
+
+    this.showAiChat = false;
+  }
+
+  /**
+   * Get hidden fields (not displayed in grid) from first existing row or dataset metadata
+   * These fields need to be copied to new AI rows (e.g., parent ID, fixed values)
+   */
+  private getHiddenFieldsFromExistingData(): Record<string, any> {
+    const hiddenFields: Record<string, any> = {};
+
+    // Build set of visible column field names from AG Grid columnDefs
+    const visibleColumns = new Set<string>();
+
+    // Helper function to extract field names from column definitions (including nested groups)
+    const extractFieldNames = (cols: ColDef[]): void => {
+      cols.forEach((col: any) => {
+        if (col.field) {
+          visibleColumns.add(col.field);
+        }
+        // Handle column groups (bands)
+        if (col.children && Array.isArray(col.children)) {
+          extractFieldNames(col.children);
+        }
+      });
+    };
+
+    extractFieldNames(this.columnDefs);
+
+    // Also check metaData.data.columns as fallback (server metadata)
+    if (visibleColumns.size === 0 && this.metaData?.data?.columns) {
+      this.metaData.data.columns.forEach((col: any) => {
+        const fieldName = col.dataField || col.fieldName;
+        if (fieldName) {
+          visibleColumns.add(fieldName);
         }
       });
     }
 
-    this.showAiChat = false;
+
+    // Get first row from current grid data
+    const firstRow = this.rowData.length > 0 ? this.rowData[0] : null;
+
+    if (firstRow) {
+      // OPTION 1: Get hidden fields from existing row data
+
+      // Get all fields from first row that are NOT in visible columns
+      Object.keys(firstRow).forEach((fieldName) => {
+        if (!visibleColumns.has(fieldName)) {
+          hiddenFields[fieldName] = firstRow[fieldName];
+        }
+      });
+    } else {
+      // OPTION 2: No existing rows - get values from sqlParams definitions
+      // sqlParams defines WHERE clause parameters but values come from pageFields or other datasets
+
+      const dataSetName = this.metaData?.dataSetName;
+      if (dataSetName) {
+        // Get dataset from pageData
+        const dataSetInfo = this.gtsDataService.getDataSetAdapter(this.prjId, this.formId, dataSetName);
+
+        if (dataSetInfo?.data) {
+          const dataSet = dataSetInfo.data.find((ds: any) => ds.dataSetName === dataSetName);
+
+          // sqlParams defines the WHERE clause parameters
+          // Each param either has:
+          // - paramObjectName: field name to look up in pageFields
+          // - paramDataSetName + paramDataSetField: reference to another dataset's selected row
+          if (dataSet?.sqlParams && Array.isArray(dataSet.sqlParams)) {
+            dataSet.sqlParams.forEach((param: any) => {
+
+              // Get the target field name (remove P_ prefix from paramName)
+              let fieldName = param.paramName || param.name;
+              if (fieldName && fieldName.startsWith('P_')) {
+                fieldName = fieldName.substring(2);
+              }
+
+              // Skip if it's a visible column
+              if (!fieldName || visibleColumns.has(fieldName)) {
+                return;
+              }
+
+              let value = null;
+
+              // Option 1: paramObjectName points to a pageField
+              if (param.paramObjectName) {
+                value = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, param.paramObjectName);
+              }
+              // Option 2: paramDataSetName + paramDataSetField points to another dataset's selected row
+              else if (param.paramDataSetName && param.paramDataSetField) {
+                const sourceDataSetInfo = this.gtsDataService.getDataSetAdapter(this.prjId, this.formId, param.paramDataSetName);
+                if (sourceDataSetInfo?.data) {
+                  const sourceDataSet = sourceDataSetInfo.data.find((ds: any) => ds.dataSetName === param.paramDataSetName);
+                  if (sourceDataSet?.selectedRows && sourceDataSet.selectedRows.length > 0) {
+                    value = sourceDataSet.selectedRows[0][param.paramDataSetField];
+                  }
+                }
+              }
+
+              if (value !== null && value !== undefined && hiddenFields[fieldName] === undefined) {
+                hiddenFields[fieldName] = value;
+              }
+            });
+          }
+        }
+      }
+    }
+
+    return hiddenFields;
   }
 
   /**
@@ -1945,6 +2366,20 @@ export class GtsGridComponent implements OnInit, OnDestroy {
    */
   onAiChatVisibleChange(visible: boolean): void {
     this.showAiChat = visible;
+  }
+
+  /**
+   * TEST METHOD - Call from browser console to test AI data merge without making AI requests
+   * Usage: Find the grid component instance and call testAiDataMerge(yourArray, 'append' or 'replace')
+   *
+   * Example from console:
+   *   const grid = document.querySelector('app-gts-grid').__ngContext__[8];
+   *   grid.testAiDataMerge([{INVD_RN: 1, INVREAS_CODE: 'TEST'}], 'append');
+   *
+   * Or use window.testGridAI if exposed
+   */
+  testAiDataMerge(data: any[], mode: 'append' | 'replace' = 'append'): void {
+    this.onAiDataReceived({ type: 'grid', data, mode });
   }
 
   /**
@@ -1974,17 +2409,21 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Reset columns to original state
+   * Reset columns to original state (as displayed on first load after autoSize)
    */
   resetColumns(): void {
-    if (!this.gridApi) return;
+    if (!this.gridApi || this.gridApi.isDestroyed()) return;
 
-    // Reset column widths and visibility
-    this.gridApi.resetColumnState();
-
-    // Rebuild grid to reset everything
-    // this.prepareColumnDefs();
-    // this.gridApi.setGridOption('columnDefs', this.columnDefs);
+    if (this.initialColumnState) {
+      // Restore to the saved initial state (after autoSizeAllColumns)
+      this.gridApi.applyColumnState({
+        state: this.initialColumnState,
+        applyOrder: true
+      });
+    } else {
+      // Fallback: auto-size columns if no initial state saved
+      this.gridApi.autoSizeAllColumns(false);
+    }
   }
 
   /**
@@ -1993,10 +2432,10 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   openIconsLegend(): void {
     this.iconsLegendData = [];
 
-    if (!this.metaData?.columns) return;
+    if (!this.metaData?.data?.columns) return;
 
     // Find columns with images
-    this.metaData.columns.forEach((col: any) => {
+    this.metaData.data.columns.forEach((col: any) => {
       if (col.images && col.images.length > 0) {
         const caption = col.text || col.fieldName;
         const fieldName = col.fieldName;
@@ -2031,22 +2470,58 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Get selected row data
     const selectedRow = this.selectedRows.length > 0 ? this.selectedRows[0] : null;
 
-    // Build field list from grid columns metadata with values from selected row
-    if (this.metaData?.columns) {
-      this.originalDataFields = this.metaData.columns.map((col: any) => {
+    // Build a map of grid columns for quick lookup (fieldName -> column metadata)
+    const columnMap = new Map<string, any>();
+    if (this.metaData?.data?.columns) {
+      this.metaData.data.columns.forEach((col: any) => {
         const fieldName = col.dataField || col.fieldName;
+        columnMap.set(fieldName, col);
+      });
+    }
+
+    // Get ALL fields from the selected row (not just grid columns)
+    if (selectedRow) {
+      // Get all keys from the row data
+      const allFields = Object.keys(selectedRow);
+
+      this.originalDataFields = allFields.map((fieldName: string) => {
+        // Check if this field has column metadata
+        const colMeta = columnMap.get(fieldName);
+
         return {
           fieldName: fieldName,
-          caption: col.caption || col.text || fieldName,
-          dataType: col.colType || col.dataType || 'String',
-          value: selectedRow ? selectedRow[fieldName] : null,
-          visible: col.visible !== false,
-          isPK: col.isPK || false
+          caption: colMeta ? (colMeta.caption || colMeta.text || fieldName) : fieldName,
+          dataType: colMeta ? (colMeta.colType || colMeta.dataType || 'String') : this.inferDataType(selectedRow[fieldName]),
+          value: selectedRow[fieldName],
+          visible: colMeta ? (colMeta.visible !== false) : true,
+          isPK: colMeta?.isPK || false,
+          isInGrid: !!colMeta  // Flag to show if field is displayed in grid
         };
+      });
+
+      // Sort: PK fields first, then grid columns, then other fields
+      this.originalDataFields.sort((a, b) => {
+        if (a.isPK && !b.isPK) return -1;
+        if (!a.isPK && b.isPK) return 1;
+        if (a.isInGrid && !b.isInGrid) return -1;
+        if (!a.isInGrid && b.isInGrid) return 1;
+        return a.fieldName.localeCompare(b.fieldName);
       });
     }
 
     this.showOriginalDataDialog = true;
+  }
+
+  /**
+   * Infer data type from value
+   */
+  private inferDataType(value: any): string {
+    if (value === null || value === undefined) return 'String';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'Integer' : 'Float';
+    if (typeof value === 'boolean') return 'Boolean';
+    if (value instanceof Date) return 'Date';
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return 'Date';
+    return 'String';
   }
 
   /**

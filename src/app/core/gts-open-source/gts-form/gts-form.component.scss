@@ -366,11 +366,15 @@
   .p-datepicker {
     .p-datepicker-input-icon-container {
       width: 26px;
+      position: relative;
+      z-index: 10;
 
       button {
         width: 26px;
         height: 26px;
         padding: 0;
+        position: relative;
+        z-index: 10;
 
         .p-icon {
           font-size: 11px;
@@ -556,4 +560,5 @@
       }
     }
   }
+
 }

@@ -198,15 +198,16 @@ ion-item {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
+  width: 100vw !important;
+  height: 100vh !important;
   background-color: rgba(0, 0, 0, 0.6) !important;
   backdrop-filter: blur(4px) !important;
-  z-index: 9998 !important;
+  z-index: 8999 !important;
+  pointer-events: auto !important;
 }
 
 .p-dialog {
-  z-index: 9999 !important;
+  z-index: 9000 !important;
   /* NON usare position: relative - blocca il drag di PrimeNG */
   background: #ffffff !important;
   border-radius: 16px !important;
@@ -393,6 +394,52 @@ app-gts-dash-grid {
 // Gli Ionic Alert sono componenti globali, quindi gli stili devono essere in un foglio globale
 // Usiamo selettori con alta specificità per sovrascrivere gli stili di default
 
+/* ============================================
+   GTS Alert Z-Index Fix
+   ============================================
+   SOLUTION: Move ion-alert to body level via JavaScript so it can
+   compete directly with p-dialog using z-index.
+   ============================================ */
+
+/* Alerts moved to body level - appear above PrimeNG dialogs */
+body > ion-alert.gts-body-alert,
+body > ion-alert.db-error-alert {
+  z-index: 999999 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+
+  /* Alert backdrop */
+  ion-backdrop {
+    z-index: 999998 !important;
+    opacity: 0.5 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+  }
+
+  /* Alert wrapper/content */
+  .alert-wrapper {
+    z-index: 999999 !important;
+  }
+}
+
+/* When alert is active, ensure p-dialog stays below */
+body.gts-alert-active {
+  .p-dialog-mask {
+    z-index: 9000 !important;
+  }
+
+  .p-dialog {
+    z-index: 9001 !important;
+  }
+}
+
+/* Hide alerts that are marked as hidden */
+ion-alert.overlay-hidden {
+  display: none !important;
+}
+
 .gts-message-question {
   // Bottone Cancel - grigio con bordo
   .gts-btn-cancel.sc-ion-alert-md {
@@ -410,6 +457,15 @@ app-gts-dash-grid {
     border-radius: 6px !important;
     padding: 8px 16px !important;
     background-color: #00008b !important;
+  }
+}
+
+// Stile per il bottone selezionato (keyboard navigation)
+.gts-message-alert {
+  .button-selected.sc-ion-alert-md {
+    outline: 2px solid #4a90d9 !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.3) !important;
   }
 }
 
@@ -700,6 +756,238 @@ p-datepicker .p-datepicker-next {
 }
 
 /* ============================================
+   AG Grid - Floating Filter Styling
+   ============================================ */
+
+/* Reduce floating filter row height */
+.ag-header-row-floating-filter {
+  height: 32px !important;
+  min-height: 32px !important;
+}
+
+/* IMPORTANT: The floating filter cell structure is:
+   .ag-floating-filter (the cell)
+     .ag-floating-filter-body (contains input - SIBLING of button)
+     .ag-floating-filter-button (contains button - SIBLING of body)
+   So we need to make .ag-floating-filter use flex to properly layout body + button
+*/
+.ag-floating-filter {
+  height: 32px !important;
+  min-height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  padding: 0 4px !important;
+}
+
+/* Floating filter body - takes available space, SHRINKS to fit button */
+.ag-floating-filter-body {
+  flex: 1 1 auto !important;  /* Grow and shrink */
+  min-width: 20px !important;  /* Minimum width - can be very small */
+  max-width: calc(100% - 24px) !important;  /* Leave space for button */
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+
+/* Custom floating filter wrapper (our GtsSetFloatingFilterComponent) */
+.ag-floating-filter-body .gts-floating-filter-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Input inside custom floating filter */
+.ag-floating-filter-body .gts-floating-filter-input {
+  flex: 1 1 auto !important;
+  min-width: 20px !important;
+  height: 22px !important;
+  padding: 2px 4px !important;
+  font-size: 11px !important;
+  border: 1px solid #ddd !important;
+  border-radius: 3px !important;
+  box-sizing: border-box !important;
+}
+
+/* Standard AG Grid floating filter input */
+.ag-floating-filter-body .ag-floating-filter-input {
+  flex: 1 1 auto !important;
+  min-width: 20px !important;
+  height: 24px !important;
+  overflow: hidden !important;
+}
+
+/* Floating filter input text field */
+.ag-floating-filter-body .ag-floating-filter-input input,
+.ag-floating-filter-body .ag-floating-filter-input .ag-input-field-input {
+  height: 22px !important;
+  padding: 2px 4px !important;
+  font-size: 11px !important;
+  border: 1px solid #ddd !important;
+  border-radius: 3px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Filter button - NEVER shrink, always visible (SIBLING of body!) */
+.ag-floating-filter > .ag-floating-filter-button {
+  flex: 0 0 auto !important;  /* Don't grow, don't shrink */
+  margin: 0 !important;
+  width: 20px !important;
+  min-width: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Button element styling */
+.ag-floating-filter > .ag-floating-filter-button button,
+.ag-floating-filter > .ag-floating-filter-button .ag-floating-filter-button-button {
+  margin: 0 !important;
+  padding: 2px !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Center the filter button when no input is present (full body mode) */
+.ag-floating-filter-full-body {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+  width: 100% !important;
+
+  .ag-floating-filter-button {
+    margin: 0 !important;
+    flex: none !important;
+  }
+}
+
+/* Active filter indicator - highlight button when filter is applied */
+.ag-floating-filter.ag-floating-filter-active .ag-floating-filter-button button,
+.ag-floating-filter.ag-floating-filter-active .ag-floating-filter-button .ag-floating-filter-button-button {
+  color: #3880ff !important;
+  background-color: rgba(56, 128, 255, 0.1) !important;
+  border-radius: 3px !important;
+}
+
+/* Also highlight input border when filter text is active */
+.ag-floating-filter.ag-floating-filter-active .ag-floating-filter-input input,
+.ag-floating-filter.ag-floating-filter-active .ag-floating-filter-input .ag-input-field-input {
+  border-color: #3880ff !important;
+}
+
+/* AG Grid Popup - ensure proper positioning */
+.ag-popup,
+.ag-popup-child {
+  z-index: 99999 !important;
+}
+
+/* AG Grid Filter Popup - proper styling with border and shadow */
+.ag-popup-child {
+  background: #ffffff !important;
+  border: 1px solid #babfc7 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+  overflow: visible !important;
+}
+
+/* AG Grid Date Filter Popup Calendar */
+.ag-popup-child .ag-filter,
+.ag-popup-child.ag-custom-component-popup {
+  background: #ffffff !important;
+  border: 1px solid #babfc7 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Date picker calendar panel */
+.ag-picker-field-display,
+.ag-picker-field-wrapper {
+  border: 1px solid #babfc7 !important;
+  border-radius: 4px !important;
+}
+
+/* List popup (for date picker month/year selection) */
+.ag-list.ag-popup-list,
+.ag-select-list {
+  background: #ffffff !important;
+  border: 1px solid #babfc7 !important;
+  border-radius: 4px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* AG Grid Filter wrapper */
+.ag-filter-wrapper {
+  background: #ffffff !important;
+}
+
+/* AG Grid Date Filter - specific styling */
+.ag-filter-body-wrapper {
+  background: #ffffff !important;
+  padding: 8px !important;
+}
+
+/* Date filter input fields */
+.ag-filter-body-wrapper .ag-filter-from,
+.ag-filter-body-wrapper .ag-filter-to {
+  margin-bottom: 8px !important;
+}
+
+/* Input styling inside filter */
+.ag-filter-body-wrapper input[type="text"],
+.ag-filter-body-wrapper .ag-input-field-input {
+  border: 1px solid #babfc7 !important;
+  border-radius: 4px !important;
+  padding: 6px 8px !important;
+}
+
+/* Date/DateTime floating filter - make it compact */
+.ag-floating-filter-body input[type="text"][placeholder*="dd/mm/yyyy"],
+.ag-floating-filter-body input[type="datetime-local"],
+.ag-floating-filter-body input[type="date"] {
+  font-size: 9px !important;
+  padding: 1px 2px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Hide the date/time picker clear button to save space */
+.ag-floating-filter-body input[type="datetime-local"]::-webkit-clear-button,
+.ag-floating-filter-body input[type="date"]::-webkit-clear-button {
+  display: none !important;
+}
+
+/* Make date filter wrapper not exceed column width */
+.ag-date-filter {
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+.ag-date-filter .ag-filter-filter {
+  width: 100% !important;
+}
+
+/* ============================================
+   GTS DatePicker - Always on top of dialogs
+   ============================================ */
+.p-datepicker,
+.p-datepicker-panel {
+  z-index: 299999 !important;
+}
+
+/* Fix datepicker panel visibility inside dialogs */
+.p-datepicker-panel {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  position: absolute !important;
+}
+
+/* ============================================
    GTS Loader - Global Loading State
    ============================================ */
 
@@ -707,11 +995,11 @@ p-datepicker .p-datepicker-next {
 body.gts-loading-active {
   /* Forza tutti i dialog e mask PrimeNG sotto il loader */
   .p-dialog-mask {
-    z-index: 90000 !important;
+    z-index: 199990 !important;
   }
 
   .p-dialog {
-    z-index: 90001 !important;
+    z-index: 199999 !important;
   }
 
   /* Forza tutti gli overlay/popup sotto il loader */
@@ -720,14 +1008,38 @@ body.gts-loading-active {
   .p-overlaypanel,
   .p-tooltip,
   .p-dropdown-panel,
-  .p-select-overlay,
+  .p-select-overlay {
+    z-index: 189999 !important;
+  }
+
+  /* DatePicker panel deve essere sopra i dialog */
   .p-datepicker,
   .p-datepicker-panel {
-    z-index: 89999 !important;
+    z-index: 299999 !important;
   }
 
   /* Il loader overlay deve essere sempre sopra tutto */
   .gts-loader-overlay {
-    z-index: 99999 !important;
+    z-index: 999999 !important;
+  }
+
+  /* Ion-alert deve essere sempre sopra tutto tranne il loader */
+  ion-alert {
+    z-index: 9999999 !important;
+  }
+
+  ion-backdrop {
+    z-index: 9999998 !important;
+  }
+}
+
+/* ============================================
+   GTS Lookup Active - Block interactions
+   ============================================ */
+body.gts-lookup-active {
+  /* Simply disable pointer events on the entire app */
+  /* The dialog is appended to body (outside ion-app) so it's not affected */
+  ion-app {
+    pointer-events: none !important;
   }
 }

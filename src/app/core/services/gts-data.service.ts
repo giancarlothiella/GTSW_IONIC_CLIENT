@@ -260,7 +260,6 @@ export class GtsDataService {
    */
   processAiData(aiData: { type: 'grid' | 'form', data: any, context: any }): void {
     const { type, data, context } = aiData;
-    console.log('[gts-data.service] Processing AI data:', { type, data, context });
 
     if (!context) {
       console.error('[gts-data.service] No context provided for AI data');
@@ -284,7 +283,6 @@ export class GtsDataService {
    * Inserisce le righe AI nella griglia
    */
   private processAiGridData(prjId: string, formId: number, dataSetName: string, gridName: string, rows: any[]): void {
-    console.log('[gts-data.service] Processing AI grid data:', { prjId, formId, dataSetName, rows });
 
     try {
       // Trova il pageData per questa pagina
@@ -312,7 +310,6 @@ export class GtsDataService {
       // REPLACE existing rows (don't append)
       dataSet.rows = newRows;
 
-      console.log('[gts-data.service] Replaced grid data with AI rows:', newRows.length);
 
       // Metti la griglia in modalità edit/insert per permettere modifiche
       this.sendGridReload(dataSetName + ';Insert:true');
@@ -330,7 +327,6 @@ export class GtsDataService {
    * Imposta i valori dei campi form dai dati AI
    */
   private processAiFormData(prjId: string, formId: number, clFldGrpId: number, data: any): void {
-    console.log('[gts-data.service] Processing AI form data:', { prjId, formId, clFldGrpId, data });
 
     try {
       // Trova i pageFields per questo form group
@@ -351,7 +347,6 @@ export class GtsDataService {
 
         if (field) {
           field.value = value;
-          console.log(`[gts-data.service] Set field ${fieldName} = ${value}`);
         } else {
           console.warn(`[gts-data.service] Field not found: ${fieldName}`);
         }
@@ -722,6 +717,20 @@ export class GtsDataService {
     return this.getConnCode();
   }
 
+  /**
+   * Set the changeArray for a grid in the correct location for dataSetPost to read
+   * dataSetPost reads from: metaData[page].pageData.grids[grid].changeArray
+   */
+  setGridChangeArray(prjId: string, formId: number, gridName: string, changeArray: any[]): void {
+    const page = this.metaData.find((p: any) => p.prjId === prjId && p.formId === formId);
+    if (page?.pageData?.grids) {
+      const grid = page.pageData.grids.find((g: any) => g.objectName === gridName);
+      if (grid) {
+        grid.changeArray = changeArray;
+      }
+    }
+  }
+
   getDataSetSelectRow(prjId: string, formId: number, dataAdapter: string, dataSetName: string) {
     const data = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId && data.dataAdapter === dataAdapter);
     if (data !== undefined && data !== null && data.length > 0) {    
@@ -1071,22 +1080,26 @@ export class GtsDataService {
     for (let i = 0; i < changeArray.length; i++) {
       const change = changeArray[i];
       const sqlId = this.getDataSetSqlId(prjId, formId, dataSetName, change.type);
-      if (change.type === 'insert' || change.type === 'update' ) {          
+
+      if (change.type === 'insert' || change.type === 'update' ) {
         valid = await this.execProc(prjId, formId, sqlId, change.dataParams, [], dataSet);
         if (!valid) break;
-      } else {        
+      } else {
         valid = await this.execProc(prjId, formId, sqlId, change.keyParams, [], dataSet);
         if (!valid) break;
       }
     }
 
-    this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-    .pageData
-    .pageFields.forEach((field: any) => {
-      if (field.dataSetName === dataSetName) {
-        field.value = dataSet.selectedRows[0][field.dbFieldName];
-      }
-    });  
+    // Update page fields with selected row values (if any row is selected)
+    if (dataSet?.selectedRows && dataSet.selectedRows.length > 0) {
+      this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+      .pageData
+      .pageFields.forEach((field: any) => {
+        if (field.dataSetName === dataSetName) {
+          field.value = dataSet.selectedRows[0]?.[field.dbFieldName] ?? null;
+        }
+      });
+    }  
 
     return valid;     
   }
@@ -3010,10 +3023,8 @@ export class GtsDataService {
       if (contextType) {
         url += `&contextType=${contextType}`;
       }
-      console.log('[GtsDataService] getAiChatConfigs - calling:', url);
 
       const response: any = await this.http.get(url).toPromise();
-      console.log('[GtsDataService] getAiChatConfigs - response:', response);
 
       if (response && response.valid && response.data) {
         return response.data;

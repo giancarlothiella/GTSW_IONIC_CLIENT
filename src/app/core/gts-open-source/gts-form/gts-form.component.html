@@ -121,7 +121,11 @@
                   dateFormat="dd/mm/yy"
                   [disabled]="element.disabled || element.readOnly"
                   (ngModelChange)="onFieldDataChanged(element, $event)"
-                  [showIcon]="!(element.disabled || element.readOnly)">
+                  [showIcon]="!(element.disabled || element.readOnly)"
+                  [showOnFocus]="false"
+                  [keepInvalid]="true"
+                  (onInput)="onDateInput($event, element)"
+                  class="gts-date-field">
                 </p-datePicker>
                 <label [for]="objectName + '_' + element.fieldId">{{ element.label }}</label>
               </p-floatLabel>

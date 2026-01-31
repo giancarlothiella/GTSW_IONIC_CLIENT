@@ -159,11 +159,14 @@
         </thead>
         <tbody>
           @for (field of originalDataFields; track field.fieldName) {
-            <tr [class.pk-row]="field.isPK">
+            <tr [class.pk-row]="field.isPK" [class.hidden-field]="!field.isInGrid">
               <td class="field-name">
                 {{ field.fieldName }}
                 @if (field.isPK) {
                   <span class="pk-badge">PK</span>
+                }
+                @if (!field.isInGrid) {
+                  <span class="hidden-badge">hidden</span>
                 }
               </td>
               <td class="data-type">{{ field.dataType }}</td>

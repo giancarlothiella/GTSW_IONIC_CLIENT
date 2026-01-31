@@ -9,6 +9,7 @@ import { InputText } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
+import { InputMask } from 'primeng/inputmask';
 import { Checkbox } from 'primeng/checkbox';
 import { RadioButton } from 'primeng/radiobutton';
 import { Button } from 'primeng/button';
@@ -46,6 +47,7 @@ import { GtsLookupComponent } from '../gts-lookup/gts-lookup.component'; // Open
     Textarea,
     Select,
     DatePicker,
+    InputMask,
     Checkbox,
     RadioButton,
     Button,
@@ -131,7 +133,6 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
           // Check if this form is visible in current view before reloading
           const formMeta = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'forms', this.objectName);
           if (formMeta && formMeta.visible) {
-            console.log('[GTS Form] View changed to:', actualView, '- Reloading form data for:', this.objectName);
             this.prepareFormData();
             this.changeDetector.detectChanges();
           }
@@ -190,10 +191,32 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     // Form External Data Listener
     this.formExternalListenerSubs = this.gtsDataService
       .getFormExternalListener()
-      .subscribe((fields) => {
-        if (fields === undefined || fields === null) {
+      .subscribe((data) => {
+        if (data === undefined || data === null) {
           return;
         }
+
+        // Handle clearFields notification (new format with type)
+        if (data.type === 'clearFields') {
+          // Filter by prjId, formId, and groupId to only update this form
+          if (data.prjId !== this.prjId || data.formId !== this.formId || data.groupId !== this.metaData?.groupId) {
+            return;
+          }
+          data.fields.forEach((field: any) => {
+            this.formData
+              .filter((f: any) => f.objectName === field.fieldName)
+              .forEach((formField: any) => {
+                formField.value = field.fieldValue;
+                formField.validated = false;
+                formField.updateFromLookUp = false;
+              });
+          });
+          return;
+        }
+
+        // Handle old format (array of fields) for backward compatibility
+        const fields = Array.isArray(data) ? data : data.fields;
+        if (!fields) return;
 
         fields.forEach((field: any) => {
           this.formData
@@ -237,7 +260,6 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   async toolbarSubmitEvent(event: any) {
     const valid = await this.formValidation();
     if (valid) {
-      console.log('Form is valid, submitting...', this.formData);
       this.formData.forEach((field: any) => {
         // Convert value format depending if dataType is N or D
         if (field.dataType === 'N' && field.value !== undefined && field.value !== null && field.value !== '') {
@@ -747,9 +769,88 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     field.component = { nativeElement: element };
   }
 
+  onDatePickerShow() {
+    this.changeDetector.detectChanges();
+  }
+
+  /**
+   * Format a Date object to dd/mm/yyyy string for InputMask display
+   */
+  formatDateForMask(value: any): string {
+    if (!value) return '';
+
+    let date: Date;
+    if (value instanceof Date) {
+      date = value;
+    } else if (typeof value === 'string') {
+      date = new Date(value);
+    } else {
+      return '';
+    }
+
+    if (isNaN(date.getTime())) return '';
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  /**
+   * Handle date input with automatic slash insertion
+   * User types "01022024" and it becomes "01/02/2024"
+   */
+  onDateInput(event: any, element: any) {
+    const input = event.target as HTMLInputElement;
+    if (!input) return;
+
+    let value = input.value;
+
+    // Remove all non-digit characters except slashes
+    let digits = value.replace(/[^\d]/g, '');
+
+    // Limit to 8 digits (ddmmyyyy)
+    if (digits.length > 8) {
+      digits = digits.substring(0, 8);
+    }
+
+    // Format with slashes
+    let formatted = '';
+    if (digits.length > 0) {
+      formatted = digits.substring(0, Math.min(2, digits.length));
+    }
+    if (digits.length > 2) {
+      formatted += '/' + digits.substring(2, Math.min(4, digits.length));
+    }
+    if (digits.length > 4) {
+      formatted += '/' + digits.substring(4, 8);
+    }
+
+    // Only update if different to avoid cursor jumping
+    if (formatted !== value) {
+      input.value = formatted;
+    }
+
+    // If we have a complete date (8 digits), parse and set it
+    if (digits.length === 8) {
+      const day = parseInt(digits.substring(0, 2), 10);
+      const month = parseInt(digits.substring(2, 4), 10) - 1;
+      const year = parseInt(digits.substring(4, 8), 10);
+
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year) && year > 1900) {
+        const newDate = new Date(year, month, day);
+        if (newDate.getDate() === day && newDate.getMonth() === month) {
+          element.value = newDate;
+          this.onFieldDataChanged(element, newDate);
+        }
+      }
+    }
+  }
+
   onLookUpButtonClick(field: any) {
     if (field !== undefined && field !== null && !(field.readOnly || field.disabled)) {
       this.lookUpField = {
+        formId: this.formId,
         groupId: field.groupId,
         sqlId: field.sqlId,
         fieldName: field.sqlQueryField,
