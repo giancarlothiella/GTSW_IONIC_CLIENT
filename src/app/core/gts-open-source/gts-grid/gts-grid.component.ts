@@ -2437,8 +2437,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Find columns with images
     this.metaData.data.columns.forEach((col: any) => {
       if (col.images && col.images.length > 0) {
-        const caption = col.text || col.fieldName;
-        const fieldName = col.fieldName;
+        const fieldName = col.dataField || col.fieldName;
+        const caption = col.caption || col.text || fieldName;
         this.iconsLegendData.push({
           columnName: `${caption} (${fieldName})`,
           icons: col.images.map((img: any) => ({

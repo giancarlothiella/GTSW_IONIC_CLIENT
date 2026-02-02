@@ -135,6 +135,10 @@ export class LandingPageComponent {
   }
 
   navigateToLogin(): void {
+    // Remove focus from the button before navigation to avoid aria-hidden warning
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     // Navigate to login page with state to track we came from landing
     this.router.navigate(['/login'], { state: { fromLanding: true } });
   }

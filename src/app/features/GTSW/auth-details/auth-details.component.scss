@@ -1,0 +1,33 @@
+:host {
+  display: block;
+  height: 100%;
+  padding: 8px;
+}
+
+/* Override metadata viewStyle to ensure grids are properly sized side-by-side */
+:host > div {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 16px !important;
+  height: calc(100% - 50px) !important;
+}
+
+/* Ensure grids inside the view container have proper sizing */
+::ng-deep app-gts-grid {
+  min-height: 300px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+::ng-deep app-gts-grid .ag-root-wrapper {
+  flex: 1;
+  min-height: 250px;
+}
+
+/* Responsive: stack grids on small screens */
+@media (max-width: 900px) {
+  :host > div {
+    grid-template-columns: 1fr !important;
+  }
+}

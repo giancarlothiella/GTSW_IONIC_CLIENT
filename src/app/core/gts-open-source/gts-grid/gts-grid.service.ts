@@ -214,8 +214,15 @@ export class GtsGridService {
     let selectedRowKeys: any[] = [];
     let totalCount: number | null = null;
 
+    // Filter by dataAdapter first if specified, then by dataSetName
+    // This ensures grids get data from their specific adapter, not from any adapter with matching dataSetName
     pageData
     .forEach((adapter: any) => {
+      // If metaData.dataAdapter is specified, only look in that adapter
+      // Otherwise, search all adapters (backward compatibility)
+      if (metaData.dataAdapter && adapter.dataAdapter !== metaData.dataAdapter) {
+        return; // Skip this adapter
+      }
       adapter.data.forEach((set: any) => {
         if (set.dataSetName === metaData.dataSetName) {
           dataSet = set.rows;

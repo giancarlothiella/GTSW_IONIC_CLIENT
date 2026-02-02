@@ -2325,9 +2325,17 @@ export class GtsDataService {
         });
       } else {
         this.pageData.push(data);
-      }   
+
+        // Trigger grid reload for each dataset in the new adapter
+        // This ensures grids that were waiting for this data will refresh
+        data.data.forEach((dataSet: any) => {
+          if (dataSet.dataSetName) {
+            this.gridReloadListener.next(dataSet.dataSetName);
+          }
+        });
+      }
     }
-    
+
     return valid;
   }
 

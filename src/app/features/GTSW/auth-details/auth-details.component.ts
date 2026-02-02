@@ -113,12 +113,7 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
       [formId]="formId">
     </app-gts-message>
   `,
-  styles: [`
-    :host {
-      display: block;
-      height: 100%;
-    }
-  `]
+  styleUrls: ['./auth-details.component.scss']
 })
 export class AuthDetailsComponent implements OnInit, OnDestroy {
   @Input() nestedFormCargo: any = {};
@@ -476,7 +471,17 @@ export class AuthDetailsComponent implements OnInit, OnDestroy {
     }
 
     const dataAdapter = this.getDataAdapter();
-    this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, dataAdapter, 'qProjects').dbConnections = prjConns;
+    const selectedProject = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, dataAdapter, 'qProjects');
+    selectedProject.dbConnections = prjConns;
+
+    // Also update the project in rows array (selectedRows might be a copy)
+    const allProjects = this.gtsDataService.getDataSet(this.prjId, this.formId, dataAdapter, 'qProjects');
+    if (allProjects) {
+      const projectInRows = allProjects.find((p: any) => p.prjId === selectedProject.prjId);
+      if (projectInRows) {
+        projectInRows.dbConnections = prjConns;
+      }
+    }
   }
 
   private handleConnRemove(connAdapter: string): void {
@@ -489,17 +494,29 @@ export class AuthDetailsComponent implements OnInit, OnDestroy {
 
     // Update project connections
     const prjConns: any[] = [];
-    this.gtsDataService.getDataSet(this.prjId, this.formId, connAdapter, 'qConn')
-      .forEach((conn: any) => {
+    const connData = this.gtsDataService.getDataSet(this.prjId, this.formId, connAdapter, 'qConn');
+    if (connData) {
+      connData.forEach((conn: any) => {
         prjConns.push({
           connCode: conn.connCode,
-          connDefault: conn.connDefault,
+          connDefault: conn.connDefault ?? false,
           dataKey: conn.dataKey
         });
       });
+    }
 
     const dataAdapter = this.getDataAdapter();
-    this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, dataAdapter, 'qProjects').dbConnections = prjConns;
+    const selectedProject = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, dataAdapter, 'qProjects');
+    selectedProject.dbConnections = prjConns;
+
+    // Also update the project in rows array (selectedRows might be a copy)
+    const allProjects = this.gtsDataService.getDataSet(this.prjId, this.formId, dataAdapter, 'qProjects');
+    if (allProjects) {
+      const projectInRows = allProjects.find((p: any) => p.prjId === selectedProject.prjId);
+      if (projectInRows) {
+        projectInRows.dbConnections = prjConns;
+      }
+    }
   }
 
   private handleConnSetDefault(connAdapter: string): void {
@@ -527,7 +544,17 @@ export class AuthDetailsComponent implements OnInit, OnDestroy {
       });
 
     const dataAdapter = this.getDataAdapter();
-    this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, dataAdapter, 'qProjects').dbConnections = prjConns;
+    const selectedProject = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, dataAdapter, 'qProjects');
+    selectedProject.dbConnections = prjConns;
+
+    // Also update the project in rows array (selectedRows might be a copy)
+    const allProjects = this.gtsDataService.getDataSet(this.prjId, this.formId, dataAdapter, 'qProjects');
+    if (allProjects) {
+      const projectInRows = allProjects.find((p: any) => p.prjId === selectedProject.prjId);
+      if (projectInRows) {
+        projectInRows.dbConnections = prjConns;
+      }
+    }
 
     this.gtsDataService.setPageDataSet(this.prjId, this.formId, connAdapter, 'qConn', allConn);
     this.gtsDataService.sendGridReload('qConn');
@@ -558,10 +585,12 @@ export class AuthDetailsComponent implements OnInit, OnDestroy {
   }
 
   private handleSaveAll(): void {
-    // PARAMS
-    if (this.metaData.grids.filter((grid: any) => grid.objectName === 'gtsGridAllParams')[0].data !== undefined) {
+    const dataAdapter = this.getDataAdapter();
+
+    // PARAMS - read from gtsDataService for consistency
+    const allParams = this.gtsDataService.getDataSet(this.prjId, this.formId, 'daAll', 'qAllParams');
+    if (allParams && allParams.length > 0) {
       let detailParams: any = {};
-      const allParams: any[] = this.metaData.grids.filter((grid: any) => grid.objectName === 'gtsGridAllParams')[0].data.dataSource._items;
 
       allParams.forEach((param: any) => {
         if (param.paramType === 'String') {
@@ -590,29 +619,36 @@ export class AuthDetailsComponent implements OnInit, OnDestroy {
       this.gtsDataService.setFieldsValue(this.prjId, this.formId, [{ pageFieldName: 'saveParamJson', value: paramNew }]);
     }
 
-    // ROLES
-    if (this.metaData.grids.filter((grid: any) => grid.objectName === 'gtsGridRoles')[0].data !== undefined) {
+    // ROLES - read from gtsDataService for consistency
+    const roles = this.gtsDataService.getDataSet(this.prjId, this.formId, dataAdapter, 'qRoles');
+    if (roles && roles.length > 0) {
       const detailRoles: any[] = [];
-      this.metaData.grids.filter((grid: any) => grid.objectName === 'gtsGridRoles')[0].data.dataSource._items
-        .forEach((role: any) => {
-          detailRoles.push(role.role);
-        });
+      roles.forEach((role: any) => {
+        detailRoles.push(role.role);
+      });
 
       this.gtsDataService.setFieldsValue(this.prjId, this.formId, [{ pageFieldName: 'saveRolesArray', value: detailRoles }]);
     }
 
-    // PROJECTS
-    if (this.metaData.grids.filter((grid: any) => grid.objectName === 'gtsGridProjects')[0].data !== undefined) {
+    // PROJECTS - read from gtsDataService for consistency (includes updated dbConnections)
+    const projects = this.gtsDataService.getDataSet(this.prjId, this.formId, dataAdapter, 'qProjects');
+    if (projects && projects.length > 0) {
       const detailProjects: any[] = [];
-      this.metaData.grids.filter((grid: any) => grid.objectName === 'gtsGridProjects')[0].data.dataSource._items
-        .forEach((project: any) => {
-          detailProjects.push({
-            prjId: project.prjId,
-            prjDefault: project.prjDefault,
-            description: project.description,
-            dbConnections: project.dbConnections
-          });
+      projects.forEach((project: any) => {
+        // Ensure dbConnections always have connDefault property
+        const dbConnections = project.dbConnections?.map((conn: any) => ({
+          connCode: conn.connCode,
+          dataKey: conn.dataKey,
+          connDefault: conn.connDefault ?? false // Default to false if not set
+        })) || [];
+
+        detailProjects.push({
+          prjId: project.prjId,
+          prjDefault: project.prjDefault,
+          description: project.description,
+          dbConnections: dbConnections
         });
+      });
 
       this.gtsDataService.setFieldsValue(this.prjId, this.formId, [{ pageFieldName: 'saveProjectsArray', value: detailProjects }]);
     }
