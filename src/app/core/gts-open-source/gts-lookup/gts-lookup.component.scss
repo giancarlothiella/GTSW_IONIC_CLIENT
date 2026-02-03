@@ -1,4 +1,5 @@
 // GTS Lookup - PrimeNG Dialog + AG Grid styling
+// ViewEncapsulation.None - styles are global, scoped by class names
 
 .lookup-container {
   display: flex;
@@ -9,7 +10,7 @@
 
 .lookup-grid-panel {
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
   min-height: 0; // Important for flex child scrolling
 }
 
@@ -66,125 +67,202 @@
   }
 }
 
-:host ::ng-deep {
-  // Dialog customization for GTS lookup style
-  .p-dialog {
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+// Dialog customization for GTS lookup style (scoped by styleClass)
+.gts-lookup-dialog {
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 
-    .p-dialog-header {
-      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-      color: #ffffff;
-      border-radius: 8px 8px 0 0;
-      padding: 12px 16px;
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 0.3px;
-    }
-
-    .p-dialog-content {
-      padding: 0;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      height: calc(100% - 50px); // Subtract header height
-    }
+  .p-dialog-header {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: #ffffff;
+    border-radius: 8px 8px 0 0;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
   }
 
-  // Modal overlay
-  .p-dialog-mask {
-    background-color: rgba(0, 0, 0, 0.4);
+  .p-dialog-content {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 50px); // Subtract header height
+  }
+}
+
+// AG Grid styling dentro il lookup - identico a gts-grid
+// Scoped to .gts-lookup-grid with high specificity to override ag-theme-material
+.gts-lookup-grid.ag-theme-material {
+  // Header styling
+  .ag-header {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    min-height: 32px !important;
+    height: 32px !important;
   }
 
-  // AG Grid styling dentro il lookup - identico a gts-grid
-  .gts-lookup-grid {
-    // Bordi verticali tra colonne
-    .ag-header-cell {
-      border-right: 1px solid #ddd !important;
+  .ag-header-row {
+    height: 32px !important;
+    min-height: 32px !important;
+  }
 
-      &:last-child {
-        border-right: none !important;
-      }
-    }
+  .ag-header-cell {
+    font-size: 12px !important;
+    border-right: 1px solid #ddd !important;
+    padding: 0 8px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .ag-header-cell-text {
+    font-size: 12px !important;
+  }
+
+  // Cell styling
+  .ag-cell {
+    font-size: 12px !important;
+    line-height: 28px !important;
+    padding: 0 8px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    border-right: 1px solid #ddd !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+}
+
+// Extra specificity for column borders - target all possible containers
+.gts-lookup-grid .ag-header-cell,
+.gts-lookup-grid .ag-cell,
+.gts-lookup-dialog .ag-header-cell,
+.gts-lookup-dialog .ag-cell,
+.gts-lookup-grid .ag-ltr .ag-header-cell,
+.gts-lookup-grid .ag-ltr .ag-cell {
+  border-right: 1px solid #ddd !important;
+}
+
+// AG Grid CSS custom properties for borders
+.gts-lookup-grid {
+  --ag-cell-horizontal-border: 1px solid #ddd;
+  --ag-header-column-separator-display: block;
+  --ag-header-column-separator-color: #ddd;
+  --ag-header-column-separator-width: 1px;
+  --ag-header-column-separator-height: 100%;
+}
+
+// Continue main selector
+.gts-lookup-grid.ag-theme-material {
+
+  // Row styling - force exact height
+  .ag-row {
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    border-bottom: 1px solid #e9ecef !important;
+    cursor: pointer !important;
+  }
+
+  // Override material theme row height variable
+  .ag-center-cols-container .ag-row,
+  .ag-body-viewport .ag-row {
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+  }
+
+  // Selected row styling - GTS style with left blue border
+  .ag-row-selected {
+    background-color: #e8f4fd !important;
+    border-left: 4px solid #00008b !important;
+    box-shadow: inset 0 0 0 1px #00008b !important;
+    height: 28px !important;
 
     .ag-cell {
-      border-right: 1px solid #e9ecef !important;
-
-      &:last-child {
-        border-right: none !important;
-      }
-    }
-
-    // Rows
-    .ag-row {
-      border-bottom: 1px solid #e9ecef !important;
-      cursor: pointer !important;
-    }
-
-    // Selected row styling - GTS style with left blue border
-    .ag-row-selected {
       background-color: #e8f4fd !important;
-      border-left: 4px solid #00008b !important;
-      box-shadow: inset 0 0 0 1px #00008b !important;
+      color: #000 !important;
+      font-weight: 500 !important;
+    }
+
+    &:hover {
+      background-color: #d0e9f7 !important;
 
       .ag-cell {
-        background-color: #e8f4fd !important;
-        color: #000 !important;
-        font-weight: 500 !important;
-      }
-
-      &:hover {
         background-color: #d0e9f7 !important;
-
-        .ag-cell {
-          background-color: #d0e9f7 !important;
-        }
       }
-    }
-
-    // Row hover (only for non-selected rows)
-    .ag-row:not(.ag-row-selected):hover {
-      background-color: #f5f5f5 !important;
-    }
-
-    // Pagination panel con stile GTS
-    .ag-paging-panel {
-      border-top: 2px solid #00008b !important;
-      background-color: #f8f9fa !important;
-      font-size: 12px !important;
-      padding: 8px 12px !important;
-      min-height: 40px !important;
-      display: flex !important;
-      align-items: center !important;
-    }
-
-    .ag-paging-button {
-      min-width: 28px !important;
-      height: 28px !important;
-      margin: 0 2px !important;
-      border-radius: 4px !important;
-      border: 1px solid #ddd !important;
-      background-color: #fff !important;
-
-      &:hover:not(:disabled) {
-        background-color: #f0f0f0 !important;
-        border-color: #00008b !important;
-      }
-
-      &:disabled {
-        opacity: 0.4 !important;
-      }
-    }
-
-    .ag-paging-page-summary-panel {
-      font-size: 12px !important;
-      color: #333 !important;
-      margin: 0 8px !important;
-    }
-
-    .ag-paging-row-summary-panel {
-      font-size: 12px !important;
-      color: #666 !important;
     }
   }
+
+  // Row hover (only for non-selected rows)
+  .ag-row:not(.ag-row-selected):hover {
+    background-color: #f5f5f5 !important;
+  }
+
+  // Pagination panel con stile GTS
+  .ag-paging-panel {
+    border-top: 2px solid #00008b !important;
+    background-color: #f8f9fa !important;
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+    min-height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .ag-paging-button {
+    min-width: 28px !important;
+    height: 28px !important;
+    margin: 0 2px !important;
+    border-radius: 4px !important;
+    border: 1px solid #ddd !important;
+    background-color: #fff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    &:hover:not(:disabled) {
+      background-color: #f0f0f0 !important;
+      border-color: #00008b !important;
+    }
+
+    &:disabled {
+      opacity: 0.4 !important;
+    }
+  }
+
+  .ag-paging-page-summary-panel {
+    font-size: 12px !important;
+    color: #333 !important;
+    margin: 0 8px !important;
+  }
+
+  .ag-paging-row-summary-panel {
+    font-size: 12px !important;
+    color: #666 !important;
+  }
+
+  // Page size selector - più spazio per il numero
+  .ag-paging-page-size {
+    .ag-picker-field-wrapper {
+      min-width: 58px !important;
+      display: flex !important;
+      align-items: center !important;
+      padding-right: 4px !important;
+    }
+
+    .ag-picker-field-display {
+      padding-right: 4px !important;
+    }
+
+    .ag-picker-field-icon {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      margin-left: 2px !important;
+    }
+  }
+
+  // Force row height on all AG Grid internal elements
+  --ag-row-height: 28px !important;
+  --ag-header-height: 32px !important;
 }

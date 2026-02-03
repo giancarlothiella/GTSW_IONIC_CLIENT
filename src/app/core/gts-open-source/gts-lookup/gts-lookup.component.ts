@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ChangeDetectorRef, NgZone, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GtsDataService } from '../../services/gts-data.service';
 import { AppInfoService } from '../../services/app-info.service';
@@ -16,7 +16,8 @@ import { ToastModule } from 'primeng/toast';
   imports: [CommonModule, DialogModule, AgGridAngular, IonToolbar, IonButtons, IonButton, ToastModule],
   templateUrl: './gts-lookup.component.html',
   styleUrls: ['./gts-lookup.component.scss'],
-  providers: [MessageService]
+  providers: [MessageService],
+  encapsulation: ViewEncapsulation.None  // Required because dialog uses appendTo="body"
 })
 
 export class GtsLookupComponent implements OnInit, OnDestroy {
@@ -49,6 +50,9 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
   textOK: string = 'OK';
   textCancel: string = 'Cancel';
 
+  // STATIC flag shared across ALL instances to prevent multiple dialogs
+  private static isAnyLookupProcessing = false;
+
   //========= ON INIT =================
   ngOnInit() {
     // Get Standard Multilanguage Texts
@@ -69,6 +73,24 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
     this.formLookUpListenerSubs = this.gtsDataService
     .getLookUpListener()
     .subscribe((field) => {
+      console.log('[GtsLookup DEBUG] Received lookup event:', field.formId, 'my formId:', this.formId, 'isProcessing:', GtsLookupComponent.isAnyLookupProcessing);
+
+      // Filter: only process if this lookup belongs to our form
+      if (field.formId !== this.formId) {
+        console.log('[GtsLookup DEBUG] Skipped - formId mismatch');
+        return;
+      }
+
+      // Skip if ANY lookup is already processing (shared static flag)
+      if (GtsLookupComponent.isAnyLookupProcessing) {
+        console.log('[GtsLookup DEBUG] Skipped - another lookup is processing');
+        return;
+      }
+
+      // IMPORTANT: Set STATIC flag IMMEDIATELY to prevent other instances from processing
+      GtsLookupComponent.isAnyLookupProcessing = true;
+      this.lookUpReady = true;
+
       // Run inside NgZone to ensure proper change detection in production
       this.ngZone.run(() => {
         this.lookUpField = field;
@@ -80,13 +102,15 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
         if (this.lookUpField.rows === undefined) {
           if (this.gridName !== "") {
             this.popUpVisible = false;
+            this.lookUpReady = false; // Reset since we're not showing
+            GtsLookupComponent.isAnyLookupProcessing = false; // Reset static flag
             this.cd.detectChanges();
           } else {
             this.getLookUpData();
             this.gridData.grid = false;
             this.gridData.gridName = undefined
             this.gridData.gridColumn = undefined;
-            // Note: popUpVisible and lookUpReady will be set in getLookUpData after data loads
+            // Note: popUpVisible will be set in getLookUpData after data loads
           }
         } else if (this.gridName !== undefined && this.gridColumn !== undefined && this.gridName !== "" && this.gridColumn !== "" &&
           ((this.gridData.gridName === undefined && this.gridData.gridColumn === undefined) || (this.gridData.gridName === this.gridName))) {
@@ -97,6 +121,9 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
           this.gridData.gridColumn = this.gridColumn;
           this.popUpVisible = true;
           this.lookUpReady = true;
+          // Add class to body to block interactions with form behind
+          document.body.classList.add('gts-lookup-active');
+          console.log('[GtsLookup DEBUG] Opening popup, popUpVisible:', this.popUpVisible, 'lookUpReady:', this.lookUpReady);
           this.cd.detectChanges();
         }
       });
@@ -109,6 +136,11 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
       this.formLookUpListenerSubs.unsubscribe();
     }
     this.lookUpReady = false;
+    // IMPORTANT: Reset static flag when component is destroyed (e.g., navigation)
+    // This prevents blocking lookups on other pages
+    GtsLookupComponent.isAnyLookupProcessing = false;
+    // Also remove body class if it was set
+    document.body.classList.remove('gts-lookup-active');
   }
 
   //========= GLOBAL DATA =================
@@ -153,6 +185,8 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
     this.ngZone.run(() => {
       this.popUpVisible = true;
       this.lookUpReady = true;
+      // Add class to body to block interactions with form behind
+      document.body.classList.add('gts-lookup-active');
       this.cd.detectChanges();
     });
   }
@@ -297,8 +331,45 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
       data: rowData
     };
 
+    this.closeLookup();
+    this.newLookUpEvent.emit(data);
+  }
+
+  /**
+   * Cancel button click - close lookup without emitting data
+   */
+  onCancelClick() {
+    this.closeLookup();
+  }
+
+  /**
+   * Called when dialog is hidden (by any means)
+   */
+  onDialogHide() {
+    // Reset state when dialog closes
+    this.lookUpReady = false;
+    this.selectedRows = [];
+    this.isSelected = false;
+    // Reset static flag so other lookups can be opened
+    GtsLookupComponent.isAnyLookupProcessing = false;
+    // Remove body class
+    document.body.classList.remove('gts-lookup-active');
+  }
+
+  /**
+   * Properly close and reset the lookup dialog
+   */
+  private closeLookup() {
     this.popUpVisible = false;
     this.lookUpReady = false;
-    this.newLookUpEvent.emit(data);
+    this.selectedRows = [];
+    this.isSelected = false;
+    this.rowData = [];
+    this.columnDefs = [];
+    // Reset static flag so other lookups can be opened
+    GtsLookupComponent.isAnyLookupProcessing = false;
+    // Remove body class
+    document.body.classList.remove('gts-lookup-active');
+    this.cd.detectChanges();
   }
 }

@@ -259,6 +259,9 @@
       border-radius: 4px !important;
       border: 1px solid #ddd !important;
       background-color: #fff !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
 
       &:hover:not(:disabled) {
         background-color: #f0f0f0 !important;
@@ -279,6 +282,27 @@
     .ag-paging-row-summary-panel {
       font-size: 12px !important;
       color: #666 !important;
+    }
+
+    // Page size selector - più spazio per il numero
+    .ag-paging-page-size {
+      .ag-picker-field-wrapper {
+        min-width: 58px !important;
+        display: flex !important;
+        align-items: center !important;
+        padding-right: 4px !important;
+      }
+
+      .ag-picker-field-display {
+        padding-right: 4px !important;
+      }
+
+      .ag-picker-field-icon {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-left: 2px !important;
+      }
     }
 
     // Multiline cell styling (columnType: "B")
