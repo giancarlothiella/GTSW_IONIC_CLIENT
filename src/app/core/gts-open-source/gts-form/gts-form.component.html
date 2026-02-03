@@ -26,19 +26,20 @@
             <div
               [style]="element.style"
               [class]="element.cssClass">
-              <label class="form-field-label">{{ element.label }}</label>
-              <div class="radio-group-container">
+              <label class="form-field-label" style="display: block; margin-bottom: 8px; padding-left: 6px; padding-top: 4px;">{{ element.label }}</label>
+              <div class="radio-group-container" style="display: flex; flex-direction: column; gap: 4px; margin-left: 6px;">
                 @for (option of element.radioValues; track option.id) {
-                  <div class="radio-item">
-                    <p-radioButton
+                  <div class="radio-item" style="display: flex; align-items: center; gap: 6px;">
+                    <p-radiobutton
                       [inputId]="element.objectName + '_' + option.id"
                       [name]="element.objectName"
                       [value]="option.value"
                       [(ngModel)]="element.value"
-                      [disabled]="element.readOnly || element.disabled"
-                      (ngModelChange)="onFieldDataChanged(element, $event)">
-                    </p-radioButton>
-                    <label [for]="element.objectName + '_' + option.id" class="radio-label">
+                      (ngModelChange)="onFieldDataChanged(element, $event)"
+                      [style.opacity]="(element.readOnly || element.disabled) ? 0.6 : 1"
+                      [style.pointer-events]="(element.readOnly || element.disabled) ? 'none' : 'auto'">
+                    </p-radiobutton>
+                    <label [for]="element.objectName + '_' + option.id" class="radio-label" style="margin: 0; cursor: pointer; font-size: 12px;">
                       {{ option.text }}
                     </label>
                   </div>

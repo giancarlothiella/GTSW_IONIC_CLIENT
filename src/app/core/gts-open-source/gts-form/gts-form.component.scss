@@ -79,7 +79,8 @@
   textarea,
   .p-select,
   .p-datepicker {
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
     background-color: rgb(234, 235, 247);
   }
 
@@ -100,6 +101,8 @@
   textarea,
   .p-select,
   .p-datepicker {
+    width: 100% !important;
+    max-width: 100% !important;
     background-color: #ffebee;
     border-color: #d32f2f !important;
   }
@@ -123,6 +126,8 @@
 
   input,
   textarea {
+    width: 100% !important;
+    max-width: 100% !important;
     background-color: rgb(187, 214, 240);
     color: rgb(23, 36, 155);
     font-weight: 500;
@@ -182,70 +187,17 @@
   }
 }
 
-// Radio Group
+// Radio Group styles (PrimeNG) - layout handled via inline styles due to encapsulation
 .form001RadioGroup {
   background-color: rgb(234, 235, 247);
   padding: 6px;
   margin-bottom: 4px;
-
-  .form-field-label {
-    display: block;
-    font-size: 12px;
-    color: #333;
-    margin-bottom: 4px;
-    font-weight: 500;
-  }
-
-  .radio-group-container {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .radio-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .radio-label {
-    margin: 0;
-    cursor: pointer;
-    font-size: 12px;
-  }
 }
 
 .form001RadioGroupPKField {
   background-color: rgb(187, 214, 240);
   padding: 6px;
   margin-bottom: 4px;
-
-  .form-field-label {
-    display: block;
-    font-size: 12px;
-    color: rgb(23, 36, 155);
-    margin-bottom: 4px;
-    font-weight: 600;
-  }
-
-  .radio-group-container {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .radio-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .radio-label {
-    margin: 0;
-    cursor: pointer;
-    font-size: 12px;
-    color: rgb(23, 36, 155);
-  }
 }
 
 // Group Header - use ::ng-deep for stronger specificity
@@ -293,6 +245,8 @@
     padding: 4px 6px;
     font-size: 12px;
     height: 26px;
+    width: 100% !important;
+    max-width: 100% !important;
     border: 1px solid #ced4da;
     border-radius: 2px;
     box-sizing: border-box;
@@ -459,6 +413,8 @@
   .p-floatlabel {
     margin-bottom: 0;
     position: relative;
+    width: 100%;
+    display: block;
 
     // Base label style - centered inside field when empty
     label {

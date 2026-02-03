@@ -9,7 +9,6 @@ import { InputText } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
-import { InputMask } from 'primeng/inputmask';
 import { Checkbox } from 'primeng/checkbox';
 import { RadioButton } from 'primeng/radiobutton';
 import { Button } from 'primeng/button';
@@ -47,7 +46,6 @@ import { GtsLookupComponent } from '../gts-lookup/gts-lookup.component'; // Open
     Textarea,
     Select,
     DatePicker,
-    InputMask,
     Checkbox,
     RadioButton,
     Button,
@@ -340,7 +338,8 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         disabled: this.metaData.fields[i].initAsDisabled || this.metaData.fields[i].disabled,
         readOnly: this.metaData.fields[i].initAsReadOnly || this.metaData.fields[i].readOnly,
         gridArea: this.metaData.fields[i].gridArea,
-        value: this.gtsDataService.getPageFieldValue(this.prjId, this.formId, this.metaData.fields[i].objectName),
+        value: this.gtsDataService.getPageFieldValue(this.prjId, this.formId, this.metaData.fields[i].objectName)
+               ?? this.metaData.fields[i].value,  // Fallback to metadata value if pageFieldValue is null
         sqlId: this.metaData.fields[i].sqlId,
         columns: this.metaData.fields[i].columns,
         sqlKeys: this.metaData.fields[i].sqlKeys,
@@ -485,30 +484,42 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
           field.value = null;
         }
         let radioDefault = this.metaData.fields[i].defaultValue.split(';');
-        radioDefault[1] = radioDefault[1].split(',');
+        radioDefault[1] = radioDefault[1].split(',').map((v: string) => v.trim()); // Trim whitespace from values
         let radioValues: any[] = [];
 
         for (let j = 0; j < this.metaData.fields[i].details.length; j++) {
+          const optionValue = radioDefault[1][j] !== undefined ? radioDefault[1][j].trim() : String(j);
           let radioValue: any = {
             id: j,
-            value: radioDefault[1][j],
+            value: optionValue,
             text: this.metaData.fields[i].details[j].pageFieldLabel
           };
           radioValues.push(radioValue);
         }
         field.radioValues = radioValues;
 
-        if (field.value === undefined || field.value === null) {
-          field.radioIndex = field.radioValues.findIndex((element: any) => element.value === radioDefault[0]);
+        // Trim and convert field.value for comparison
+        const fieldValueStr = field.value !== undefined && field.value !== null ? String(field.value).trim() : null;
+
+        if (fieldValueStr === null) {
+          field.radioIndex = field.radioValues.findIndex((element: any) => String(element.value).trim() === String(radioDefault[0]).trim());
         } else {
-          field.radioIndex = field.radioValues.findIndex((element: any) => element.value === field.value);
+          // Convert field.value to string for comparison (database may return number, radioValues are strings from split)
+          field.radioIndex = field.radioValues.findIndex((element: any) => String(element.value).trim() === fieldValueStr);
         }
 
         if (this.metaData.fields[i].isPK) {
           field.cssClass = this.metaData.cssClass + 'PKField';
         }
 
-        field.value = field.radioValues[field.radioIndex].value;
+        // Set field.value to the string value from radioValues (ensures type consistency with PrimeNG RadioButton)
+        if (field.radioIndex >= 0 && field.radioValues[field.radioIndex]) {
+          field.value = field.radioValues[field.radioIndex].value;
+        } else {
+          // Fallback to first option if value not found
+          field.radioIndex = 0;
+          field.value = field.radioValues[0]?.value;
+        }
       }
 
       if (this.metaData.fields[i].visible !== undefined && this.metaData.fields[i].visible !== null) {
@@ -579,6 +590,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.showPopUp) {
       this.formReady = true;
     }
+
   }
 
   onFieldInput(event: any, element: any) {
@@ -771,29 +783,6 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onDatePickerShow() {
     this.changeDetector.detectChanges();
-  }
-
-  /**
-   * Format a Date object to dd/mm/yyyy string for InputMask display
-   */
-  formatDateForMask(value: any): string {
-    if (!value) return '';
-
-    let date: Date;
-    if (value instanceof Date) {
-      date = value;
-    } else if (typeof value === 'string') {
-      date = new Date(value);
-    } else {
-      return '';
-    }
-
-    if (isNaN(date.getTime())) return '';
-
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
   }
 
   /**
