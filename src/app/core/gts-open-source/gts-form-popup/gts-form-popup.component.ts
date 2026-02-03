@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GtsDataService } from '../../services/gts-data.service';
 import { AppInfoService } from '../../services/app-info.service';
@@ -17,7 +17,8 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule, DialogModule, GtsFormComponent],
   templateUrl: './gts-form-popup.component.html',
-  styleUrls: ['./gts-form-popup.component.scss']
+  styleUrls: ['./gts-form-popup.component.scss'],
+  encapsulation: ViewEncapsulation.None  // Required because dialog uses appendTo="body"
 })
 export class GtsFormPopupComponent implements OnInit, OnDestroy {
 

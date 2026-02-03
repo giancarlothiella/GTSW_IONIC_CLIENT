@@ -1,6 +1,15 @@
 // GTS Lookup - PrimeNG Dialog + AG Grid styling
 // ViewEncapsulation.None - styles are global, scoped by class names
 
+// Modal mask - ensure it blocks all content below
+.gts-modal-mask {
+  position: fixed !important;
+  inset: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  z-index: 10000 !important;
+  pointer-events: all !important;
+}
+
 .lookup-container {
   display: flex;
   flex-direction: column;
@@ -69,6 +78,7 @@
 
 // Dialog customization for GTS lookup style (scoped by styleClass)
 .gts-lookup-dialog {
+  z-index: 10001 !important;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 

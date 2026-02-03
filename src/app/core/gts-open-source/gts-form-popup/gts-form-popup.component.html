@@ -2,12 +2,15 @@
   [(visible)]="visible"
   [header]="formTitle"
   [modal]="!actionsDebugActive"
+  [blockScroll]="!actionsDebugActive"
+  [closeOnEscape]="false"
   [closable]="false"
   [draggable]="true"
   [resizable]="false"
   [appendTo]="'body'"
+  styleClass="gts-form-popup-dialog"
+  [maskStyleClass]="actionsDebugActive ? '' : 'gts-modal-mask'"
   [style]="{width: formWidth + 'px', height: formHeight + 'px'}"
-  [baseZIndex]="1000"
   (onShow)="onShow()"
   (onHide)="onHide()">
   <app-gts-form
