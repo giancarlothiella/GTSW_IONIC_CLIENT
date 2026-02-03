@@ -322,3 +322,118 @@ ion-toolbar.form001Toolbar {
     --opacity: 1 !important;
   }
 }
+
+// ============================================
+// Task List Mode (flagPopover = true)
+// ============================================
+.gts-task-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  background: white;
+}
+
+.task-group {
+  display: flex;
+  flex-direction: row;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid #ddd;
+  }
+}
+
+// Vertical Group Label (rotated 90°)
+.task-group-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  min-width: 28px;
+  padding: 8px 4px;
+  background-color: #00838f; // Default teal, overridden by groupColor
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.task-group-text {
+  white-space: nowrap;
+}
+
+// Task Items Container
+.task-items {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+// Individual Task Item
+.task-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid #eee;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover:not(.task-item-disabled) {
+    background-color: #f5f5f5;
+  }
+
+  &.task-item-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.task-item-checked {
+    background-color: #e8f5e9;
+
+    .task-text {
+      color: #2e7d32;
+    }
+  }
+}
+
+// Checkbox
+.task-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  cursor: pointer;
+  accent-color: #00838f;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+// Task Icon
+.task-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  object-fit: contain;
+}
+
+.task-icon-ion {
+  font-size: 20px;
+  margin-right: 8px;
+  color: #666;
+}
+
+// Task Text
+.task-text {
+  font-size: 13px;
+  color: #333;
+  flex: 1;
+}

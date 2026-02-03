@@ -72,6 +72,10 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
   startItems: any[] = [];
   endItems: any[] = [];
 
+  // Task List mode (flagPopover = true)
+  isTaskList: boolean = false;
+  taskListGroups: { groupText: string; groupColor: string; items: any[] }[] = [];
+
   constructor() {
     // Ionic standalone components non richiedono registrazione manuale delle icone
   }
@@ -162,6 +166,10 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
     this.startItems = [];
     this.endItems = [];
 
+    // Check if this toolbar should render as Task List
+    this.isTaskList = this.metaData.flagPopover === true;
+    this.taskListGroups = [];
+
     // Raccogli tutti gli items da processare
     let allItems: any[] = [...this.metaData.itemsList];
 
@@ -238,6 +246,30 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
 
     // Check se toolbar ha items visibili
     this.toolbarVisible = this.itemsList.filter((element: any) => element.visible).length > 0;
+
+    // If Task List mode, group items by groupText
+    if (this.isTaskList) {
+      this.prepareTaskListGroups();
+    }
+  }
+
+  /**
+   * Groups items by groupText for Task List rendering
+   */
+  prepareTaskListGroups(): void {
+    const groupMap = new Map<string, { groupText: string; groupColor: string; items: any[] }>();
+
+    for (const item of this.itemsList) {
+      const groupText = item.groupText || 'Default';
+      const groupColor = item.groupColor || '#00838f'; // Default teal color
+
+      if (!groupMap.has(groupText)) {
+        groupMap.set(groupText, { groupText, groupColor, items: [] });
+      }
+      groupMap.get(groupText)!.items.push(item);
+    }
+
+    this.taskListGroups = Array.from(groupMap.values());
   }
 
   prepareItem(item: any, icon: string, customData: any): any | null {
@@ -266,6 +298,13 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       actionToolbar = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'toolbars', item.actionTarget);
     }
 
+    // Get checkbox value for Task List mode (from pageFieldName/dbField)
+    let checkboxValue = false;
+    if (item.pageFieldName) {
+      const fieldValue = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, item.pageFieldName);
+      checkboxValue = fieldValue === true || fieldValue === 1 || fieldValue === '1' || fieldValue === 'Y';
+    }
+
     return {
       type: 'button',
       objectName: item.objectName,
@@ -277,7 +316,12 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       submitBehavior: item.submitBehavior,
       actionName: item.actionName,
       actionToolbar: actionToolbar,
-      location: item.location
+      location: item.location,
+      // Task List properties
+      groupText: item.groupText || '',
+      groupColor: item.groupColor || '',
+      pageFieldName: item.pageFieldName || '',
+      checked: checkboxValue
     };
   }
 
@@ -455,5 +499,39 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       '10': 'search-outline'
     };
     return iconMap[stdImageId] || null;
+  }
+
+  // ============================================
+  // Task List Methods
+  // ============================================
+
+  /**
+   * Handle task item click - runs the action
+   */
+  onTaskItemClick(item: any): void {
+    if (!item.disabled && item.actionName) {
+      this.gtsDataService.runAction(this.prjId, this.formId, item.actionName);
+    }
+  }
+
+  /**
+   * Handle checkbox change in task list
+   * Updates the pageField value in the dataset
+   */
+  onTaskCheckboxChange(item: any, event: Event): void {
+    event.stopPropagation(); // Prevent triggering onTaskItemClick
+
+    if (item.pageFieldName) {
+      const newValue = !item.checked;
+      item.checked = newValue;
+
+      // Update the field value in the dataset
+      this.gtsDataService.setPageFieldValue(
+        this.prjId,
+        this.formId,
+        item.pageFieldName,
+        newValue
+      );
+    }
   }
 }

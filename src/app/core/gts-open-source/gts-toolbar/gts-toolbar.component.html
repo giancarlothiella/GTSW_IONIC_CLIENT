@@ -1,12 +1,84 @@
 @if (toolbarReady && objectName === metaData.objectName && toolbarVisible) {
-  <ion-toolbar [ngClass]="cssClass">
-    <!-- Elementi centrali (titoli e fields) -->
-    @if (centerItems.length > 0) {
-      <div class="center-items">
-        @for (item of centerItems; track item.objectName) {
-          @if (item.type === 'title') {
-            <span class="toolbar-title">{{ item.text }}</span>
+  <!-- Task List Mode (flagPopover = true) -->
+  @if (isTaskList) {
+    <div class="gts-task-list">
+      @for (group of taskListGroups; track group.groupText) {
+        <div class="task-group">
+          <!-- Vertical Group Label -->
+          <div class="task-group-label" [style.background-color]="group.groupColor">
+            <span class="task-group-text">{{ group.groupText }}</span>
+          </div>
+          <!-- Task Items -->
+          <div class="task-items">
+            @for (item of group.items; track item.objectName) {
+              <div
+                class="task-item"
+                [class.task-item-disabled]="item.disabled"
+                [class.task-item-checked]="item.checked"
+                (click)="onTaskItemClick(item)">
+                <!-- Checkbox -->
+                <input
+                  type="checkbox"
+                  class="task-checkbox"
+                  [checked]="item.checked"
+                  [disabled]="item.disabled"
+                  (click)="onTaskCheckboxChange(item, $event)"
+                  (change)="$event.stopPropagation()" />
+                <!-- Icon -->
+                @if (item.icon) {
+                  <img [src]="item.icon" class="task-icon" />
+                } @else if (item.ionIcon) {
+                  <ion-icon [name]="item.ionIcon" class="task-icon-ion"></ion-icon>
+                }
+                <!-- Text -->
+                <span class="task-text">{{ item.text }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Standard Toolbar Mode -->
+    <ion-toolbar [ngClass]="cssClass">
+      <!-- Elementi centrali (titoli e fields) -->
+      @if (centerItems.length > 0) {
+        <div class="center-items">
+          @for (item of centerItems; track item.objectName) {
+            @if (item.type === 'title') {
+              <span class="toolbar-title">{{ item.text }}</span>
+            }
+            @if (item.type === 'field') {
+              <span class="toolbar-field">
+                @if (item.label) {
+                  <strong>{{ item.label }}:</strong>
+                }
+                {{ item.value }}
+              </span>
+            }
           }
+        </div>
+      }
+
+      <!-- Bottoni e controlli a sinistra (start) -->
+      <ion-buttons slot="start">
+        @for (item of startItems; track item.objectName) {
+          <!-- Button -->
+          @if (item.type === 'button') {
+            <ion-button
+              [disabled]="item.disabled"
+              (click)="onButtonClick(item, $event)"
+            >
+              @if (item.ionIcon) {
+                <ion-icon [name]="item.ionIcon" slot="start"></ion-icon>
+              } @else if (item.icon) {
+                <img [src]="item.icon" class="button-icon" />
+              }
+              {{ item.text }}
+            </ion-button>
+          }
+
+          <!-- Field (read-only) -->
           @if (item.type === 'field') {
             <span class="toolbar-field">
               @if (item.label) {
@@ -15,102 +87,72 @@
               {{ item.value }}
             </span>
           }
-        }
-      </div>
-    }
 
-    <!-- Bottoni e controlli a sinistra (start) -->
-    <ion-buttons slot="start">
-      @for (item of startItems; track item.objectName) {
-        <!-- Button -->
-        @if (item.type === 'button') {
-          <ion-button
-            [disabled]="item.disabled"
-            (click)="onButtonClick(item, $event)"
-          >
-            @if (item.ionIcon) {
-              <ion-icon [name]="item.ionIcon" slot="start"></ion-icon>
-            } @else if (item.icon) {
-              <img [src]="item.icon" class="button-icon" />
-            }
-            {{ item.text }}
-          </ion-button>
+          <!-- Dropdown -->
+          @if (item.type === 'dropdown') {
+            <ion-select
+              [value]="item.value"
+              [label]="item.label"
+              [disabled]="item.disabled"
+              (ionChange)="onDropdownChange($event, item)"
+              interface="popover"
+            >
+              @for (option of item.items; track $index) {
+                <ion-select-option [value]="option[item.field]">
+                  {{ option[item.field] }}
+                </ion-select-option>
+              }
+            </ion-select>
+          }
         }
+      </ion-buttons>
 
-        <!-- Field (read-only) -->
-        @if (item.type === 'field') {
-          <span class="toolbar-field">
-            @if (item.label) {
-              <strong>{{ item.label }}:</strong>
-            }
-            {{ item.value }}
-          </span>
-        }
+      <!-- Bottoni e controlli a destra (end) -->
+      <ion-buttons slot="end">
+        @for (item of endItems; track item.objectName) {
+          <!-- Button -->
+          @if (item.type === 'button') {
+            <ion-button
+              [disabled]="item.disabled"
+              (click)="onButtonClick(item, $event)"
+            >
+              @if (item.ionIcon) {
+                <ion-icon [name]="item.ionIcon" slot="start"></ion-icon>
+              } @else if (item.icon) {
+                <img [src]="item.icon" class="button-icon" />
+              }
+              {{ item.text }}
+            </ion-button>
+          }
 
-        <!-- Dropdown -->
-        @if (item.type === 'dropdown') {
-          <ion-select
-            [value]="item.value"
-            [label]="item.label"
-            [disabled]="item.disabled"
-            (ionChange)="onDropdownChange($event, item)"
-            interface="popover"
-          >
-            @for (option of item.items; track $index) {
-              <ion-select-option [value]="option[item.field]">
-                {{ option[item.field] }}
-              </ion-select-option>
-            }
-          </ion-select>
-        }
-      }
-    </ion-buttons>
+          <!-- Field (read-only) -->
+          @if (item.type === 'field') {
+            <span class="toolbar-field">
+              @if (item.label) {
+                <strong>{{ item.label }}:</strong>
+              }
+              {{ item.value }}
+            </span>
+          }
 
-    <!-- Bottoni e controlli a destra (end) -->
-    <ion-buttons slot="end">
-      @for (item of endItems; track item.objectName) {
-        <!-- Button -->
-        @if (item.type === 'button') {
-          <ion-button
-            [disabled]="item.disabled"
-            (click)="onButtonClick(item, $event)"
-          >
-            @if (item.ionIcon) {
-              <ion-icon [name]="item.ionIcon" slot="start"></ion-icon>
-            } @else if (item.icon) {
-              <img [src]="item.icon" class="button-icon" />
-            }
-            {{ item.text }}
-          </ion-button>
+          <!-- Dropdown -->
+          @if (item.type === 'dropdown') {
+            <ion-select
+              [value]="item.value"
+              [label]="item.label"
+              [disabled]="item.disabled"
+              (ionChange)="onDropdownChange($event, item)"
+              interface="popover"
+            >
+              @for (option of item.items; track $index) {
+                <ion-select-option [value]="option[item.field]">
+                  {{ option[item.field] }}
+                </ion-select-option>
+              }
+            </ion-select>
+          }
         }
-
-        <!-- Field (read-only) -->
-        @if (item.type === 'field') {
-          <span class="toolbar-field">
-            @if (item.label) {
-              <strong>{{ item.label }}:</strong>
-            }
-            {{ item.value }}
-          </span>
-        }
-
-        <!-- Dropdown -->
-        @if (item.type === 'dropdown') {
-          <ion-select
-            [value]="item.value"
-            [label]="item.label"
-            [disabled]="item.disabled"
-            (ionChange)="onDropdownChange($event, item)"
-            interface="popover"
-          >
-            @for (option of item.items; track $index) {
-              <ion-select-option [value]="option[item.field]">
-                {{ option[item.field] }}
-              </ion-select-option>
-            }
-          </ion-select>
-        }
-      }
-    </ion-buttons>
-  </ion-toolbar>
+      </ion-buttons>
+    </ion-toolbar>
+  }
 }
