@@ -84,22 +84,23 @@ import { ProgressBar } from 'primeng/progressbar';
             <p>{{ errorMessage }}</p>
           </div>
         }
-      </div>
 
-      <ng-template pTemplate="footer">
-        <p-button
-          label="Cancel"
-          icon="pi pi-times"
-          severity="secondary"
-          (onClick)="closeModal()"
-        ></p-button>
-        <p-button
-          label="Upload"
-          icon="pi pi-upload"
-          [disabled]="!selectedFile || loading"
-          (onClick)="uploadFile()"
-        ></p-button>
-      </ng-template>
+        <!-- Action Buttons -->
+        <div class="button-container">
+          <p-button
+            label="Cancel"
+            icon="pi pi-times"
+            severity="secondary"
+            (onClick)="closeModal()"
+          ></p-button>
+          <p-button
+            label="Upload"
+            icon="pi pi-upload"
+            [disabled]="!selectedFile || loading"
+            (onClick)="uploadFile()"
+          ></p-button>
+        </div>
+      </div>
     </p-dialog>
   `,
   styles: [`
@@ -196,6 +197,15 @@ import { ProgressBar } from 'primeng/progressbar';
         margin: 0;
       }
     }
+
+    .button-container {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #dee2e6;
+    }
   `]
 })
 export class GtsFileUploaderComponent implements OnInit, OnDestroy {
@@ -270,10 +280,8 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     try {
-      const formData = new FormData();
-      formData.append('file', this.selectedFile);
-      formData.append('path', this.fileUploadPath);
-      formData.append('name', this.fileUploadName);
+      // Convert file to base64
+      const base64Data = await this.fileToBase64(this.selectedFile);
 
       // Simulate progress (you can implement real progress tracking with HttpClient)
       const progressInterval = setInterval(() => {
@@ -282,11 +290,24 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
         }
       }, 100);
 
-      // Call the upload service
+      // Get file extension
+      const fileExtension = this.selectedFile.name.split('.').pop() || '';
+
+      // Build fileName with extension
+      let finalFileName = this.fileUploadName || this.selectedFile.name;
+      if (this.fileUploadName && !this.fileUploadName.includes('.')) {
+        finalFileName = `${this.fileUploadName}.${fileExtension}`;
+      }
+
+      // Call the upload service with base64 data
+      // Server expects filePath = full path including filename
+      const fullFilePath = this.fileUploadPath
+        ? `${this.fileUploadPath}/${finalFileName}`
+        : finalFileName;
+
       const result = await this.gtsDataService.execMethod('file', 'uploadFile', {
-        formData: formData,
-        path: this.fileUploadPath,
-        fileName: this.fileUploadName || this.selectedFile.name
+        filePath: fullFilePath,
+        fileData: base64Data
       });
 
       clearInterval(progressInterval);
@@ -330,5 +351,18 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
 
   get acceptedFileTypes(): string {
     return this.allowedExtensions.join(',');
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Remove the data:*/*;base64, prefix to get pure base64
+        const base64 = (reader.result as string).split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 }

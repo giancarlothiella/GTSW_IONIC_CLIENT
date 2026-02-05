@@ -137,18 +137,32 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
 
     .image-prj,
     .logo-prj {
-      grid-area: image-prj;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 16px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      margin: 8px;
+    }
+
+    .image-prj {
+      grid-area: image-prj;
+    }
+
+    .logo-prj {
+      grid-area: logo-prj;
     }
 
     .image-prj img,
     .logo-prj img {
       max-width: 100%;
-      max-height: 300px;
+      max-height: 280px;
       object-fit: contain;
+      border-radius: 4px;
     }
   `]
 })
@@ -201,6 +215,25 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
       .getFileLoaderListener()
       .subscribe((status) => {
         if (status.result === true && status.fileUploadVisible === false) {
+          // Auto-update the form field with the uploaded filename
+          if (status.fileUploadedName) {
+            const selPrj = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daSetup', 'qPrj');
+            if (this.uploadName.endsWith('_home')) {
+              this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqPrj_homeImage', status.fileUploadedName);
+              // Clear cached image so it reloads
+              const cachedPrj = this.prjArray.find(p => p.prjId === selPrj?.prjId);
+              if (cachedPrj) {
+                cachedPrj.homeImageFile = undefined;
+              }
+            } else if (this.uploadName.endsWith('_logo')) {
+              this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqPrj_iconImage', status.fileUploadedName);
+              // Clear cached image so it reloads
+              const cachedPrj = this.prjArray.find(p => p.prjId === selPrj?.prjId);
+              if (cachedPrj) {
+                cachedPrj.logoImageFile = undefined;
+              }
+            }
+          }
           this.gtsDataService.runAction(this.prjId, this.formId, 'prjRefreshDetail');
           this.gtsDataService.sendAppLoaderListener(false);
         }
@@ -298,6 +331,7 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
           this.gtsDataService.sendFileLoaderListener({
             fileUploadVisible: this.fileUploaderVisible
           });
+          this.gtsDataService.sendAppLoaderListener(false);
         }
 
         if (customCode === 'UPLOAD_LOGO') {
@@ -308,6 +342,7 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
           this.gtsDataService.sendFileLoaderListener({
             fileUploadVisible: this.fileUploaderVisible
           });
+          this.gtsDataService.sendAppLoaderListener(false);
         }
 
         if (customCode === 'PRJCONN_POST') {
@@ -353,6 +388,13 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
             showPassw: this.showPassw
           };
           this.gtsDataService.sendFormReply(reply);
+        }
+
+        if (customCode === 'GET_DESKTOP_APP_DATA') {
+          const params = {};
+          const result = await this.gtsDataService.execMethod('data', 'getDesktopAppConfig', params);
+          this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqUpload_serverURL', result.serverUrl);
+          this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqUpload_desktopAppSecret', result.appSecret);          
         }
 
         //===== END CUSTOM CODE =====

@@ -147,16 +147,35 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check se questa toolbar dovrebbe essere mergiata nella mainToolbar
-    // (non è mainToolbar, non ha gridArea, non è un action menu, non è submit)
-    if (this.objectName !== 'mainToolbar' &&
-        (!this.metaData.gridArea || this.metaData.gridArea === null || this.metaData.gridArea === '') &&
-        !this.metaData.flagAction &&
-        !this.metaData.actionTarget &&
-        !this.metaData.toolbarFlagSubmit) {
-      this.isMerged = true;
-      this.toolbarVisible = false;
-      return; // Non preparare i dati, sarà la mainToolbar a mostrarli
+    // Check se questa toolbar dovrebbe essere mergiata/nascosta
+    //
+    // I 3 flag sono sempre boolean (true/false), mai undefined:
+    // - flagAction = true → action list collegata a un bottone (mostrata via popover)
+    // - flagPopover = true (con flagAction = false) → task list indipendente con checkbox
+    // - toolbarFlagSubmit = true → toolbar submit form (Cancel/OK)
+    //
+    // MERGE: tutti i flag false + no gridArea → merge nella mainToolbar
+    // HIDE: flagAction = true → nasconde (mostrata via popover dal bottone)
+    // RENDER: flagPopover = true → renderizza come task list
+    // RENDER: toolbarFlagSubmit = true → renderizza separatamente (di solito ha gridArea)
+    const hasNoGridArea = !this.metaData.gridArea || this.metaData.gridArea === null || this.metaData.gridArea === '';
+    const isActionList = this.metaData.flagAction === true;
+    const isTaskList = this.metaData.flagPopover === true;
+    const isSubmitToolbar = this.metaData.toolbarFlagSubmit === true;
+    const isRegularToolbar = !isActionList && !isTaskList && !isSubmitToolbar;
+
+    if (this.objectName !== 'mainToolbar' && hasNoGridArea) {
+      if (isActionList) {
+        // Action list - nasconde, mostrata via popover quando clicchi il bottone
+        this.toolbarVisible = false;
+        return;
+      } else if (isRegularToolbar) {
+        // Toolbar normale senza gridArea - merge nella mainToolbar
+        this.isMerged = true;
+        this.toolbarVisible = false;
+        return;
+      }
+      // Task list o submit toolbar senza gridArea - continua e renderizza
     }
 
     this.isMerged = false;
@@ -180,19 +199,20 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       const allToolbars = pageData?.toolbars;
       if (Array.isArray(allToolbars)) {
         allToolbars.forEach((toolbar: any) => {
-          // Merge toolbar che:
-          // 1. Non sono la mainToolbar stessa
-          // 2. Sono visibili
-          // 3. Non hanno gridArea (o gridArea è null/undefined/empty)
-          // 4. Non hanno flagAction true (sono toolbar di azioni/action list)
-          // 5. Non hanno actionTarget (sono riferite da altri bottoni come action menu)
-          // 6. Non hanno toolbarFlagSubmit (sono toolbar di submit con form)
+          // Merge solo toolbar "regolari" (tutti i flag false) senza gridArea
+          // I 3 flag sono sempre boolean:
+          // - flagAction = true → action list (NO merge)
+          // - flagPopover = true → task list (NO merge)
+          // - toolbarFlagSubmit = true → submit toolbar (NO merge)
+          const isActionList = toolbar.flagAction === true;
+          const isTaskList = toolbar.flagPopover === true;
+          const isSubmitToolbar = toolbar.toolbarFlagSubmit === true;
+          const isRegularToolbar = !isActionList && !isTaskList && !isSubmitToolbar;
+
           const shouldMerge = toolbar.objectName !== 'mainToolbar' &&
               toolbar.visible === true &&
               (!toolbar.gridArea || toolbar.gridArea === null || toolbar.gridArea === '') &&
-              !toolbar.flagAction &&
-              !toolbar.actionTarget &&
-              !toolbar.toolbarFlagSubmit &&
+              isRegularToolbar &&
               toolbar.itemsList && toolbar.itemsList.length > 0;
 
           if (shouldMerge) {

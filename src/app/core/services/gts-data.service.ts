@@ -187,12 +187,13 @@ export class GtsDataService {
   }
 
   // Listener for single row updates (preserves selection, no full reload)
-  private gridRowUpdateListener = new Subject<{ dataSetName: string, rowData: any, keyField: string, keyValue: any }>();
+  // Listener for single row updates - supports composite keys
+  private gridRowUpdateListener = new Subject<{ dataSetName: string, rowData: any, keyFields: { [key: string]: any } }>();
   getGridRowUpdateListener() {
     return this.gridRowUpdateListener.asObservable();
   }
-  sendGridRowUpdate(dataSetName: string, rowData: any, keyField: string, keyValue: any) {
-    this.gridRowUpdateListener.next({ dataSetName, rowData, keyField, keyValue });
+  sendGridRowUpdate(dataSetName: string, rowData: any, keyFields: { [key: string]: any }) {
+    this.gridRowUpdateListener.next({ dataSetName, rowData, keyFields });
   }
 
   private messageListener = new Subject<any>();
@@ -1166,24 +1167,37 @@ export class GtsDataService {
         });
 
         if (!all) {
-          // change the selected row on selected array
-          this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId && data.dataAdapter === dataAdapter)[0]
-          .data
-          .filter((dataSet: any) => dataSet.dataSetName === dataSetName)[0]
-          .selectedRows = responseData.data[0].rows;
-
           // get dataset rows array
           const dataSetObj = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId && data.dataAdapter === dataAdapter)[0]
           .data
           .filter((dataSet: any) => dataSet.dataSetName === dataSetName)[0];
 
-          // get row index
-          const index = dataSetObj.rows.findIndex((row: any) => row[lookupField] === lookUpValue);
+          // For composite keys, find the row in response that matches ALL selected keys
+          // selectedKeys is an object with all key fields, e.g., {connCode: 'WFS_MOD', dbMode: 'D'}
+          const keyFieldNames = Object.keys(selectedKeys);
+
+          // Find the correct row in the response that matches all keys
+          const matchingResponseRow = responseData.data[0].rows.find((row: any) => {
+            return keyFieldNames.every((keyField: string) => row[keyField] === selectedKeys[keyField]);
+          });
+
+          // If we found a matching row, use it; otherwise fall back to first row
+          const dbRow = matchingResponseRow || responseData.data[0].rows[0];
+
+          // Update selectedRows with the matching row from response
+          this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId && data.dataAdapter === dataAdapter)[0]
+          .data
+          .filter((dataSet: any) => dataSet.dataSetName === dataSetName)[0]
+          .selectedRows = [dbRow];
+
+          // Find the local row index using ALL key fields (composite key support)
+          const index = dataSetObj.rows.findIndex((row: any) => {
+            return keyFieldNames.every((keyField: string) => row[keyField] === selectedKeys[keyField]);
+          });
 
           if (index !== -1) {
             // get dataset row from index
             const row = dataSetObj.rows[index];
-            const dbRow = responseData.data[0].rows[0];
 
             // Update all fields from DB response (including new fields with DEFAULT values)
             // Use DB response keys to ensure fields like "Stato" with DEFAULT are added
@@ -1193,14 +1207,15 @@ export class GtsDataService {
           }
 
           // Notify grid to update just this row (without full reload)
-          this.sendGridRowUpdate(dataSetName, responseData.data[0].rows[0], lookupField, lookUpValue);
+          // Pass all key fields for composite key support
+          this.sendGridRowUpdate(dataSetName, dbRow, selectedKeys);
 
           // realign page fields data
           this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
           .pageData
           .pageFields.forEach((field: any) => {
             if (field.dataSetName === dataSetName) {
-              field.value = responseData.data[0].rows[0][field.dbFieldName];
+              field.value = dbRow[field.dbFieldName];
             }
           });
         } else {

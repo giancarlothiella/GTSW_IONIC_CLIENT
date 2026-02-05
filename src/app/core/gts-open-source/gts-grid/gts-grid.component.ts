@@ -398,6 +398,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       });
 
     // Single row update listener - updates just one row without full grid reload
+    // Supports composite keys via keyFields object
     this.gridRowUpdateListenerSubs = this.gtsDataService
       .getGridRowUpdateListener()
       .subscribe((update) => {
@@ -410,33 +411,37 @@ export class GtsGridComponent implements OnInit, OnDestroy {
           return;
         }
 
-        // Find and update the row using AG Grid's transaction API
-        const rowNode = this.gridApi.getRowNode(String(update.keyValue));
-        if (rowNode) {
-          // Update the row data
-          rowNode.setData({ ...update.rowData });
-        } else {
-          // Fallback: find the row by iterating
-          this.gridApi.forEachNode((node: any) => {
-            if (node.data && node.data[update.keyField] === update.keyValue) {
-              node.setData({ ...update.rowData });
-            }
-          });
-        }
+        // Helper function to match a row against all key fields (composite key support)
+        const matchesAllKeys = (rowData: any, keyFields: { [key: string]: any }): boolean => {
+          if (!rowData || !keyFields) return false;
+          return Object.keys(keyFields).every(keyField => rowData[keyField] === keyFields[keyField]);
+        };
+
+        // Find and update the row by iterating (supports composite keys)
+        let rowUpdated = false;
+        this.gridApi.forEachNode((node: any) => {
+          if (node.data && matchesAllKeys(node.data, update.keyFields)) {
+            node.setData({ ...update.rowData });
+            rowUpdated = true;
+          }
+        });
 
         // Update this.selectedRows if the updated row is currently selected
         const selectedRowIndex = this.selectedRows.findIndex(
-          (row: any) => row && row[update.keyField] === update.keyValue
+          (row: any) => row && matchesAllKeys(row, update.keyFields)
         );
         if (selectedRowIndex !== -1) {
           // Update the selected row data with new values
           this.selectedRows[selectedRowIndex] = { ...update.rowData };
 
           // Also update selectedRows in pageData through the service
-          const keyField = this.gridObject?.keys?.[0] || 'id';
+          // Build composite key object for all key fields defined in grid
+          const keys = this.gridObject?.keys || [];
           const selectedRowKeys = this.selectedRows.map((row: any) => {
             const keyObj: any = {};
-            keyObj[keyField] = row[keyField];
+            keys.forEach((keyField: string) => {
+              keyObj[keyField] = row[keyField];
+            });
             return keyObj;
           });
 
@@ -1330,15 +1335,17 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
     this.selectedRows = event.api.getSelectedRows();
 
-    // Get the key field from gridObject.keys (which comes from metadata sqlKeys)
-    const keyField = this.gridObject?.keys?.[0] || this.metaData?.dataAdapterIdField || 'id';
+    // Get ALL key fields from gridObject.keys for composite key support
+    // gridObject.keys comes from metadata sqlKeys: ['connCode', 'dbMode']
+    const keyFields = this.gridObject?.keys || [this.metaData?.dataAdapterIdField || 'id'];
 
-    // Create selectedRowKeys as array of objects (like DevExtreme) instead of simple values
-    // DevExtreme format: [{prjId: "GTSW"}]
-    // Previous bug: ["GTSW"] caused Object.keys() to return ['0','1','2','3']
+    // Create selectedRowKeys with ALL key fields for composite key support
+    // Format: [{connCode: 'WFS_MOD', dbMode: 'P'}] for composite keys
     const selectedRowKeys = this.selectedRows.map((row: any) => {
       const keyObj: any = {};
-      keyObj[keyField] = row[keyField];
+      keyFields.forEach((keyField: string) => {
+        keyObj[keyField] = row[keyField];
+      });
       return keyObj;
     });
 
