@@ -16,14 +16,16 @@
                 [class.task-item-disabled]="item.disabled"
                 [class.task-item-checked]="item.checked"
                 (click)="onTaskItemClick(item)">
-                <!-- Checkbox -->
-                <input
-                  type="checkbox"
-                  class="task-checkbox"
-                  [checked]="item.checked"
-                  [disabled]="item.disabled"
-                  (click)="onTaskCheckboxChange(item, $event)"
-                  (change)="$event.stopPropagation()" />
+                <!-- Checkbox (only if pageFieldName is set) -->
+                @if (item.pageFieldName) {
+                  <input
+                    type="checkbox"
+                    class="task-checkbox"
+                    [checked]="item.checked"
+                    [disabled]="item.disabled"
+                    (click)="onTaskCheckboxChange(item, $event)"
+                    (change)="$event.stopPropagation()" />
+                }
                 <!-- Icon -->
                 @if (item.icon) {
                   <img [src]="item.icon" class="task-icon" />
