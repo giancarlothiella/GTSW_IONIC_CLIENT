@@ -271,21 +271,50 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   lookUpSubmitEvent(event: any) {
-    let field = this.formData.filter(f => f.sqlQueryField === this.lookUpField.fieldName && f.objectName === this.lookUpField.lookUpName)[0];
-    if (event !== null) {
-      field.updateFromLookUp = true;
-      field.validated = true;
-      field.value = event.fieldValue;
-      // Clear validation error since a valid value was selected from lookup
-      field.validationMessage = '';
-      field.cssClass = field.cssClassStd;
+    if (event === null) {
+      return;
+    }
 
-      // Update metaData.fields to sync params in subsequent validations
-      const metaField = this.metaData.fields.filter((f: any) => f.objectName === field.objectName)[0];
-      if (metaField) {
-        metaField.value = event.fieldValue;
-      }
+    // Verifica che l'evento sia destinato a questa form
+    if (event.formName && event.formName !== this.objectName) {
+      // Evento destinato a un'altra form, ignora
+      return;
+    }
 
+    // Usa i dati dell'evento invece di this.lookUpField
+    // perché l'evento contiene i dati corretti dalla lookup
+    const fieldName = event.fieldName || this.lookUpField.fieldName;
+    const lookUpName = event.lookUpName || this.lookUpField.lookUpName;
+
+    let field = this.formData.filter(f => f.sqlQueryField === fieldName && f.objectName === lookUpName)[0];
+
+    // Verifica che il campo sia stato trovato
+    if (!field) {
+      // Debug: mostra tutti i campi disponibili in questa form
+      console.warn('GtsForm: lookUpSubmitEvent - campo non trovato', {
+        formName: this.objectName,
+        formId: this.formId,
+        cercato: { fieldName, lookUpName },
+        campiDisponibili: this.formData.map(f => ({ sqlQueryField: f.sqlQueryField, objectName: f.objectName }))
+      });
+      return;
+    }
+
+    field.updateFromLookUp = true;
+    field.validated = true;
+    field.value = event.fieldValue;
+    // Clear validation error since a valid value was selected from lookup
+    field.validationMessage = '';
+    field.cssClass = field.cssClassStd;
+
+    // Update metaData.fields to sync params in subsequent validations
+    const metaField = this.metaData.fields.filter((f: any) => f.objectName === field.objectName)[0];
+    if (metaField) {
+      metaField.value = event.fieldValue;
+    }
+
+    // Aggiorna i campi detail solo se event.data è disponibile (non in modalità ML)
+    if (event.data) {
       this.formData
         .filter((f: any) => f.masterFieldName === field.objectName)
         .forEach((formField: any) => {
@@ -294,7 +323,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.changeDetector.detectChanges();
-    if (field.component?.nativeElement) {
+    if (field?.component?.nativeElement) {
       field.component.nativeElement.focus();
     }
   }
@@ -631,24 +660,33 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async formValidation() {
-    let valid: boolean = true;
+    let allValid: boolean = true;
 
     for (let i = 0; i < this.formData.length; i++) {
-      if (!this.formData[i].validated || this.formData[i].forceCheck) {
-        let field = this.formData[i];
+      const field = this.formData[i];
+
+      // Valida se: non ancora validato OPPURE ha forceCheck=true
+      if (!field.validated || field.forceCheck) {
         field.validated = false;
         field.updateFromLookUp = false;
+
         if (!field.disabled && !field.readOnly) {
           if (field.allowEmpty && (field.value === undefined || field.value === null || field.value === '')) {
-            return valid;
+            // Campo opzionale vuoto - segna come validato e continua
+            field.validated = true;
+            continue;
           } else {
-            valid = await this.fieldValidation(this.formData[i]);
+            const fieldValid = await this.fieldValidation(field);
+            if (!fieldValid) {
+              allValid = false;
+              // Non uscire - continua a validare tutti i campi per mostrare tutti gli errori
+            }
           }
         }
       }
     }
 
-    return valid;
+    return allValid;
   }
 
   getCustomVerifyResult(field: any) {
@@ -840,11 +878,11 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     if (field !== undefined && field !== null && !(field.readOnly || field.disabled)) {
       this.lookUpField = {
         formId: this.formId,
+        formName: this.objectName,  // Nome della form per identificazione univoca
         groupId: field.groupId,
         sqlId: field.sqlId,
         fieldName: field.sqlQueryField,
         lookUpName: field.objectName,
-        formName: this.objectName,
         columns: field.columns,
         keys: field.sqlKeys,
         caption: field.sqlCaption,

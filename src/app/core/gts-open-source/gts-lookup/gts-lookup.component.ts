@@ -36,6 +36,9 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
   formId: number = 0;
 
   @Input()
+  formName: string = '';  // Nome della form per identificazione univoca
+
+  @Input()
   gridName: string = '';
 
   @Input()
@@ -73,17 +76,18 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
     this.formLookUpListenerSubs = this.gtsDataService
     .getLookUpListener()
     .subscribe((field) => {
-      console.log('[GtsLookup DEBUG] Received lookup event:', field.formId, 'my formId:', this.formId, 'isProcessing:', GtsLookupComponent.isAnyLookupProcessing);
-
-      // Filter: only process if this lookup belongs to our form
+      // Filter: only process if this lookup belongs to our form (by formId AND formName)
       if (field.formId !== this.formId) {
-        console.log('[GtsLookup DEBUG] Skipped - formId mismatch');
+        return;
+      }
+
+      // Filtra anche per formName se disponibile
+      if (field.formName && field.formName !== this.formName) {
         return;
       }
 
       // Skip if ANY lookup is already processing (shared static flag)
       if (GtsLookupComponent.isAnyLookupProcessing) {
-        console.log('[GtsLookup DEBUG] Skipped - another lookup is processing');
         return;
       }
 
@@ -325,6 +329,7 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
     }
 
     const data: any = {
+      formName: this.lookUpField.formName,  // Identifica la form destinataria
       lookUpName: this.lookUpField.lookUpName,
       fieldName: this.lookUpField.fieldName,
       fieldValue: fieldValue,
