@@ -1,3 +1,11 @@
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
+
+  <!-- Global AI Chat Component (triggered by gridSetAIMode / formAIAssist actions) -->
+  <app-gts-ai-chat
+    [(visible)]="aiChatVisible"
+    [config]="aiChatConfig"
+    (visibleChange)="onAiChatVisibleChange($event)"
+    (dataReceived)="onAiDataReceived($event)">
+  </app-gts-ai-chat>
 </ion-app>

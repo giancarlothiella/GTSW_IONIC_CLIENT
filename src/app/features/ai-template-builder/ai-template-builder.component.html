@@ -1376,7 +1376,7 @@
       <textarea id="description"
                 pTextarea
                 [(ngModel)]="saveConfig.description"
-                rows="3"
+                rows="2"
                 [placeholder]="t(1197, 'Descrizione breve del template')"></textarea>
     </div>
 
@@ -1385,7 +1385,7 @@
       <textarea id="notes"
                 pTextarea
                 [(ngModel)]="saveConfig.notes"
-                rows="3"
+                rows="2"
                 [placeholder]="t(1199, 'Note tecniche per altri sviluppatori')"></textarea>
     </div>
 
@@ -1412,9 +1412,9 @@
       </small>
     </div>
 
-    <div class="field-group">
+    <div class="field-group three-cols">
       <div class="field">
-        <label>{{t(1204, 'Formato PDF')}}</label>
+        <label>{{t(1204, 'Formato')}}</label>
         <p-select [options]="[
           {label: 'A4', value: 'A4'},
           {label: 'A3', value: 'A3'},
@@ -1438,6 +1438,19 @@
         optionLabel="label"
         optionValue="value">
         </p-select>
+      </div>
+
+      <div class="field checkbox-inline">
+        <label>&nbsp;</label>
+        <div class="checkbox-wrapper">
+          <p-checkbox
+            [(ngModel)]="saveConfig.showPageNumbers"
+            [binary]="true"
+            (ngModelChange)="onPdfConfigChange()"
+            inputId="showPageNumbersDialog">
+          </p-checkbox>
+          <label for="showPageNumbersDialog">{{t(1509, 'N° Pagina')}}</label>
+        </div>
       </div>
     </div>
 

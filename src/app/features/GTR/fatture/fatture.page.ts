@@ -218,6 +218,13 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
         return;
       }
 
+      // setStatusC e setStatusP non richiedono filterCompany (dsRefreshSel aggiornerà la riga)
+      // filterCompany causa un reload della griglia che perde la selezione
+      if (customCode === 'setStatusC' || customCode === 'setStatusP') {
+        await this.getCustomData(this.prjId, this.formId, customCode, this.actualView);
+        return;
+      }
+
       // Riattiva il loader per il custom code
       this.gtsDataService.sendAppLoaderListener(true);
 

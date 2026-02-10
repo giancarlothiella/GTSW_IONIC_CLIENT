@@ -1,0 +1,84 @@
+<div class="pageFormat">
+  <app-gts-loader></app-gts-loader>
+
+  <app-gts-toolbar
+    [prjId]="prjId"
+    [formId]="formId"
+    [objectName]="'mainToolbar'"
+    [customData]="customData"
+    (newValueEvent)="gtsDataService.toolbarSelectEvent($event)"
+  ></app-gts-toolbar>
+
+  <div
+    [style]="viewStyle"
+    >
+    @for (element of metaData.tabs; track element) {
+      @if (element.visible) {
+        <app-gts-tabs
+          [style]="'grid-area: '+element.gridArea"
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-tabs>
+      }
+    }
+
+    @for (element of metaData.reportsGroups; track element) {
+      @if (element.visible) {
+        <app-gts-reports
+          [style]="'grid-area: '+element.gridArea"
+          [prjId]="prjId"
+          [formId]="formId"
+          [fieldGrpId]="element.fieldGrpId"
+        ></app-gts-reports>
+      }
+    }
+
+    @for (element of metaData.toolbars; track element) {
+      @if (element.visible && element.objectName != 'mainToolbar' && !element.toolbarFlagSubmit) {
+        <app-gts-toolbar
+          [style]="'grid-area: '+element.gridArea"
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+          [customCssClass]="element.customCssClass"
+          (newValueEvent)="gtsDataService.toolbarSelectEvent($event)"
+        ></app-gts-toolbar>
+      }
+    }
+
+    @for (element of metaData.grids; track element) {
+      @if (element.visible) {
+        <app-gts-grid
+          [style]="'grid-area: '+element.gridArea"
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-grid>
+      }
+    }
+
+    @for (element of metaData.forms; track element) {
+      @if (element.visible && !element.groupShowPopUp) {
+        <app-gts-form
+          [style]="'grid-area: '+element.gridArea"
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-form>
+      }
+      @if (element.visible && element.groupShowPopUp) {
+        <app-gts-form-popup
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-form-popup>
+      }
+    }
+  </div>
+
+  <app-gts-message
+    [prjId]="prjId"
+    [formId]="formId"
+  ></app-gts-message>
+</div>

@@ -192,19 +192,19 @@ export class AppInfoService {
     // Leggi sempre da localStorage per avere il valore aggiornato
     const selectedLang = localStorage.getItem('selectedLanguage');
     if (selectedLang) {
-      this.languageId = selectedLang; // Mantieni il formato originale
+      this.languageId = selectedLang.toLowerCase();
     } else if (localStorage.getItem('authUserData') !== null && localStorage.getItem('authUserData') !== undefined) {
       // Fallback: prova a leggere da authUserData
-      this.languageId = JSON.parse(localStorage.getItem('authUserData') || '{}').languageId || environment.languageId;
+      const authLang = JSON.parse(localStorage.getItem('authUserData') || '{}').languageId || environment.languageId;
+      this.languageId = authLang.toLowerCase();
     } else {
-      this.languageId = environment.languageId;
+      this.languageId = environment.languageId.toLowerCase();
     }
     return this.languageId;
   }
 
   public setLanguageId(languageId: string) {
-    this.languageId = languageId; // Mantieni il formato originale
-    // Sincronizza con localStorage
+    this.languageId = languageId.toLowerCase();
     localStorage.setItem('selectedLanguage', this.languageId);
   }
 

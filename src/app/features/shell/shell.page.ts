@@ -606,16 +606,13 @@ export class ShellPage implements OnInit {
 
     this.loading = true;
     const prjId = this.user.prjId;
-    console.log('Shell loadMenuData - starting loadMenu for user:', prjId);
 
     // Passa esplicitamente il prjId dell'utente per evitare che venga usato
     // un progetto diverso salvato in precedenza
     this.menuService.loadMenu(prjId).subscribe({
       next: (response) => {
-        console.log('Shell loadMenuData - loadMenu completed, response valid:', response.valid);
         this.menuItems = this.menuService.getCurrentMenu();
         this.currentProjectInfo = this.menuService.getCurrentProjectInfo();
-        console.log('Shell loadMenuData - menuItems:', this.menuItems.length, 'currentProjectInfo:', this.currentProjectInfo?.prjId);
         this.loading = false;
 
         // Registra le route dinamiche basate sul menu

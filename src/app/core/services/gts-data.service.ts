@@ -2338,6 +2338,13 @@ export class GtsDataService {
            }
           });
         });
+
+        // Trigger grid reload for updated datasets
+        adapter.data.forEach((dataSet: any) => {
+          if (dataSet.dataSetName) {
+            this.gridReloadListener.next(dataSet.dataSetName);
+          }
+        });
       } else {
         this.pageData.push(data);
 
@@ -2700,6 +2707,46 @@ export class GtsDataService {
           : null;
       }
     });
+  }
+
+  // Select a dataset row by matching a field value (used by toolbar dropdown)
+  selectDataSetRowByFieldValue(prjId: string, formId: number, dataSetName: string, fieldName: string, fieldValue: any): void {
+    for (const data of this.pageData) {
+      if (data.prjId === prjId && data.formId === formId) {
+        for (const ds of data.data) {
+          if (ds.dataSetName === dataSetName) {
+            // Find matching row
+            const matchingRow = ds.rows.find((row: any) => String(row[fieldName]) === String(fieldValue));
+            if (matchingRow) {
+              // Build selectedKeys - try existing structure first, then dataSets metadata
+              let selectedKeys: any[] = [];
+              if (ds.selectedKeys && ds.selectedKeys.length > 0) {
+                // Rebuild from existing key structure
+                const keyFieldNames = Object.keys(ds.selectedKeys[0]);
+                const keyObj: any = {};
+                keyFieldNames.forEach((keyField: string) => {
+                  keyObj[keyField] = matchingRow[keyField];
+                });
+                selectedKeys = [keyObj];
+              } else {
+                // Try dataSets metadata for sqlKeys
+                const dsMetaData = this.getPageMetaData(prjId, formId, 'dataSets', dataSetName);
+                if (dsMetaData?.sqlKeys && dsMetaData.sqlKeys.length > 0) {
+                  const keyObj: any = {};
+                  dsMetaData.sqlKeys.forEach((key: any) => {
+                    keyObj[key.keyField] = matchingRow[key.keyField];
+                  });
+                  selectedKeys = [keyObj];
+                }
+              }
+
+              this.setSelectedRows(prjId, formId, data.dataAdapter, dataSetName, [matchingRow], selectedKeys);
+            }
+            return;
+          }
+        }
+      }
+    }
   }
 
   setDDRules(prjId: string, formId: number, objectName: string, DDdata: any) {

@@ -126,6 +126,10 @@ export class DynamicRoutesService {
    * Naviga a una voce di menu
    */
   navigateToMenuItem(item: MenuItem): void {
+    if (!item.url) {
+      return;
+    }
+
     const path = this.buildRoutePath(item);
 
     // Costruisci i query params

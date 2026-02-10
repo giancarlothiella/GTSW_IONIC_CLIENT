@@ -42,6 +42,9 @@ export const COMPONENT_REGISTRY: { [key: string]: () => Promise<any> } = {
 
   'DCW/bilancio': () => import('../../features/DCW/bilancio/bilancio.page').then(m => m.DCW_BilancioComponent),
   'DCW/salesDashboard': () => import('../../features/DCW/salesDashboard/salesDashboard.page').then(m => m.DCW_SalesDashboardComponent),
+
+// WFS Components
+  'WFS/sales': () => import('../../features/WFS/sales/sales.page').then(m => m.WFS_SalesComponent),
   // Altri progetti qui...
 };
 

@@ -207,6 +207,7 @@ export class AiReportsService {
     status?: string;
     pdfFormat?: string;
     pdfOrientation?: string;
+    showPageNumbers?: boolean;
     userInstructions?: string;
   }): Observable<any> {
     const { prjId, connCode, reportCode, ...updateFields } = data;

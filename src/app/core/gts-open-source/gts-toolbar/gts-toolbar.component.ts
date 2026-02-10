@@ -75,6 +75,9 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
   // Task List mode (flagPopover = true)
   isTaskList: boolean = false;
   taskListGroups: { groupText: string; groupColor: string; items: any[] }[] = [];
+  // Boolean mapping from toolbar description, e.g. [Y;N] or [S;N]
+  boolTrueValue: string = '';
+  boolFalseValue: string = '';
 
   constructor() {
     // Ionic standalone components non richiedono registrazione manuale delle icone
@@ -188,6 +191,17 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
     // Check if this toolbar should render as Task List
     this.isTaskList = this.metaData.flagPopover === true;
     this.taskListGroups = [];
+
+    // Parse boolean mapping from toolbar description, e.g. [Y;N] or [S;N]
+    this.boolTrueValue = '';
+    this.boolFalseValue = '';
+    if (this.isTaskList && this.metaData.description) {
+      const match = this.metaData.description.match(/\[([^;]+);([^\]]+)\]/);
+      if (match) {
+        this.boolTrueValue = match[1].trim();
+        this.boolFalseValue = match[2].trim();
+      }
+    }
 
     // Raccogli tutti gli items da processare
     let allItems: any[] = [...this.metaData.itemsList];
@@ -322,7 +336,12 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
     let checkboxValue = false;
     if (item.pageFieldName) {
       const fieldValue = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, item.pageFieldName);
-      checkboxValue = fieldValue === true || fieldValue === 1 || fieldValue === '1' || fieldValue === 'Y';
+      if (this.boolTrueValue) {
+        // Use custom mapping from toolbar description, e.g. [Y;N] or [S;N]
+        checkboxValue = String(fieldValue) === this.boolTrueValue;
+      } else {
+        checkboxValue = fieldValue === true || fieldValue === 1 || fieldValue === '1' || fieldValue === 'Y';
+      }
     }
 
     return {
@@ -397,6 +416,7 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       return null;
     }
 
+    // 1. Try customData (legacy mechanism)
     const dropDownData: any = customData.filter((element: any) => element.field === pageField.dbFieldName)[0];
 
     if (dropDownData !== undefined) {
@@ -408,10 +428,34 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
         items: dropDownData.items,
         field: dropDownData.field,
         pageFieldName: item.pageFieldName,
+        actionName: item.actionName || '',
+        dataSetName: item.dataSet || '',
         visible: item.visible,
         disabled: item.disabled,
         location: item.location
       };
+    }
+
+    // 2. Auto-populate from dataset if dataSet is defined in the toolbar item
+    if (item.dataSet) {
+      const dsRows = this.getDataSetRows(item.dataSet);
+      if (dsRows && dsRows.length > 0) {
+        const currentValue = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, item.pageFieldName);
+        return {
+          type: 'dropdown',
+          objectName: item.objectName,
+          label: label,
+          value: currentValue || '',
+          items: dsRows,
+          field: pageField.dbFieldName,
+          pageFieldName: item.pageFieldName,
+          actionName: item.actionName || '',
+          dataSetName: item.dataSet || '',
+          visible: item.visible,
+          disabled: item.disabled,
+          location: item.location
+        };
+      }
     }
 
     return null;
@@ -424,8 +468,14 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       const pageField: any = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'pageFields', item.pageFieldName);
 
-      // Set page field value
-      this.gtsDataService.setPageFieldValue(this.prjId, this.formId, pageField.pageFieldName, value);
+      // Update dataset selection if dropdown has a dataSetName
+      if (item.dataSetName) {
+        // This also updates all pageFields from the selected row
+        this.gtsDataService.selectDataSetRowByFieldValue(this.prjId, this.formId, item.dataSetName, item.field, value);
+      } else {
+        // No dataset - just set the single page field value
+        this.gtsDataService.setPageFieldValue(this.prjId, this.formId, pageField.pageFieldName, value);
+      }
 
       // Update customData
       const dataItem = this.customData.filter((element: any) => element.field === item.field)[0];
@@ -433,14 +483,18 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
         dataItem.value = value;
       }
 
-      const data: any = {
-        selectedValue: value,
-        object: item.objectName,
-        pageField: pageField
-      };
-
-      // Emit new value event
-      this.newValueEvent.emit(data);
+      // If dropdown has an actionName, run it automatically
+      if (item.actionName) {
+        this.gtsDataService.runAction(this.prjId, this.formId, item.actionName);
+      } else {
+        // Legacy: emit event for page to handle
+        const data: any = {
+          selectedValue: value,
+          object: item.objectName,
+          pageField: pageField
+        };
+        this.newValueEvent.emit(data);
+      }
     }, 0);
   }
 
@@ -521,6 +575,24 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
     return iconMap[stdImageId] || null;
   }
 
+  /**
+   * Search dataset rows by dataSetName across all dataAdapters
+   */
+  private getDataSetRows(dataSetName: string): any[] | null {
+    const allPageData = this.gtsDataService.getPageData(this.prjId, this.formId);
+    if (!Array.isArray(allPageData)) return null;
+
+    for (const da of allPageData) {
+      if (da.data && Array.isArray(da.data)) {
+        const ds = da.data.find((d: any) => d.dataSetName === dataSetName);
+        if (ds && ds.rows) {
+          return ds.rows;
+        }
+      }
+    }
+    return null;
+  }
+
   // ============================================
   // Task List Methods
   // ============================================
@@ -542,8 +614,13 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
     event.stopPropagation(); // Prevent triggering onTaskItemClick
 
     if (item.pageFieldName) {
-      const newValue = !item.checked;
-      item.checked = newValue;
+      const newChecked = !item.checked;
+      item.checked = newChecked;
+
+      // Use custom mapping if configured, otherwise boolean
+      const newValue = this.boolTrueValue
+        ? (newChecked ? this.boolTrueValue : this.boolFalseValue)
+        : newChecked;
 
       // Update the field value in the dataset
       this.gtsDataService.setPageFieldValue(

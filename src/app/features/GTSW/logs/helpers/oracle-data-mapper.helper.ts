@@ -40,6 +40,28 @@ function isMainDataset(name: string): boolean {
 }
 
 /**
+ * Normalizza il nome del subreport da formato Oracle a formato semplice
+ * Es: P_SR01_SESS → SR01, P_SR02_SESS → SR02
+ * Gestisce anche formati come: SR01, P_SR01, SR01_SESS
+ */
+function normalizeSubreportName(name: string): string {
+  let normalized = name.toUpperCase();
+
+  // Rimuovi prefisso P_
+  if (normalized.startsWith('P_')) {
+    normalized = normalized.substring(2);
+  }
+
+  // Rimuovi suffisso _SESS
+  if (normalized.endsWith('_SESS')) {
+    normalized = normalized.substring(0, normalized.length - 5);
+  }
+
+  console.log(`[OracleDataMapper] normalizeSubreportName: "${name}" → "${normalized}"`);
+  return normalized;
+}
+
+/**
  * Mappa i dati del report Oracle nel formato per il Template Builder
  * @param reportData - Risposta da getReportData()
  * @returns OracleData formattato
@@ -75,8 +97,10 @@ export function mapOracleDataForTemplateBuilder(reportData: any): OracleData {
             console.log('[OracleDataMapper] MAIN already populated, skipping:', datasetName);
           }
         } else {
-          oracleData.subreports[datasetName] = rows;
-          console.log('[OracleDataMapper] Assigned to subreport:', datasetName, 'count:', rows.length);
+          // Normalizza il nome del subreport (P_SR01_SESS → SR01)
+          const normalizedName = normalizeSubreportName(datasetName);
+          oracleData.subreports[normalizedName] = rows;
+          console.log('[OracleDataMapper] Assigned to subreport:', datasetName, '→', normalizedName, 'count:', rows.length);
         }
       }
     });
@@ -157,8 +181,10 @@ export function mapOracleMetadataForTemplateBuilder(reportData: any): OracleMeta
             console.log('[OracleDataMapper] MAIN metadata already populated, skipping:', datasetName);
           }
         } else {
-          oracleMetadata.subreports[datasetName] = mappedFields;
-          console.log('[OracleDataMapper] Assigned metadata to subreport:', datasetName, 'fieldCount:', mappedFields.length);
+          // Normalizza il nome del subreport (P_SR01_SESS → SR01)
+          const normalizedName = normalizeSubreportName(datasetName);
+          oracleMetadata.subreports[normalizedName] = mappedFields;
+          console.log('[OracleDataMapper] Assigned metadata to subreport:', datasetName, '→', normalizedName, 'fieldCount:', mappedFields.length);
         }
       }
     });

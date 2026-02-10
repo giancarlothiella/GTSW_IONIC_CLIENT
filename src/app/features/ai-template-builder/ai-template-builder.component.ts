@@ -4495,6 +4495,7 @@ ${html}
       status: this.saveConfig.status,
       pdfFormat: this.saveConfig.pdfFormat,
       pdfOrientation: this.saveConfig.pdfOrientation,
+      showPageNumbers: this.saveConfig.showPageNumbers,
       userInstructions: this.userInstructions
     };
 

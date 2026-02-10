@@ -23,6 +23,9 @@ export class GtsSetFilterComponent implements IFilterComp {
   private valueListContainer!: HTMLElement;
   private searchInput!: HTMLInputElement;
 
+  // Floating filter text (for "contains" filtering from floating filter input)
+  private floatingFilterText: string = '';
+
   // Callbacks
   private hidePopup?: () => void;
 
@@ -398,15 +401,30 @@ export class GtsSetFilterComponent implements IFilterComp {
   doesFilterPass(params: { data: any; node: any }): boolean {
     const value = this.params.getValue(params.node);
     const normalizedValue = this.normalizeValue(value);
-    return this.filterValues.has(normalizedValue);
+
+    // Check if value passes the set filter (checkbox selection)
+    const passesSetFilter = this.filterValues.has(normalizedValue);
+
+    // Check if value passes the text filter (floating filter input)
+    let passesTextFilter = true;
+    if (this.floatingFilterText && this.floatingFilterText.trim() !== '') {
+      const searchLower = this.floatingFilterText.toLowerCase().trim();
+      const valueStr = value !== null && value !== undefined ? String(value).toLowerCase() : '';
+      passesTextFilter = valueStr.includes(searchLower);
+    }
+
+    // Row must pass BOTH filters
+    return passesSetFilter && passesTextFilter;
   }
 
   /**
    * Returns true if the filter is active (not showing all values)
    */
   isFilterActive(): boolean {
-    // Filter is active if not all values are selected
-    return this.filterValues.size < this.allValues.length;
+    // Filter is active if not all values are selected OR if text filter is active
+    const setFilterActive = this.filterValues.size < this.allValues.length;
+    const textFilterActive = !!(this.floatingFilterText && this.floatingFilterText.trim() !== '');
+    return setFilterActive || textFilterActive;
   }
 
   /**
@@ -418,7 +436,8 @@ export class GtsSetFilterComponent implements IFilterComp {
     }
     return {
       filterType: 'gtsSet',
-      values: Array.from(this.filterValues)
+      values: Array.from(this.filterValues),
+      floatingFilterText: this.floatingFilterText || ''
     };
   }
 
@@ -428,13 +447,30 @@ export class GtsSetFilterComponent implements IFilterComp {
   setModel(model: any): void {
     if (model && model.values) {
       this.filterValues = new Set(model.values);
+      this.floatingFilterText = model.floatingFilterText || '';
     } else {
-      // No model = show all values
+      // No model = show all values, clear text filter
       this.filterValues.clear();
       this.allValues.forEach(v => this.filterValues.add(this.normalizeValue(v)));
+      this.floatingFilterText = '';
     }
     this.updateSelectAllState();
     this.renderValueList();
+  }
+
+  /**
+   * Called by the floating filter to set the text filter value
+   */
+  setFloatingFilterText(text: string): void {
+    this.floatingFilterText = text;
+    this.params.filterChangedCallback();
+  }
+
+  /**
+   * Get the current floating filter text
+   */
+  getFloatingFilterText(): string {
+    return this.floatingFilterText;
   }
 
   /**

@@ -850,14 +850,21 @@ export class GtsGridComponent implements OnInit, OnDestroy {
                          style="height: 24px; width: 24px; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;"
                          alt="${params.value}" />`;
           }
+          // Se images è definito ma non trova il valore, mostra il testo
+          return `<span>${params.value}</span>`;
         }
 
-        // Altrimenti prova con il path standard
-        return `<img src="${this.getImagePath(params.value)}"
-                     style="height: 24px; width: 24px; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;"
-                     alt="${params.value}"
-                     onerror="this.style.display='none'; this.nextSibling.style.display='inline';"
-                /><span style="display:none;">${params.value}</span>`;
+        // Altrimenti prova con il path standard (solo se il valore sembra un nome file)
+        const val = String(params.value);
+        if (val.includes('.') || val.startsWith('stdImage_') || val.startsWith('icon_')) {
+          return `<img src="${this.getImagePath(val)}"
+                       style="height: 24px; width: 24px; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;"
+                       alt="${params.value}"
+                       onerror="this.style.display='none'; this.nextSibling.style.display='inline';"
+                  /><span style="display:none;">${params.value}</span>`;
+        }
+        // Valore numerico o testo generico - mostra come testo
+        return `<span>${params.value}</span>`;
       };
     }
 
@@ -921,11 +928,12 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     return `${dateStr} ${hours}:${minutes}:${seconds}`;
   }
 
-  getImagePath(iconId: string): string {
-    if (iconId.includes('.')) {
-      return `/assets/icons/${iconId}`;
+  getImagePath(iconId: any): string {
+    const id = String(iconId);
+    if (id.includes('.')) {
+      return `/assets/icons/${id}`;
     }
-    return `/assets/icons/icon_${iconId}.svg`;
+    return `/assets/icons/icon_${id}.svg`;
   }
 
   // AG Grid Events

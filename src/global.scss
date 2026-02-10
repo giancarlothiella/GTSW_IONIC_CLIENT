@@ -401,9 +401,10 @@ app-gts-dash-grid {
    compete directly with p-dialog using z-index.
    ============================================ */
 
-/* Alerts moved to body level - appear above PrimeNG dialogs */
+/* Alerts moved to body level - appear above PrimeNG dialogs and loader */
 body > ion-alert.gts-body-alert,
-body > ion-alert.db-error-alert {
+body > ion-alert.db-error-alert,
+ion-alert.auth-alert-top {
   z-index: 999999 !important;
   position: fixed !important;
   top: 0 !important;
