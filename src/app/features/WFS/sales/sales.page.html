@@ -35,7 +35,7 @@
     }
 
     @for (element of metaData.toolbars; track element) {
-      @if (element.visible && element.objectName != 'mainToolbar' && !element.toolbarFlagSubmit) {
+      @if (element.visible && element.objectName != 'mainToolbar' && !element.toolbarFlagSubmit && !isToolbarInFormArea(element.gridArea)) {
         <app-gts-toolbar
           [style]="'grid-area: '+element.gridArea"
           [prjId]="prjId"
@@ -60,12 +60,22 @@
 
     @for (element of metaData.forms; track element) {
       @if (element.visible && !element.groupShowPopUp) {
-        <app-gts-form
-          [style]="'grid-area: '+element.gridArea"
-          [prjId]="prjId"
-          [formId]="formId"
-          [objectName]="element.objectName"
-        ></app-gts-form>
+        <div [style]="'grid-area: '+element.gridArea">
+          <app-gts-form
+            [prjId]="prjId"
+            [formId]="formId"
+            [objectName]="element.objectName"
+          ></app-gts-form>
+          @for (toolbar of getFormToolbars(element.gridArea); track toolbar) {
+            <app-gts-toolbar
+              [prjId]="prjId"
+              [formId]="formId"
+              [objectName]="toolbar.objectName"
+              [customCssClass]="toolbar.customCssClass"
+              (newValueEvent)="gtsDataService.toolbarSelectEvent($event)"
+            ></app-gts-toolbar>
+          }
+        </div>
       }
       @if (element.visible && element.groupShowPopUp) {
         <app-gts-form-popup

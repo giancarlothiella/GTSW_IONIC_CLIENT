@@ -186,6 +186,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   limitInitialLoad: boolean = false;      // True if dataset has limit enabled
   initialLoadLimit: number = 0;           // Number of rows in initial load limit
   totalRowCount: number = 0;              // Total rows available on server
+  paginationMode: number = 1;            // 1=Unlimited, 2=Limited with totalCount, 3=Limited without totalCount
+
+  // Summary / Pinned Bottom Row
+  pinnedBottomRowData: any[] = [];
+  summaryColumns: any[] = [];            // Columns with summaryType defined
 
   // Search panel (Quick Filter)
   showSearchPanel: boolean = false;
@@ -592,6 +597,22 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Convert columns to AG Grid format (AFTER setting filter options)
     this.convertColumnsToAGGrid(columns);
 
+    // Extract columns with summaryType for pinned bottom row calculation
+    // Also look inside band (grouped) columns
+    this.summaryColumns = [];
+    columns.forEach((col: any) => {
+      if (col.summaryType) {
+        this.summaryColumns.push(col);
+      }
+      if (col.columns && Array.isArray(col.columns)) {
+        col.columns.forEach((childCol: any) => {
+          if (childCol.summaryType) {
+            this.summaryColumns.push(childCol);
+          }
+        });
+      }
+    });
+
     // Extract row data - simple array for AG Grid
     // IMPORTANT: Create a deep copy of the data to ensure AG Grid detects changes
     // when dsRefreshSel updates rows in place (same array/object references)
@@ -610,6 +631,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     this.limitInitialLoad = newGridObject.limitInitialLoad || false;
     this.initialLoadLimit = newGridObject.initialLoadLimit || 0;
     this.totalRowCount = newGridObject.totalCount || newRowData.length;
+    this.paginationMode = newGridObject.paginationMode || 1;
 
 
     // Generate unique key based on selection mode and multiline flag to force grid recreation
@@ -630,6 +652,9 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     }
 
     this.gridReady = true;
+
+    // Calculate summary row (pinned bottom) if any columns have summaryType
+    this.calculateSummaryRow();
 
     // Don't send loader notification here - causes ExpressionChangedAfterItHasBeenCheckedError
     // Let the parent component handle loader state
@@ -839,11 +864,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Handle image columns
     if (col.cellTemplate === 'cellTemplate') {
       colDef.cellRenderer = (params: any) => {
-        if (!params.value) return '';
+        if (params.value === null || params.value === undefined || params.value === '') return '';
 
         // Se la colonna ha immagini definite nei metadati, usa quelle
         if (col.images && col.images.length > 0) {
-          const image = col.images.find((img: any) => img.imgValue === params.value);
+          const image = col.images.find((img: any) => String(img.imgValue) === String(params.value));
           if (image) {
             // Use larger icon (without _16 suffix) for better quality on HiDPI screens
             return `<img src="/assets/icons/stdImage_${image.stdImageId}.png"
@@ -897,20 +922,38 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       delete colDef.maxWidth;
     }
 
-    // Handle numeric columns - right align both data and header
-    const numericTypes = ['number', 'int', 'integer', 'decimal', 'float', 'double', 'numeric', 'money', 'currency'];
+    // Handle numeric columns - right align and format with mask
+    const numericTypes = ['number', 'int', 'integer', 'decimal', 'float', 'double', 'numeric', 'money', 'currency', 'smallint'];
     if (numericTypes.includes(columnType)) {
       colDef.cellClass = 'gts-cell-right';
       colDef.headerClass = 'gts-header-right';
+
+      // Apply number formatting from column mask/format
+      const format = col.format || col.mask;
+      if (format) {
+        const decimals = this.getDecimalPlacesFromMask(format);
+        const useThousands = format.includes(',');
+        colDef.valueFormatter = (params: any) => {
+          if (params.value === null || params.value === undefined || params.value === '') return '';
+          const num = Number(params.value);
+          if (isNaN(num)) return params.value;
+          if (useThousands) {
+            return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+          }
+          return num.toFixed(decimals);
+        };
+      }
     }
 
     return colDef;
   }
 
 
-  getValueFormatter(col: any): any {
-    // Add custom formatting based on column type
-    return undefined; // Default formatter
+  private getDecimalPlacesFromMask(mask: string): number {
+    const dotIndex = mask.lastIndexOf('.');
+    if (dotIndex < 0) return 0;
+    // Count chars after last dot (e.g. "#,###.00" → 2, "#.0" → 1)
+    return mask.length - dotIndex - 1;
   }
 
   formatDate(date: Date): string {
@@ -940,9 +983,10 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   onGridReady(params: GridReadyEvent): void {
     this.gridApi = params.api;
 
-    // Listen for filter changes to update hasActiveFilters
+    // Listen for filter changes to update hasActiveFilters and recalculate summaries
     params.api.addEventListener('filterChanged', () => {
       this.checkActiveFilters();
+      this.calculateSummaryRow();
     });
 
     // Expose test method on window for easy console access
@@ -981,6 +1025,101 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
     const filterModel = this.gridApi.getFilterModel();
     this.hasActiveFilters = Object.keys(filterModel).length > 0;
+  }
+
+  /**
+   * Calculate summary row (pinned bottom) based on column summaryType metadata.
+   * Supports: sum, count, avg (simple), avg with summaryProductCol/summaryWeightCol (weighted).
+   * Uses only currently visible (after filter) rows when grid API is available.
+   */
+  calculateSummaryRow(): void {
+    if (this.summaryColumns.length === 0) {
+      this.pinnedBottomRowData = [];
+      return;
+    }
+
+    // Get the rows currently displayed (respects grid filters)
+    let rows: any[] = [];
+    if (this.gridApi && !this.gridApi.isDestroyed()) {
+      this.gridApi.forEachNodeAfterFilter((node: any) => {
+        if (node.data) rows.push(node.data);
+      });
+    } else {
+      rows = this.rowData || [];
+    }
+
+    if (rows.length === 0) {
+      this.pinnedBottomRowData = [];
+      return;
+    }
+
+    const summaryRow: any = {};
+
+    for (const col of this.summaryColumns) {
+      const field = col.dataField || col.fieldName;
+      const type = (col.summaryType || '').toLowerCase();
+
+      if (type === 'sum') {
+        let total = 0;
+        for (const row of rows) {
+          const val = Number(row[field]);
+          if (!isNaN(val)) total += val;
+        }
+        summaryRow[field] = total;
+
+      } else if (type === 'count') {
+        summaryRow[field] = rows.length;
+
+      } else if (type === 'min') {
+        let min: number | null = null;
+        for (const row of rows) {
+          const val = Number(row[field]);
+          if (!isNaN(val) && (min === null || val < min)) min = val;
+        }
+        summaryRow[field] = min;
+
+      } else if (type === 'max') {
+        let max: number | null = null;
+        for (const row of rows) {
+          const val = Number(row[field]);
+          if (!isNaN(val) && (max === null || val > max)) max = val;
+        }
+        summaryRow[field] = max;
+
+      } else if (type === 'avg') {
+        if (col.summaryProductCol && col.summaryWeightCol) {
+          // Weighted average: SUM(productCol) / SUM(weightCol)
+          let sumProduct = 0;
+          let sumWeight = 0;
+          for (const row of rows) {
+            const product = Number(row[col.summaryProductCol]);
+            const weight = Number(row[col.summaryWeightCol]);
+            if (!isNaN(product)) sumProduct += product;
+            if (!isNaN(weight)) sumWeight += weight;
+          }
+          summaryRow[field] = sumWeight !== 0 ? sumProduct / sumWeight : 0;
+        } else {
+          // Simple arithmetic average
+          let total = 0;
+          let count = 0;
+          for (const row of rows) {
+            const val = Number(row[field]);
+            if (!isNaN(val)) {
+              total += val;
+              count++;
+            }
+          }
+          summaryRow[field] = count > 0 ? total / count : 0;
+        }
+      }
+    }
+
+    this.pinnedBottomRowData = [summaryRow];
+
+    // If grid API exists, update pinned row directly
+    if (this.gridApi && !this.gridApi.isDestroyed()) {
+      this.gridApi.setGridOption('pinnedBottomRowData', this.pinnedBottomRowData);
+    }
   }
 
   /**
@@ -1298,6 +1437,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         nodesToSelect.push(node);
       }
     });
+
+    // In singleRow mode, only select the first node to avoid AG Grid warning #130
+    if (nodesToSelect.length > 1 && this.rowSelection.mode !== 'multiRow') {
+      nodesToSelect.splice(1);
+    }
 
     // Select the nodes
     if (nodesToSelect.length > 0) {

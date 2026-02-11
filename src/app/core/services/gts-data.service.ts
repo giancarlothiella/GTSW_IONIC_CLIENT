@@ -186,6 +186,11 @@ export class GtsDataService {
     return this.gridReloadListener.asObservable();
   }
 
+  private tabsRulesListener = new Subject<string>();
+  getTabsRulesListener() {
+    return this.tabsRulesListener.asObservable();
+  }
+
   // Listener for single row updates (preserves selection, no full reload)
   // Listener for single row updates - supports composite keys
   private gridRowUpdateListener = new Subject<{ dataSetName: string, rowData: any, keyFields: { [key: string]: any } }>();
@@ -899,6 +904,8 @@ export class GtsDataService {
             this.actionCanRun = await this.execProc(prjId, formId, element.sqlId, params, element.sqlParams);                  
           } else if (element.actionType === 'setRule') {
             this.setPageRule(prjId, formId, element.condId, element.condValue);
+          } else if (element.actionType === 'setTabsRules') {
+            this.setTabsRules(prjId, formId, element.tabsName, element.tabsRules);
           } else if (element.actionType === 'getFormData') {
             this.getFormData(prjId, formId, element.clFldGrpId);
           } else if (element.actionType === 'clearFields') {
@@ -2020,6 +2027,21 @@ export class GtsDataService {
     // Refresh the view to apply the rule change
     this.setView(prjId, formId, this.actualView, false);
   }    
+
+  // Set Tabs Rules (enabled/visible per tab)
+  setTabsRules(prjId: string, formId: number, tabsName: string, tabsRules: any[]) {
+    const tabsMeta = this.getPageMetaData(prjId, formId, 'tabs', tabsName);
+    if (tabsMeta?.tabsData) {
+      tabsRules.forEach((rule: any) => {
+        const index = rule.tabIndex - 1; // tabIndex is 1-based
+        if (index >= 0 && index < tabsMeta.tabsData.length) {
+          if (rule.visible !== undefined) tabsMeta.tabsData[index].visible = rule.visible;
+          if (rule.enabled !== undefined) tabsMeta.tabsData[index].disabled = !rule.enabled;
+        }
+      });
+      this.tabsRulesListener.next(tabsName);
+    }
+  }
 
   refreshActualView(prjId: string, formId: number) {
     this.setView(prjId, formId, this.actualView, false);

@@ -138,6 +138,21 @@ export class WFS_SalesComponent implements OnInit, OnDestroy {
   toolbarSelectedValue = '';
 
   //========= PAGE FUNCTIONS =================
+
+  /** Returns toolbars that share the same gridArea as a form (to render them inside the form wrapper) */
+  getFormToolbars(gridArea: string): any[] {
+    if (!this.metaData?.toolbars) return [];
+    return this.metaData.toolbars.filter((t: any) =>
+      t.visible && t.gridArea === gridArea && t.objectName !== 'mainToolbar' && !t.toolbarFlagSubmit
+    );
+  }
+
+  /** Checks if a toolbar's gridArea matches any visible inline form */
+  isToolbarInFormArea(gridArea: string): boolean {
+    if (!this.metaData?.forms) return false;
+    return this.metaData.forms.some((f: any) => f.visible && !f.groupShowPopUp && f.gridArea === gridArea);
+  }
+
   async getCustomData(prjId: string, formId: number, customCode: string, actualView: string) {
     //===== START CUSTOM CODE =====
 

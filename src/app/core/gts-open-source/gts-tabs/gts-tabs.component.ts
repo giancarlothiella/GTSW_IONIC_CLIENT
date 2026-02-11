@@ -1,6 +1,7 @@
-import { Component, OnInit, Input, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GtsDataService } from '../../services/gts-data.service';
+import { Subscription } from 'rxjs';
 import { IonSegment, IonSegmentButton, IonIcon, IonLabel } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 
@@ -30,13 +31,16 @@ import { addIcons } from 'ionicons';
   templateUrl: './gts-tabs.component.html',
   styleUrls: ['./gts-tabs.component.scss']
 })
-export class GtsTabsComponent implements OnInit {
+export class GtsTabsComponent implements OnInit, OnDestroy {
 
   @Input() prjId: string = '';
   @Input() formId: number = 0;
   @Input() objectName: string = '';
 
   private gtsDataService = inject(GtsDataService);
+
+  // Subscriptions
+  tabsRulesListenerSubs: Subscription | undefined;
 
   // Globals
   metaData: any = {};
@@ -47,6 +51,15 @@ export class GtsTabsComponent implements OnInit {
   constructor() {}
 
   ngOnInit(): void {
+    // Subscribe to tabs rules changes
+    this.tabsRulesListenerSubs = this.gtsDataService
+      .getTabsRulesListener()
+      .subscribe((tabsName) => {
+        if (tabsName === this.objectName) {
+          this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'tabs', this.objectName);
+          this.prepareTabs();
+        }
+      });
     // Carica i metadati
     this.metaData = this.gtsDataService.getPageMetaData(
       this.prjId,
@@ -78,6 +91,10 @@ export class GtsTabsComponent implements OnInit {
         this.tabsList[this.tabsIndex].actionName
       );
     }
+  }
+
+  ngOnDestroy(): void {
+    this.tabsRulesListenerSubs?.unsubscribe();
   }
 
   /**

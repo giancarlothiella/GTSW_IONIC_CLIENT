@@ -55,6 +55,18 @@ export class GtsGridService {
       column.allowEditing = col.allowEditing;
       column.columnType = col.columnType; // Preserve columnType for multiline (B), checkbox (C), image (X)
       column.colType = col.colType; // Preserve colType (String, Integer, Float, Date, etc.)
+      column.visible = col.visible;
+
+      // Summary properties for pinned bottom row (sum, count, avg, weightedAvg)
+      if (col.summaryType) {
+        column.summaryType = col.summaryType;
+      }
+      if (col.summaryProductCol) {
+        column.summaryProductCol = col.summaryProductCol;
+      }
+      if (col.summaryWeightCol) {
+        column.summaryWeightCol = col.summaryWeightCol;
+      }
 
       if (groupData.length > 0) {
         let field = groupData.filter((field: any) => field.dbFieldName === col.fieldName)[0];
@@ -241,6 +253,9 @@ export class GtsGridService {
           if (set.initialLoadLimit !== undefined) {
             data.initialLoadLimit = set.initialLoadLimit;
           }
+          if (set.paginationMode !== undefined) {
+            data.paginationMode = set.paginationMode;
+          }
 
 
           // Stringify any column that is a JSON Object
@@ -339,7 +354,8 @@ export class GtsGridService {
       limitApplied: data.limitApplied || false,
       limitInitialLoad: data.limitInitialLoad || false,
       initialLoadLimit: data.initialLoadLimit || 0,
-      totalCount: totalCount
+      totalCount: totalCount,
+      paginationMode: data.paginationMode || 1
     };
 
     // store grid component data on metadata

@@ -37,8 +37,10 @@
                 <span class="btn-icon">⬇</span>
                 @if (hasActiveFilters) {
                   {{ t(1803, 'Load all (filtered)') }}
-                } @else {
+                } @else if (paginationMode === 2) {
                   {{ t(1804, 'Load all') }} ({{ totalRowCount }} {{ t(1805, 'rows') }})
+                } @else {
+                  {{ t(1804, 'Load all') }}
                 }
               </button>
             }
@@ -55,7 +57,11 @@
             <!-- Info badge when limit is applied -->
             @if (limitApplied) {
               <span class="limit-info-badge">
-                {{ t(1807, 'Showing') }} {{ rowData.length }} {{ t(1808, 'of') }} {{ totalRowCount }} {{ t(1805, 'rows') }}
+                @if (paginationMode === 2) {
+                  {{ t(1807, 'Showing') }} {{ rowData.length }} {{ t(1808, 'of') }} {{ totalRowCount }} {{ t(1805, 'rows') }}
+                } @else {
+                  {{ t(1807, 'Showing') }} {{ rowData.length }} {{ t(1805, 'rows') }}
+                }
               </span>
             }
             <!-- Quick Filter / Search Panel -->
@@ -86,6 +92,7 @@
         [defaultColDef]="defaultColDef"
         [rowSelection]="rowSelection"
         [rowHeight]="gridRowHeight"
+        [pinnedBottomRowData]="pinnedBottomRowData"
         [pagination]="enablePagination"
         [paginationPageSize]="paginationPageSize"
         [paginationPageSizeSelector]="paginationPageSizeSelector"
