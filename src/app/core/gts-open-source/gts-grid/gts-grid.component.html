@@ -86,6 +86,7 @@
 
       <ag-grid-angular
         class="gts-grid"
+        [style.height]="!metaData?.showPopUp && gridObject?.height && gridObject.height !== '100%' ? gridObject.height + 'px' : null"
         [theme]="theme"
         [rowData]="rowData"
         [columnDefs]="columnDefs"
