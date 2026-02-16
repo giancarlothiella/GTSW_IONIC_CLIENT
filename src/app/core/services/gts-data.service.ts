@@ -211,6 +211,11 @@ export class GtsDataService {
     return this.formExternalListener.asObservable();
   }
 
+  private formReloadListener = new Subject<number>();
+  getFormReloadListener() {
+    return this.formReloadListener.asObservable();
+  }
+
   private toolbarEventListener = new Subject<any>();
   getToolbarEventListener() {
     return this.toolbarEventListener.asObservable();
@@ -908,6 +913,9 @@ export class GtsDataService {
             this.setTabsRules(prjId, formId, element.tabsName, element.tabsRules);
           } else if (element.actionType === 'getFormData') {
             this.getFormData(prjId, formId, element.clFldGrpId);
+          } else if (element.actionType === 'reloadFormData') {
+            this.getFormData(prjId, formId, element.clFldGrpId);
+            this.formReloadListener.next(element.clFldGrpId);
           } else if (element.actionType === 'clearFields') {
             this.clearFields(prjId, formId, element.clFldGrpId);
           } else if (element.actionType === 'pkLock') {
@@ -981,6 +989,29 @@ export class GtsDataService {
               formId: formId,
               clFldGrpId: element.clFldGrpId
             });
+            this.actionCanRun = true;
+          } else if (element.actionType === 'getSelectedKeys') {
+            // Build string with PK values of selected rows: PKFLD1,PKFLD2;PKFLD1,PKFLD2
+            const dsName = element.dataSetName;
+            const adapter = this.getDataSetAdapter(prjId, formId, dsName);
+            if (adapter && adapter.data) {
+              const dataSet = adapter.data.filter((ds: any) => ds.dataSetName === dsName)[0];
+              if (dataSet && dataSet.selectedKeys && dataSet.selectedKeys.length > 0) {
+                const dsMetaData = this.getPageMetaData(prjId, formId, 'dataSets', dsName);
+                const keyFields = dsMetaData?.sqlKeys?.map((k: any) => k.keyField) || [];
+                // If no sqlKeys in metadata, use keys from first selectedKey object
+                const fields = keyFields.length > 0 ? keyFields : Object.keys(dataSet.selectedKeys[0]);
+                const keysString = dataSet.selectedKeys
+                  .map((keyObj: any) => fields.map((f: string) => keyObj[f] ?? '').join(','))
+                  .join(';');
+                dataSet.selectedKeysString = keysString;
+              } else {
+                const dataSetObj = adapter.data.filter((ds: any) => ds.dataSetName === dsName)[0];
+                if (dataSetObj) {
+                  dataSetObj.selectedKeysString = '';
+                }
+              }
+            }
             this.actionCanRun = true;
           }
 
@@ -1859,10 +1890,16 @@ export class GtsDataService {
               .filter((metaField: any) => metaField.objectName === fieldParam.paramObjectName)[0]
               .value;
             } else {
-              value = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+              const pageField = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
               .pageData
               .pageFields
-              .filter((pageField: any) => pageField.pageFieldName === fieldParam.paramObjectName)[0].value;
+              .filter((pageField: any) => pageField.pageFieldName === fieldParam.paramObjectName)[0];
+              if (pageField) {
+                value = pageField.value;
+              } else {
+                console.warn(`getExportedData: pageField '${fieldParam.paramObjectName}' not found`);
+                value = null;
+              }
             }
 
             params[fieldParam.paramName] = value;
@@ -2054,9 +2091,20 @@ export class GtsDataService {
 
     if (action.sqlType === 'SQL') {
       if (action.sqlParams !== undefined && action.sqlParams !== null && action.sqlParams.length > 0) {
-        action.sqlParams.forEach((param: any) => {          
-          // Get page field value 
-          if (param.paramObjectName !== undefined && param.paramObjectName !== '' && param.paramObjectName !== null) {
+        action.sqlParams.forEach((param: any) => {
+          // Resolve #KEYS:datasetName tag
+          if (param.paramObjectName && param.paramObjectName.startsWith('#KEYS:')) {
+            const keysDataSetName = param.paramObjectName.substring(6); // Remove '#KEYS:' prefix
+            const keysAdapter = this.getDataSetAdapter(prjId, formId, keysDataSetName);
+            if (keysAdapter && keysAdapter.data) {
+              const keysDataSet = keysAdapter.data.filter((ds: any) => ds.dataSetName === keysDataSetName)[0];
+              params[param.paramName] = keysDataSet?.selectedKeysString || '';
+            } else {
+              params[param.paramName] = '';
+            }
+          }
+          // Get page field value
+          else if (param.paramObjectName !== undefined && param.paramObjectName !== '' && param.paramObjectName !== null) {
             this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
             .pageData
             .pageFields

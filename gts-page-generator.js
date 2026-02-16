@@ -345,6 +345,7 @@ import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tab
 import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component';
 import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
 import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
+import { GtsGridPopupComponent } from '../../../core/gts-open-source/gts-grid-popup/gts-grid-popup.component';
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';`;
 
   if (includeLoader) {
@@ -360,6 +361,7 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
     GtsGridComponent,
     GtsFormComponent,
     GtsFormPopupComponent,
+    GtsGridPopupComponent,
     GtsMessageComponent`;
 
   if (includeLoader) {
@@ -564,13 +566,20 @@ ${includeReports ? `
     }
 
     @for (element of metaData.grids; track element) {
-      @if (element.visible) {
+      @if (element.visible && !element.showPopUp) {
         <app-gts-grid
           [style]="'grid-area: '+element.gridArea"
           [prjId]="prjId"
           [formId]="formId"
           [objectName]="element.objectName"
         ></app-gts-grid>
+      }
+      @if (element.visible && element.showPopUp) {
+        <app-gts-grid-popup
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-grid-popup>
       }
     }
 

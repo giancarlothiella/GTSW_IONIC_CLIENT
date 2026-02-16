@@ -56,6 +56,7 @@ export class GtsGridService {
       column.columnType = col.columnType; // Preserve columnType for multiline (B), checkbox (C), image (X)
       column.colType = col.colType; // Preserve colType (String, Integer, Float, Date, etc.)
       column.visible = col.visible;
+      column.mask = col.mask; // Preserve mask for number formatting (all column types)
 
       // Summary properties for pinned bottom row (sum, count, avg, weightedAvg)
       if (col.summaryType) {

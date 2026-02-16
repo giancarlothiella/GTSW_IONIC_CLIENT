@@ -1,5 +1,10 @@
 // GTS Grid - AG Grid Community styling
 
+:host {
+  display: block;
+  width: 100%;
+}
+
 .gts-grid-wrapper {
   display: block;
   width: 100%;
@@ -8,6 +13,11 @@
 .gts-grid-container {
   display: block;
   width: 100%;
+  container-type: inline-size;
+  container-name: gts-grid;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .gts-grid-title {
@@ -23,7 +33,7 @@
 
 .gts-grid {
   width: 100%;
-  height: 600px; // Fixed height for grid with internal scrolling
+  height: calc(100vh - 200px);
 }
 
 // Toolbar for edit mode (like DevExtreme)
@@ -295,6 +305,8 @@
 
       .ag-picker-field-display {
         padding-right: 4px !important;
+        text-align: center !important;
+        flex: 1 !important;
       }
 
       .ag-picker-field-icon {
@@ -302,6 +314,32 @@
         align-items: center !important;
         justify-content: center !important;
         margin-left: 2px !important;
+      }
+    }
+
+    // Responsive pagination: hide extras on narrow grids, keep only arrows
+    @container gts-grid (max-width: 500px) {
+      .ag-paging-page-size {
+        display: none !important;
+      }
+      .ag-paging-row-summary-panel {
+        display: none !important;
+      }
+      .ag-paging-page-summary-panel {
+        // Hide text labels ("Page", "of"), keep only buttons
+        .ag-paging-description {
+          display: none !important;
+        }
+      }
+    }
+
+    @container gts-grid (max-width: 350px) {
+      .ag-paging-panel {
+        padding: 4px 6px !important;
+        justify-content: center !important;
+      }
+      .ag-paging-page-summary-panel {
+        margin: 0 !important;
       }
     }
 

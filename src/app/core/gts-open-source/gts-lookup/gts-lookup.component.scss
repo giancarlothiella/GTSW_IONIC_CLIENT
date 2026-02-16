@@ -17,6 +17,23 @@
   overflow: hidden;
 }
 
+.lookup-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #64748b;
+  font-size: 14px;
+
+  ion-spinner {
+    --color: #3b82f6;
+    width: 36px;
+    height: 36px;
+  }
+}
+
 .lookup-grid-panel {
   flex: 1;
   overflow: auto;

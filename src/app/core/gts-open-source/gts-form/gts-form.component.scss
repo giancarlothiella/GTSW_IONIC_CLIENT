@@ -28,8 +28,9 @@
 .form001Body {
   border: solid 1px #a5a3a392;
   background-color: rgb(252, 246, 246);
-  padding: 10px 5px;
+  padding: 4px 5px;
   font-weight: normal;
+  row-gap: 2px !important;
 }
 
 // Form Toolbar
@@ -73,7 +74,7 @@
   width: 100%;
   background-color: rgb(234, 235, 247);
   font-weight: normal;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 
   input,
   textarea,
@@ -95,7 +96,7 @@
   width: 100%;
   background-color: #ffebee;
   font-weight: normal;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 
   input,
   textarea,
@@ -122,7 +123,7 @@
   width: 100%;
   background-color: rgb(187, 214, 240);
   font-weight: normal;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 
   input,
   textarea {
@@ -143,13 +144,13 @@
 .form001LookUpField {
   background-color: rgb(234, 235, 247);
   font-weight: normal;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .form001LookUpPKField {
   background-color: rgb(187, 214, 240);
   font-weight: normal;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 
   input {
     background-color: rgb(187, 214, 240);
@@ -191,13 +192,13 @@
 .form001RadioGroup {
   background-color: rgb(234, 235, 247);
   padding: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .form001RadioGroupPKField {
   background-color: rgb(187, 214, 240);
   padding: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 // Group Header - use ::ng-deep for stronger specificity
@@ -210,7 +211,7 @@
   line-height: 22px !important;
   font-size: 12px !important;
   font-weight: 600 !important;
-  margin-bottom: 3px !important;
+  margin-bottom: 2px !important;
   padding: 2px 6px !important;
   display: block !important;
   width: 100% !important;
@@ -242,9 +243,10 @@
 :host ::ng-deep {
   // Input fields
   .p-inputtext {
-    padding: 4px 6px;
+    padding: 4px 6px !important;
     font-size: 12px;
-    height: 26px;
+    font-weight: 500;
+    height: 30px;
     width: 100% !important;
     max-width: 100% !important;
     border: 1px solid #ced4da;
@@ -273,6 +275,7 @@
   .p-inputtextarea {
     padding: 4px 6px;
     font-size: 12px;
+    font-weight: 500;
     border: 1px solid #ced4da;
     border-radius: 2px;
     resize: vertical;
@@ -291,7 +294,7 @@
 
   // Select (Dropdown)
   .p-select {
-    min-height: 26px;
+    min-height: 30px;
     font-size: 12px;
     border: 1px solid #ced4da;
     border-radius: 2px;
@@ -299,6 +302,7 @@
     .p-select-label {
       padding: 4px 6px;
       font-size: 12px;
+      font-weight: 500;
 
       &.p-placeholder {
         color: #6c757d;
@@ -319,13 +323,13 @@
   // DatePicker (Calendar)
   .p-datepicker {
     .p-datepicker-input-icon-container {
-      width: 26px;
+      width: 30px;
       position: relative;
       z-index: 10;
 
       button {
-        width: 26px;
-        height: 26px;
+        width: 30px;
+        height: 30px;
         padding: 0;
         position: relative;
         z-index: 10;
@@ -338,7 +342,7 @@
 
     .p-inputtext {
       padding: 4px 6px;
-      height: 26px;
+      height: 30px;
     }
 
     &:not(.p-disabled):hover {
@@ -454,14 +458,33 @@
     &:has(input:-webkit-autofill) input,
     &:has(textarea:focus) textarea,
     &:has(textarea.p-filled) textarea {
-      padding-top: 13px;
-      padding-bottom: 2px;
+      padding-top: 15px;
+      padding-bottom: 0px;
     }
 
     // Label for readonly/disabled fields
     &:has(input:disabled) label,
     &:has(input[readonly]) label {
       color: #6c757d;
+    }
+  }
+
+  // Static label mode - label always small at top, even when field is empty
+  .label-mode-static .p-floatlabel {
+    label {
+      top: 0px;
+      left: 5px;
+      font-size: 9px;
+      color: #00008b;
+      background: inherit;
+      transform: translateY(0);
+      line-height: 1;
+    }
+
+    input,
+    textarea {
+      padding-top: 15px;
+      padding-bottom: 0px;
     }
   }
 
@@ -497,8 +520,8 @@
     &.p-button-small {
       padding: 0.25rem 0.5rem;
       font-size: 11px;
-      min-width: 26px;
-      height: 26px;
+      min-width: 30px;
+      height: 30px;
 
       .p-button-icon {
         font-size: 11px;
@@ -507,8 +530,8 @@
     }
 
     &.p-button-icon-only {
-      width: 26px;
-      height: 26px;
+      width: 30px;
+      height: 30px;
       padding: 0;
 
       .p-button-icon {

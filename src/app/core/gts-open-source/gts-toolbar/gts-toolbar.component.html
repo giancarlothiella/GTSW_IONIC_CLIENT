@@ -51,12 +51,21 @@
               <span class="toolbar-title">{{ item.text }}</span>
             }
             @if (item.type === 'field') {
-              <span class="toolbar-field">
-                @if (item.label) {
-                  <strong>{{ item.label }}:</strong>
-                }
-                {{ item.value }}
-              </span>
+              @if (item.fieldType === 'checkbox') {
+                <span class="toolbar-field toolbar-checkbox toolbar-checkbox-readonly">
+                  <input type="checkbox" [checked]="item.checked" />
+                  @if (item.label) {
+                    <span>{{ item.label }}</span>
+                  }
+                </span>
+              } @else {
+                <span class="toolbar-field">
+                  @if (item.label) {
+                    <strong>{{ item.label }}:</strong>
+                  }
+                  {{ item.value }}
+                </span>
+              }
             }
           }
         </div>
@@ -80,14 +89,23 @@
             </ion-button>
           }
 
-          <!-- Field (read-only) -->
+          <!-- Field -->
           @if (item.type === 'field') {
-            <span class="toolbar-field">
-              @if (item.label) {
-                <strong>{{ item.label }}:</strong>
-              }
-              {{ item.value }}
-            </span>
+            @if (item.fieldType === 'checkbox') {
+              <span class="toolbar-field toolbar-checkbox toolbar-checkbox-readonly">
+                <input type="checkbox" [checked]="item.checked" />
+                @if (item.label) {
+                  <span>{{ item.label }}</span>
+                }
+              </span>
+            } @else {
+              <span class="toolbar-field">
+                @if (item.label) {
+                  <strong>{{ item.label }}:</strong>
+                }
+                {{ item.value }}
+              </span>
+            }
           }
 
           <!-- Dropdown -->
@@ -127,14 +145,23 @@
             </ion-button>
           }
 
-          <!-- Field (read-only) -->
+          <!-- Field -->
           @if (item.type === 'field') {
-            <span class="toolbar-field">
-              @if (item.label) {
-                <strong>{{ item.label }}:</strong>
-              }
-              {{ item.value }}
-            </span>
+            @if (item.fieldType === 'checkbox') {
+              <span class="toolbar-field toolbar-checkbox toolbar-checkbox-readonly">
+                <input type="checkbox" [checked]="item.checked" />
+                @if (item.label) {
+                  <span>{{ item.label }}</span>
+                }
+              </span>
+            } @else {
+              <span class="toolbar-field">
+                @if (item.label) {
+                  <strong>{{ item.label }}:</strong>
+                }
+                {{ item.value }}
+              </span>
+            }
           }
 
           <!-- Dropdown -->

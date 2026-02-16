@@ -1,6 +1,6 @@
 <p-dialog
   [(visible)]="visible"
-  [header]="formTitle"
+  [header]="gridTitle"
   [modal]="!actionsDebugActive"
   [blockScroll]="!actionsDebugActive"
   [closeOnEscape]="false"
@@ -9,14 +9,22 @@
   [resizable]="false"
   [focusTrap]="false"
   [appendTo]="'body'"
-  styleClass="gts-form-popup-dialog"
+  styleClass="gts-grid-popup-dialog"
   [maskStyleClass]="actionsDebugActive ? '' : 'gts-modal-mask'"
-  [style]="{width: formWidth + 'px', height: formHeight + 'px'}"
+  [style]="{width: gridWidth + 'px', height: gridHeight + 'px'}"
   (onShow)="onShow()"
   (onHide)="onHide()">
-  <app-gts-form
+  @if (showToolbar) {
+    <app-gts-toolbar
+      [prjId]="prjId"
+      [formId]="formId"
+      [objectName]="objectName"
+      (newValueEvent)="gtsDataService.toolbarSelectEvent($event)">
+    </app-gts-toolbar>
+  }
+  <app-gts-grid
     [prjId]="prjId"
     [formId]="formId"
     [objectName]="objectName">
-  </app-gts-form>
+  </app-gts-grid>
 </p-dialog>

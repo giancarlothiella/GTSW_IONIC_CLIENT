@@ -2,7 +2,7 @@
   <div class="gts-grid-container"
        [style.width]="gridObject?.width ? gridObject.width + 'px' : '100%'">
     @if (showTitle) {
-      <div class="gts-grid-title">
+      <div class="gts-grid-title" [style.background]="gridCaptionColor || null">
         {{ gridTitle }}
       </div>
     }
@@ -124,6 +124,7 @@
   [modal]="true"
   [draggable]="true"
   [resizable]="true"
+  [focusTrap]="false"
   [style]="{width: '800px', maxHeight: '80vh'}"
   [appendTo]="'body'">
   <div class="original-data-container">
@@ -192,6 +193,7 @@
   [header]="t(1827, 'Icons Legend')"
   [modal]="true"
   [draggable]="true"
+  [focusTrap]="false"
   [style]="{width: '500px', maxHeight: '70vh'}"
   [appendTo]="'body'">
   <div class="icons-legend-container">
@@ -221,6 +223,7 @@
   [header]="t(1825, 'Column Chooser')"
   [modal]="true"
   [draggable]="true"
+  [focusTrap]="false"
   [style]="{width: '400px', maxHeight: '70vh'}"
   [appendTo]="'body'">
   <div class="column-chooser-container">
@@ -243,6 +246,7 @@
   [header]="t(1824, 'AI Assist')"
   [modal]="true"
   [draggable]="true"
+  [focusTrap]="false"
   [style]="{width: '450px', minHeight: '400px'}"
   [contentStyle]="{'overflow': 'visible', 'display': 'flex', 'flex-direction': 'column'}"
   [appendTo]="'body'">

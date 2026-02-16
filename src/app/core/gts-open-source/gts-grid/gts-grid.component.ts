@@ -92,6 +92,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   gridObject: any = { visible: true }; // Initialize with default visible:true
   gridTitle: string = '';
   showTitle: boolean = false;
+  gridCaptionColor: string = '';
   gridKey: string = ''; // Unique key to force grid recreation
 
   // AG Grid configuration
@@ -124,8 +125,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     selectedRowBackgroundColor: '#e3f2fd',
     borderColor: '#ddd',
     fontSize: 13,
-    headerHeight: 36,
-    floatingFiltersHeight: 32,  // Match row height for filter row
+    headerHeight: 30,
+    floatingFiltersHeight: 28,  // Match row height for filter row
     cellHorizontalPadding: 8,
     borderRadius: 0,
     wrapperBorder: false,
@@ -135,14 +136,14 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   // Theme with fixed row height (default)
   theme = themeQuartz.withParams({
     ...this.baseThemeParams,
-    rowHeight: 32
+    rowHeight: 28
   });
 
   // Flag to track if grid has multiline columns
   hasMultilineColumns: boolean = false;
 
   // Row height - undefined allows autoHeight to work for multiline columns
-  gridRowHeight: number | undefined = 32;
+  gridRowHeight: number | undefined = 28;
 
   // Selection (AG Grid v35+ format with checkboxes control)
   rowSelection: any = {
@@ -482,6 +483,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
     this.gridTitle = this.gridObject.caption || '';
     this.showTitle = this.gridTitle !== '';
+    this.gridCaptionColor = this.gridObject.cssClass || '';
   }
 
   ngOnDestroy(): void {
@@ -685,9 +687,9 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     } else {
       this.theme = themeQuartz.withParams({
         ...this.baseThemeParams,
-        rowHeight: 32
+        rowHeight: 28
       });
-      this.gridRowHeight = 32;
+      this.gridRowHeight = 28;
     }
 
     // AG Grid v35+ usa rowSelection.checkboxes in GridOptions invece di colonne separate
@@ -835,19 +837,19 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
     // Handle specific column types
     if (columnType === 'boolean') {
-      // For editable boolean columns, use checkbox editor
+      colDef.cellStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center' };
       if (colDef.editable) {
         colDef.cellEditor = 'agCheckboxCellEditor';
-        colDef.cellRenderer = 'agCheckboxCellRenderer';
-      } else {
-        colDef.cellRenderer = (params: any) => {
-          return params.value ? '✓' : '';
-        };
       }
+      colDef.cellRenderer = (params: any) => {
+        const checked = params.value ? 'checked' : '';
+        return `<input type="checkbox" ${checked} style="appearance: auto; width: 16px; height: 16px; pointer-events: ${colDef.editable ? 'auto' : 'none'};" />`;
+      };
     }
 
     // Handle date columns
     if (columnType === 'date' || columnType === 'datetime') {
+      colDef.cellStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center' };
       colDef.valueFormatter = (params: any) => {
         if (!params.value) return '';
         const date = new Date(params.value);
@@ -863,6 +865,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
     // Handle image columns
     if (col.cellTemplate === 'cellTemplate') {
+      colDef.cellStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center' };
       colDef.cellRenderer = (params: any) => {
         if (params.value === null || params.value === undefined || params.value === '') return '';
 

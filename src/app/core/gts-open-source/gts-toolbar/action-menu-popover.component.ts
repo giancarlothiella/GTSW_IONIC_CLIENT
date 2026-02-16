@@ -23,8 +23,8 @@ import { IonList, IonItem, IonLabel, IonIcon, PopoverController } from '@ionic/a
   styles: [`
     .action-menu-list {
       padding: 4px;
-      min-width: 180px;
-      max-width: 300px;
+      min-width: 240px;
+      max-width: 400px;
     }
 
     ion-item {

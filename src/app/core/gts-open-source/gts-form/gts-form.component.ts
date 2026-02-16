@@ -70,6 +70,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
   formRepListenerSubs: Subscription | undefined;
   formExternalListenerSubs: Subscription | undefined;
+  formReloadListenerSubs: Subscription | undefined;
   formFormFocusListenerSubs: Subscription | undefined;
   appViewListenerSubs: Subscription | undefined;
 
@@ -86,6 +87,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   formTitle: string = '';
   formTitleStyle: string = '';
   formLayout: string = '';
+  labelMode: string = 'floating';
   showPopUp: boolean = false;
   showTitle: boolean = false;
   formStyle: string = 'width: 100%; height: 100%;';
@@ -134,6 +136,16 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
             this.prepareFormData();
             this.changeDetector.detectChanges();
           }
+        }
+      });
+
+    // Form Reload Listener - reload form data when reloadFormData action runs
+    this.formReloadListenerSubs = this.gtsDataService
+      .getFormReloadListener()
+      .subscribe((groupId) => {
+        if (groupId === this.metaData.groupId) {
+          this.prepareFormData();
+          this.changeDetector.detectChanges();
         }
       });
 
@@ -229,14 +241,15 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     this.formReady = false;
     this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'forms', this.objectName);
 
-    if (this.metaData !== undefined && this.metaData !== null &&
-        this.metaData.groupType !== 'PSO' && this.metaData.groupType !== 'WSO') {
+    if (this.metaData !== undefined && this.metaData !== null) {
       let toolbar = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'toolbars', this.objectName);
-      // Assign visible to submit toolbar buttons
-      toolbar.itemsList.forEach((item: any) => {
-        item.visible = true;
-      });
-      this.showToolbar = true;
+      if (toolbar && toolbar.itemsList && toolbar.itemsList.length > 0) {
+        // Assign visible to submit toolbar buttons
+        toolbar.itemsList.forEach((item: any) => {
+          item.visible = true;
+        });
+        this.showToolbar = true;
+      }
     }
 
     this.prepareFormData();
@@ -251,6 +264,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     this.formRepListenerSubs?.unsubscribe();
     this.formFormFocusListenerSubs?.unsubscribe();
     this.formExternalListenerSubs?.unsubscribe();
+    this.formReloadListenerSubs?.unsubscribe();
     this.appViewListenerSubs?.unsubscribe();
   }
 
@@ -332,6 +346,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   prepareFormData() {
     this.formTitle = this.metaData.groupCaption;
     this.formLayout = this.metaData.cssStyle;
+    this.labelMode = this.metaData.labelMode || 'floating';
     this.showPopUp = this.metaData.groupShowPopUp;
     this.showTitle = this.metaData.groupCaption !== '' && this.metaData.groupCaption !== undefined && this.metaData.groupCaption !== null;
     this.formWidth = this.metaData.groupWidth;
@@ -340,9 +355,13 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (this.formHeight === undefined || this.formHeight === null || this.formHeight === 0) {
       // Use metadata label mode
-      this.formHeight = 60 + this.metaData.groupRows * (this.metaData.labelMode === 'outside' && this.metaData.stylingMode === 'outlined' ? 48 : 41);
+      this.formHeight = 45 + this.metaData.groupRows * (this.metaData.labelMode === 'outside' && this.metaData.stylingMode === 'outlined' ? 36 : 30);
     }
-    this.formStyle = 'width: ' + this.metaData.groupWidth + 'px; height: ' + this.formHeight + 'px;';
+    if (this.showPopUp) {
+      this.formStyle = 'width: ' + this.metaData.groupWidth + 'px; height: ' + this.formHeight + 'px;';
+    } else {
+      this.formStyle = 'width: ' + this.metaData.groupWidth + 'px;';
+    }
 
     this.formCSSTitle = this.metaData.cssClass + 'Title';
     this.formCSSBody = this.metaData.cssClass + 'Body';
@@ -602,13 +621,15 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     if (this.metaData.groupType === 'PSO' || this.metaData.groupType === 'WSO') {
-      if (this.showPopUp) {
-        this.showToolbar = true;
-      } else {
-        this.showToolbar = false;
+      // PSO/WSO: show toolbar if it has items (submit toolbar defined), hide otherwise
+      const toolbar = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'toolbars', this.objectName);
+      this.showToolbar = !!(toolbar && toolbar.itemsList && toolbar.itemsList.length > 0);
+      if (!this.showToolbar) {
+        this.formHeight = this.formHeight - 44;
+        if (this.showPopUp) {
+          this.formStyle = 'width: ' + this.metaData.groupWidth + 'px; height: ' + this.formHeight + 'px;';
+        }
       }
-      this.formHeight = this.formHeight - 44;
-      this.formStyle = 'width: ' + this.metaData.groupWidth + 'px; height: ' + this.formHeight + 'px;';
       this.formData.forEach((field: any) => {
         field.readOnly = true;
       });

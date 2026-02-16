@@ -286,6 +286,44 @@ ion-select {
   }
 }
 
+// Toolbar Checkbox field
+.toolbar-checkbox {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  height: 32px;
+  color: #333;
+  margin: 0 4px;
+  gap: 6px;
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #475569;
+    margin: 0;
+  }
+
+  span {
+    font-weight: 600;
+  }
+
+  &.toolbar-checkbox-readonly {
+    cursor: default;
+    pointer-events: none;
+    opacity: 1;
+
+    input[type="checkbox"] {
+      cursor: default;
+      opacity: 1;
+    }
+  }
+}
+
 // Responsive: su schermi piccoli nascondi testi dei bottoni
 @media (max-width: 768px) {
   ion-buttons ion-button {

@@ -10,6 +10,7 @@
     [closable]="false"
     [draggable]="true"
     [resizable]="false"
+    [focusTrap]="false"
     [style]="{width: '600px', height: '660px'}"
     [contentStyle]="{padding: '0', overflow: 'hidden', display: 'flex', 'flex-direction': 'column'}"
     [appendTo]="'body'"
@@ -18,26 +19,34 @@
     (onHide)="onDialogHide()"
   >
     <div class="lookup-container">
-      <!-- Grid Panel -->
-      <div class="lookup-grid-panel">
-        <ag-grid-angular
-          class="ag-theme-material gts-lookup-grid"
-          [rowData]="rowData"
-          [columnDefs]="columnDefs"
-          [defaultColDef]="defaultColDef"
-          [rowSelection]="rowSelectionConfig"
-          [pagination]="true"
-          [paginationPageSize]="10"
-          [paginationPageSizeSelector]="[10, 20, 50]"
-          [animateRows]="true"
-          [domLayout]="'normal'"
-          [rowHeight]="28"
-          [headerHeight]="32"
-          (gridReady)="onGridReady($event)"
-          (selectionChanged)="onSelectionChanged($event)"
-          (rowDoubleClicked)="onRowDoubleClicked($event)"
-        />
-      </div>
+      @if (loadingData) {
+        <!-- Loading spinner -->
+        <div class="lookup-loading">
+          <ion-spinner></ion-spinner>
+          <span>Loading...</span>
+        </div>
+      } @else {
+        <!-- Grid Panel -->
+        <div class="lookup-grid-panel">
+          <ag-grid-angular
+            class="ag-theme-material gts-lookup-grid"
+            [rowData]="rowData"
+            [columnDefs]="columnDefs"
+            [defaultColDef]="defaultColDef"
+            [rowSelection]="rowSelectionConfig"
+            [pagination]="true"
+            [paginationPageSize]="10"
+            [paginationPageSizeSelector]="[10, 20, 50]"
+            [animateRows]="true"
+            [domLayout]="'normal'"
+            [rowHeight]="28"
+            [headerHeight]="32"
+            (gridReady)="onGridReady($event)"
+            (selectionChanged)="onSelectionChanged($event)"
+            (rowDoubleClicked)="onRowDoubleClicked($event)"
+          />
+        </div>
+      }
 
       <!-- Toolbar Panel -->
       <div class="lookup-toolbar-panel">

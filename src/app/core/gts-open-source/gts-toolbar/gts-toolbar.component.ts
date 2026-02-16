@@ -31,7 +31,7 @@ import {
     IonButton,
     IonIcon,
     IonSelect,
-    IonSelectOption
+    IonSelectOption,
   ],
   templateUrl: './gts-toolbar.component.html',
   styleUrls: ['./gts-toolbar.component.scss']
@@ -258,21 +258,23 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
         if (preparedItem) {
           this.itemsList.push(preparedItem);
 
-          // Categorizza per posizionamento
+          // Categorizza per posizionamento (solo item visibili)
           // center → centerItems (titoli e fields al centro)
           // before/left → startItems
           // after/right o default → endItems
-          if (item.type === 'title' || item.location === 'center') {
-            this.centerItems.push(preparedItem);
-            // Mantieni anche titleItem per retrocompatibilità (primo titolo)
-            if (item.type === 'title' && !this.titleItem) {
-              this.titleItem = preparedItem;
+          if (preparedItem.visible) {
+            if (item.type === 'title' || item.location === 'center') {
+              this.centerItems.push(preparedItem);
+              // Mantieni anche titleItem per retrocompatibilità (primo titolo)
+              if (item.type === 'title' && !this.titleItem) {
+                this.titleItem = preparedItem;
+              }
+            } else if (item.location === 'before' || item.location === 'left') {
+              this.startItems.push(preparedItem);
+            } else {
+              // after, right, o qualsiasi altro valore
+              this.endItems.push(preparedItem);
             }
-          } else if (item.location === 'before' || item.location === 'left') {
-            this.startItems.push(preparedItem);
-          } else {
-            // after, right, o qualsiasi altro valore
-            this.endItems.push(preparedItem);
           }
         }
       }
@@ -386,25 +388,62 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
     // Format date values
     const dataType = this.gtsDataService.getPageFieldDataType(this.prjId, this.formId, item.pageFieldName);
     if ((dataType === 'Date' || dataType === 'DateTime') && value) {
-      // Convert string ISO date to Date object if needed
       const dateValue = typeof value === 'string' ? new Date(value) : value;
-
       if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
-        if (dataType === 'DateTime') {
-          value = this.pageService.formatDateTime(dateValue);
-        } else {
-          value = this.pageService.formatDate(dateValue);
-        }
+        value = dataType === 'DateTime'
+          ? this.pageService.formatDateTime(dateValue)
+          : this.pageService.formatDate(dateValue);
       }
     }
+
+    // Read fieldType and fieldOptions from the pageField metadata (not the toolbar item)
+    const pageField: any = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'pageFields', item.pageFieldName);
+    const rawType = (pageField?.fieldType || 'text').toLowerCase();
+    const fieldType = rawType === 'check' ? 'checkbox' : rawType;
+    let fieldOptions: any[] = [];
+    const rawOptions = pageField?.fieldOptions;
+    if (rawOptions) {
+      try {
+        fieldOptions = typeof rawOptions === 'string'
+          ? JSON.parse(rawOptions)
+          : rawOptions;
+      } catch (e) {
+        console.warn(`[toolbar] Invalid fieldOptions JSON for ${item.objectName}:`, e);
+      }
+    }
+
+    // For checkbox: determine checked state from current value
+    let checked = false;
+    if (fieldType === 'checkbox' && fieldOptions.length > 0) {
+      const checkedOption = fieldOptions.find((opt: any) => opt.checked === true);
+      checked = checkedOption ? String(value) === String(checkedOption.value) : false;
+    }
+
+    // For radio: resolve value to the matching option's label
+    let displayValue = value;
+    if (fieldType === 'radio' && fieldOptions.length > 0) {
+      const selectedOption = fieldOptions.find((opt: any) => String(opt.value) === String(value));
+      if (selectedOption?.label) {
+        displayValue = selectedOption.label;
+      }
+    }
+
+    // Hide non-checkbox fields when value is empty
+    const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== '';
+    const visible = item.visible && (fieldType === 'checkbox' || hasValue);
 
     return {
       type: 'field',
       objectName: item.objectName,
-      value: value,
+      value: displayValue,
       label: label,
-      visible: item.visible,
-      location: item.location
+      visible: visible,
+      location: item.location,
+      fieldType: fieldType,
+      fieldOptions: fieldOptions,
+      checked: checked,
+      pageFieldName: item.pageFieldName,
+      actionName: item.actionName || ''
     };
   }
 
@@ -596,6 +635,26 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
   // ============================================
   // Task List Methods
   // ============================================
+
+  /**
+   * Handle field checkbox toggle
+   * Uses fieldOptions to map checked/unchecked to the correct values
+   */
+  onFieldCheckboxChange(item: any): void {
+    const newChecked = !item.checked;
+    item.checked = newChecked;
+
+    // Find the value for the new state from fieldOptions
+    const option = item.fieldOptions.find((opt: any) => opt.checked === newChecked);
+    const newValue = option ? option.value : (newChecked ? 'Y' : 'N');
+    item.value = newValue;
+
+    this.gtsDataService.setPageFieldValue(this.prjId, this.formId, item.pageFieldName, newValue);
+
+    if (item.actionName) {
+      this.gtsDataService.runAction(this.prjId, this.formId, item.actionName);
+    }
+  }
 
   /**
    * Handle task item click - runs the action

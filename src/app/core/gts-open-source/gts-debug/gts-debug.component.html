@@ -174,7 +174,7 @@
                 </p-table>
               }
 
-              @if (selectedMetaDataCategory === 'forms' || selectedMetaDataCategory === 'grids' || selectedMetaDataCategory === 'pageFields' || selectedMetaDataCategory === 'tabs' || selectedMetaDataCategory === 'toolbars' || selectedMetaDataCategory === 'views') {
+              @if (selectedMetaDataCategory === 'pageFields') {
                 <p-table
                   [value]="metaDataRows"
                   [rowHover]="true"
@@ -183,15 +183,160 @@
                   scrollHeight="450px"
                   selectionMode="single"
                   [(selection)]="selectedMetaDataRow"
+                  dataKey="pageFieldName"
                 >
                   <ng-template pTemplate="header">
                     <tr>
-                      <th>Name</th>
+                      <th>Page Field Name</th>
+                      <th>Label</th>
+                      <th style="width: 120px">DataSet</th>
+                      <th style="width: 80px">Value</th>
                     </tr>
                   </ng-template>
-                  <ng-template pTemplate="body" let-row let-i="rowIndex">
+                  <ng-template pTemplate="body" let-row>
                     <tr [pSelectableRow]="row" [class.row-selected]="selectedMetaDataRow === row">
-                      <td>{{ row.formName || row.gridName || row.fieldName || row.tabName || row.toolbarName || row.viewName || 'Item ' + (i + 1) }}</td>
+                      <td>{{ row.pageFieldName }}</td>
+                      <td>{{ row.pageFieldLabel }}</td>
+                      <td>{{ row.dataSetName }}</td>
+                      <td>{{ row.value }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
+
+              @if (selectedMetaDataCategory === 'grids') {
+                <p-table
+                  [value]="metaDataRows"
+                  [rowHover]="true"
+                  [showGridlines]="true"
+                  [scrollable]="true"
+                  scrollHeight="450px"
+                  selectionMode="single"
+                  [(selection)]="selectedMetaDataRow"
+                  dataKey="objectName"
+                >
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Object Name</th>
+                      <th style="width: 120px">DataSet</th>
+                      <th style="width: 80px">Cols</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr [pSelectableRow]="row" [class.row-selected]="selectedMetaDataRow === row">
+                      <td>{{ row.objectName }}</td>
+                      <td>{{ row.dataSetName }}</td>
+                      <td>{{ row.columns?.length || 0 }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
+
+              @if (selectedMetaDataCategory === 'forms') {
+                <p-table
+                  [value]="metaDataRows"
+                  [rowHover]="true"
+                  [showGridlines]="true"
+                  [scrollable]="true"
+                  scrollHeight="450px"
+                  selectionMode="single"
+                  [(selection)]="selectedMetaDataRow"
+                  dataKey="groupId"
+                >
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th style="width: 80px">Group ID</th>
+                      <th>Object Name</th>
+                      <th style="width: 80px">Fields</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr [pSelectableRow]="row" [class.row-selected]="selectedMetaDataRow === row">
+                      <td>{{ row.groupId }}</td>
+                      <td>{{ row.objectName || row.formName }}</td>
+                      <td>{{ row.fields?.length || 0 }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
+
+              @if (selectedMetaDataCategory === 'toolbars') {
+                <p-table
+                  [value]="metaDataRows"
+                  [rowHover]="true"
+                  [showGridlines]="true"
+                  [scrollable]="true"
+                  scrollHeight="450px"
+                  selectionMode="single"
+                  [(selection)]="selectedMetaDataRow"
+                  dataKey="objectName"
+                >
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th style="width: 80px">Toolbar ID</th>
+                      <th>Object Name</th>
+                      <th style="width: 80px">Items</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr [pSelectableRow]="row" [class.row-selected]="selectedMetaDataRow === row">
+                      <td>{{ row.toolbarId }}</td>
+                      <td>{{ row.objectName }}</td>
+                      <td>{{ row.items?.length || 0 }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
+
+              @if (selectedMetaDataCategory === 'tabs') {
+                <p-table
+                  [value]="metaDataRows"
+                  [rowHover]="true"
+                  [showGridlines]="true"
+                  [scrollable]="true"
+                  scrollHeight="450px"
+                  selectionMode="single"
+                  [(selection)]="selectedMetaDataRow"
+                  dataKey="tabIndex"
+                >
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th style="width: 60px">Index</th>
+                      <th>Text</th>
+                      <th>Object Name</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr [pSelectableRow]="row" [class.row-selected]="selectedMetaDataRow === row">
+                      <td>{{ row.tabIndex }}</td>
+                      <td>{{ row.tabText || row.text }}</td>
+                      <td>{{ row.objectName }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
+
+              @if (selectedMetaDataCategory === 'views') {
+                <p-table
+                  [value]="metaDataRows"
+                  [rowHover]="true"
+                  [showGridlines]="true"
+                  [scrollable]="true"
+                  scrollHeight="450px"
+                  selectionMode="single"
+                  [(selection)]="selectedMetaDataRow"
+                  dataKey="viewName"
+                >
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>View Name</th>
+                      <th>Description</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr [pSelectableRow]="row" [class.row-selected]="selectedMetaDataRow === row">
+                      <td>{{ row.viewName || row.objectName }}</td>
+                      <td>{{ row.viewDescr || row.description }}</td>
                     </tr>
                   </ng-template>
                 </p-table>

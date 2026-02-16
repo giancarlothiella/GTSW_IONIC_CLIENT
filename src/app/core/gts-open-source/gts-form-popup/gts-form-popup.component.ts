@@ -46,15 +46,15 @@ export class GtsFormPopupComponent implements OnInit, OnDestroy {
     this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'forms', this.objectName);
 
     // Calculate dialog dimensions
-    // 42px per row (32px field height + 10px gap between rows)
+    // 34px per row (32px field height + 2px gap between rows)
     // Base space: dialog header (50px + 6px margin) + toolbar (44px) + padding (66px) = 166px
 
     if (this.metaData.groupHeight && this.metaData.groupHeight > 0) {
       // Use fixed height from metadata
       this.formHeight = this.metaData.groupHeight + 166;
     } else {
-      // Calculate based on row count: 42px per row
-      this.formHeight = 166 + this.metaData.groupRows * 42;
+      // Calculate based on row count: 34px per row
+      this.formHeight = 166 + this.metaData.groupRows * 34;
 
       // Add extra height for TextArea fields with custom areaHeight
       // Standard row = 36px field + 10px gap = 46px

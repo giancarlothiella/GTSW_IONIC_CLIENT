@@ -6,14 +6,14 @@ import { Subscription } from 'rxjs';
 import { DialogModule } from 'primeng/dialog';
 import { AgGridAngular } from 'ag-grid-angular';
 import { ColDef, GridApi, GridReadyEvent, SelectionChangedEvent } from 'ag-grid-community';
-import { IonToolbar, IonButtons, IonButton } from '@ionic/angular/standalone';
+import { IonToolbar, IonButtons, IonButton, IonSpinner } from '@ionic/angular/standalone';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'app-gts-lookup',
   standalone: true,
-  imports: [CommonModule, DialogModule, AgGridAngular, IonToolbar, IonButtons, IonButton, ToastModule],
+  imports: [CommonModule, DialogModule, AgGridAngular, IonToolbar, IonButtons, IonButton, IonSpinner, ToastModule],
   templateUrl: './gts-lookup.component.html',
   styleUrls: ['./gts-lookup.component.scss'],
   providers: [MessageService],
@@ -110,11 +110,14 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
             GtsLookupComponent.isAnyLookupProcessing = false; // Reset static flag
             this.cd.detectChanges();
           } else {
+            this.loadingData = true;
+            this.popUpVisible = true;
+            document.body.classList.add('gts-lookup-active');
+            this.cd.detectChanges();
             this.getLookUpData();
             this.gridData.grid = false;
             this.gridData.gridName = undefined
             this.gridData.gridColumn = undefined;
-            // Note: popUpVisible will be set in getLookUpData after data loads
           }
         } else if (this.gridName !== undefined && this.gridColumn !== undefined && this.gridName !== "" && this.gridColumn !== "" &&
           ((this.gridData.gridName === undefined && this.gridData.gridColumn === undefined) || (this.gridData.gridName === this.gridName))) {
@@ -158,6 +161,7 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
   isSelected: boolean = false;
   gridColumn: string = '';
   lookUpReady: boolean = false;
+  loadingData: boolean = false;
 
   // AG Grid specific
   gridApi!: GridApi;
@@ -187,10 +191,7 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
 
     // Run inside NgZone to ensure change detection in production builds
     this.ngZone.run(() => {
-      this.popUpVisible = true;
-      this.lookUpReady = true;
-      // Add class to body to block interactions with form behind
-      document.body.classList.add('gts-lookup-active');
+      this.loadingData = false;
       this.cd.detectChanges();
     });
   }
@@ -367,6 +368,7 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
   private closeLookup() {
     this.popUpVisible = false;
     this.lookUpReady = false;
+    this.loadingData = false;
     this.selectedRows = [];
     this.isSelected = false;
     this.rowData = [];

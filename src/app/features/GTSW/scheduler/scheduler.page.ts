@@ -146,7 +146,7 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
           </ng-template>
           <ng-template pTemplate="body" let-task>
             <tr>
-              <td>{{ task.taskActive }}</td>
+              <td style="text-align: center"><input type="checkbox" [checked]="task.taskActive === 'Y'" style="appearance: auto; width: 16px; height: 16px; pointer-events: none;" /></td>
               <td>{{ task.taskCode }}</td>
               <td>{{ task.taskSchedule }}</td>
               <td>{{ task.taskURL }}</td>
@@ -156,7 +156,7 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
         </p-table>
       </p-dialog>
 
-      <p-toast></p-toast>
+      <p-toast position="center"></p-toast>
     </ng-container>
   `,
   styles: []
@@ -283,6 +283,7 @@ export class GTSW_SchedulerComponent implements OnInit, OnDestroy {
 
         if (customCode === 'CRON_UNLOAD' || customCode === 'CRON_LOAD' || customCode === 'CRON_START' ||
             customCode === 'CRON_STOP' || customCode === 'CRON_RUN') {
+          this.gtsDataService.sendAppLoaderListener(false);
           this.messageService.add({
             severity: valid ? 'success' : 'error',
             summary: valid ? 'Success' : 'Error',

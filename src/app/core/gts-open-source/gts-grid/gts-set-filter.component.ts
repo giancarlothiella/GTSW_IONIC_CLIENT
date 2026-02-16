@@ -248,11 +248,19 @@ export class GtsSetFilterComponent implements IFilterComp {
   }
 
   /**
-   * Get display text for a value
+   * Get display text for a value, using the column's valueFormatter if available
    */
   private getDisplayText(value: any): string {
     if (value === null || value === undefined || value === '') {
       return '(Blanks)';
+    }
+    // Use column's valueFormatter to format dates, numbers, etc.
+    const colDef = this.params.colDef as any;
+    if (colDef.valueFormatter && typeof colDef.valueFormatter === 'function') {
+      const formatted = colDef.valueFormatter({ value, data: null, node: null, colDef });
+      if (formatted !== null && formatted !== undefined && formatted !== '') {
+        return formatted;
+      }
     }
     return String(value);
   }
@@ -406,11 +414,12 @@ export class GtsSetFilterComponent implements IFilterComp {
     const passesSetFilter = this.filterValues.has(normalizedValue);
 
     // Check if value passes the text filter (floating filter input)
+    // Use formatted display text so searching "10/02" matches formatted dates
     let passesTextFilter = true;
     if (this.floatingFilterText && this.floatingFilterText.trim() !== '') {
       const searchLower = this.floatingFilterText.toLowerCase().trim();
-      const valueStr = value !== null && value !== undefined ? String(value).toLowerCase() : '';
-      passesTextFilter = valueStr.includes(searchLower);
+      const displayStr = this.getDisplayText(value).toLowerCase();
+      passesTextFilter = displayStr.includes(searchLower);
     }
 
     // Row must pass BOTH filters

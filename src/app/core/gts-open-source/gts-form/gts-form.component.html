@@ -9,7 +9,7 @@
     }
     <div [style]="formStyle">
       <div
-        [class]="formCSSBody"
+        [class]="formCSSBody + (labelMode === 'static' ? ' label-mode-static' : '')"
         [style]="formLayout">
         @for (element of formData; track element.trackKey) {
           <!-- GroupHdr (section header) -->
@@ -62,7 +62,7 @@
                   [disabled]="element.disabled"
                   [readonly]="element.readOnly"
                   [type]="element.mode || 'text'"
-                  [style]="element.forceUpperCase ? 'text-transform: uppercase' : ''"
+                  [style]="(element.forceUpperCase ? 'text-transform: uppercase; ' : '') + (element.dataType === 'N' ? 'text-align: right;' : '')"
                   (input)="onFieldInput($event, element)"
                   (ngModelChange)="onFieldDataChanged(element, $event)"
                   (blur)="onFieldFocusOut(element)"
@@ -87,6 +87,7 @@
                   [(ngModel)]="element.value"
                   [disabled]="element.disabled"
                   readonly
+                  [style]="element.dataType === 'N' ? 'text-align: right;' : ''"
                   #inputElement
                 />
                 <label [for]="objectName + '_' + element.fieldId">{{ element.label }}</label>
@@ -194,7 +195,7 @@
                   [(ngModel)]="element.value"
                   [disabled]="element.disabled"
                   [readonly]="element.readOnly"
-                  [style]="element.forceUpperCase ? 'text-transform: uppercase' : ''"
+                  [style]="(element.forceUpperCase ? 'text-transform: uppercase; ' : '') + (element.dataType === 'N' ? 'text-align: right;' : '')"
                   (input)="onFieldInput($event, element)"
                   (ngModelChange)="onFieldDataChanged(element, $event)"
                   (blur)="onFieldFocusOut(element)"

@@ -1,0 +1,94 @@
+// GTS Grid Popup - PrimeNG Dialog styling
+// ViewEncapsulation.None - styles are global, scoped by styleClass
+
+// Dialog customization for GTS style (reuses same pattern as form popup)
+.gts-grid-popup-dialog {
+  z-index: 10001 !important;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden !important;
+
+  .p-dialog-header {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: #ffffff;
+    border-radius: 8px 8px 0 0;
+    padding: 12px 16px;
+    margin: 6px 6px 0 6px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .p-dialog-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    height: 100%;
+  }
+
+  // Close button styling (if enabled)
+  .p-dialog-header-close {
+    color: #ffffff;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  // Angular host elements must be flex items
+  app-gts-toolbar {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  app-gts-grid {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  // Hide grid title - already shown in dialog header
+  .gts-grid-title {
+    display: none !important;
+  }
+
+  // Make grid wrapper fill available space
+  .gts-grid-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  // Override fixed width - fill dialog
+  .gts-grid-container {
+    width: 100% !important;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  // Grid internal toolbar - fixed height
+  .gts-grid-toolbar {
+    flex-shrink: 0;
+  }
+
+  // Override fixed 600px height - fill remaining space
+  // AG Grid needs explicit height, flex: 1 + height: 0 lets flex grow it
+  .gts-grid {
+    flex: 1;
+    height: 0 !important;
+    min-height: 0;
+  }
+}
+
+// Grid menu and overlays must appear above the popup dialog (z-index 10001)
+// p-menu with appendTo="body" becomes a direct child of body
+body > .p-menu {
+  z-index: 10002 !important;
+}

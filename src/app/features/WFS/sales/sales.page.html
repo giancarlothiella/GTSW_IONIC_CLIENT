@@ -48,13 +48,20 @@
     }
 
     @for (element of metaData.grids; track element) {
-      @if (element.visible) {
+      @if (element.visible && !element.showPopUp) {
         <app-gts-grid
           [style]="'grid-area: '+element.gridArea"
           [prjId]="prjId"
           [formId]="formId"
           [objectName]="element.objectName"
         ></app-gts-grid>
+      }
+      @if (element.visible && element.showPopUp) {
+        <app-gts-grid-popup
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-grid-popup>
       }
     }
 
