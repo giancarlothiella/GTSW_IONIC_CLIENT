@@ -164,6 +164,9 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   // Flag to prevent action execution during AI data loading
   isLoadingAiData: boolean = false;
 
+  // Flag to lock row selection (gridLockRows/gridUnLockRows actions)
+  rowsLocked: boolean = false;
+
   // Store initial column state for reset functionality
   initialColumnState: any[] | null = null;
 
@@ -301,6 +304,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
               } else if (!this.allowDeleting && wasDeleting) {
                 this.removeDeleteColumn();
               }
+              this.cdr.detectChanges();
+              return;
+            }
+            if (allowFlags[0] === 'Lock') {
+              this.rowsLocked = allowFlags[1] === 'true';
               this.cdr.detectChanges();
               return;
             }
@@ -1466,8 +1474,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   }
 
   onSelectionChanged(event: SelectionChangedEvent): void {
-    // If grid is disabled, prevent selection change by restoring previous selection
-    if (this.gridObject?.disabled && !this.isRestoringSelection) {
+    // If grid is disabled or rows are locked, prevent selection change by restoring previous selection
+    if ((this.gridObject?.disabled || this.rowsLocked) && !this.isRestoringSelection) {
       // Store the previous selection keys before the change
       const previousKeys = this.selectedRows;
 

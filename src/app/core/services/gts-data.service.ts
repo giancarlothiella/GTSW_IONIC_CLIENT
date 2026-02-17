@@ -989,6 +989,12 @@ export class GtsDataService {
           } else if (element.actionType === 'gridAllowDelete') {
             this.sendGridReload(element.dataSetName+';Delete:true');
             this.actionCanRun = true
+          } else if (element.actionType === 'gridLockRows') {
+            this.sendGridReload(element.dataSetName+';Lock:true');
+            this.actionCanRun = true
+          } else if (element.actionType === 'gridUnLockRows') {
+            this.sendGridReload(element.dataSetName+';Lock:false');
+            this.actionCanRun = true
           } else if (element.actionType === 'gridPostChanges') {
             this.actionCanRun = await this.dataSetPost(prjId, formId, element.dataSetName, element.gridName);
           } else if (element.actionType === 'gridRollback') {
