@@ -243,7 +243,10 @@
 :host ::ng-deep {
   // Input fields
   .p-inputtext {
-    padding: 4px 6px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
     font-size: 12px;
     font-weight: 500;
     height: 30px;
@@ -458,8 +461,8 @@
     &:has(input:-webkit-autofill) input,
     &:has(textarea:focus) textarea,
     &:has(textarea.p-filled) textarea {
-      padding-top: 15px;
-      padding-bottom: 0px;
+      padding-top: 10px !important;
+      padding-bottom: 0px !important;
     }
 
     // Label for readonly/disabled fields
@@ -483,8 +486,8 @@
 
     input,
     textarea {
-      padding-top: 15px;
-      padding-bottom: 0px;
+      padding-top: 10px !important;
+      padding-bottom: 0px !important;
     }
   }
 

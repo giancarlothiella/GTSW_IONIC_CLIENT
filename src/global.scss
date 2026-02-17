@@ -422,6 +422,10 @@ ion-alert.auth-alert-top {
   /* Alert wrapper/content */
   .alert-wrapper {
     z-index: 999999 !important;
+
+    .alert-message {
+      white-space: pre-line !important;
+    }
   }
 }
 

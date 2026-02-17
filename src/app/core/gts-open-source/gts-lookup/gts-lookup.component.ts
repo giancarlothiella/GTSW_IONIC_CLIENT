@@ -162,6 +162,7 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
   gridColumn: string = '';
   lookUpReady: boolean = false;
   loadingData: boolean = false;
+  lookUpError: string = '';
 
   // AG Grid specific
   gridApi!: GridApi;
@@ -186,6 +187,27 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
   //========= FUNCTIONS =================
   async getLookUpData() {
     const responseData = await this.gtsDataService.getExportedDSData(this.prjId, this.formId, this.lookUpField.groupId, this.lookUpField.fieldName, this.lookUpField.formData, this.lookUpField.objectName);
+
+    if (!responseData?.valid || !responseData?.data?.[0]?.rows) {
+      // Error occurred - stop loading and show error inside lookup
+      // Build detailed message from nested data errors if available
+      let errorMsg = responseData?.message || 'Errore di connessione al server';
+      if (responseData?.data && Array.isArray(responseData.data)) {
+        const details = responseData.data
+          .filter((ds: any) => ds.valid === false && ds.message)
+          .map((ds: any) => ds.dataSetName ? `[${ds.dataSetName}] ${ds.message}` : ds.message);
+        if (details.length > 0) {
+          errorMsg += '\n' + details.join('\n');
+        }
+      }
+      this.ngZone.run(() => {
+        this.loadingData = false;
+        this.lookUpError = errorMsg;
+        this.cd.detectChanges();
+      });
+      return;
+    }
+
     this.lookUpData = responseData.data[0].rows;
     this.gridData = this.prepareGridData();
 
@@ -369,6 +391,7 @@ export class GtsLookupComponent implements OnInit, OnDestroy {
     this.popUpVisible = false;
     this.lookUpReady = false;
     this.loadingData = false;
+    this.lookUpError = '';
     this.selectedRows = [];
     this.isSelected = false;
     this.rowData = [];

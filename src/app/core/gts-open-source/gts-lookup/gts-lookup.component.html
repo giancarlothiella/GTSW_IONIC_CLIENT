@@ -19,7 +19,13 @@
     (onHide)="onDialogHide()"
   >
     <div class="lookup-container">
-      @if (loadingData) {
+      @if (lookUpError) {
+        <!-- Error message -->
+        <div class="lookup-error">
+          <span style="font-size: 24px;">&#9888;</span>
+          <span style="white-space: pre-line;">{{ lookUpError }}</span>
+        </div>
+      } @else if (loadingData) {
         <!-- Loading spinner -->
         <div class="lookup-loading">
           <ion-spinner></ion-spinner>

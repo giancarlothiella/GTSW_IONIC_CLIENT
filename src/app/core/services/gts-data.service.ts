@@ -6,6 +6,7 @@ import { PageService } from './pages.service';
 import { Subscription, Subject } from 'rxjs';
 import { AuthService } from './auth.service';
 import { MenuService } from './menu.service';
+import { TranslationService } from './translation.service';
 
 import { environment } from '../../../environments/environment';
 import { lastValueFrom } from 'rxjs';
@@ -27,7 +28,8 @@ export class GtsDataService {
     private pageService: PageService,
     private authService: AuthService,
     private appInfo: AppInfoService,
-    private menuService: MenuService
+    private menuService: MenuService,
+    private translationService: TranslationService
   ) {
     this.appActionsDebugListenerSubs = this.appInfo
     .getAppActionsDebugListener()
@@ -61,9 +63,15 @@ export class GtsDataService {
     }
 
     const postHttp = this.http.post(url, params);
-    const response: any = await lastValueFrom(postHttp);
-    
-    return response;
+    try {
+      const response: any = await lastValueFrom(postHttp);
+      return response;
+    } catch (error: any) {
+      this.appLoaderListener.next(false);
+      const message = error?.error?.message || error?.message || 'Errore di connessione al server';
+      this.sendDbError(this.translationService.getText(1703, 'Connection Error'), message);
+      return { valid: false, message: message };
+    }
   }
 
   //===================================================================================================
@@ -242,6 +250,23 @@ export class GtsDataService {
   }
   sendDbError(title: string, message: string) {
     this.dbErrorListener.next({ title, message });
+  }
+
+  /**
+   * Build a detailed error message from nested response data.
+   * Server responses can have: { valid: false, message: "...", data: [{ valid: false, dataSetName: "...", message: "..." }] }
+   */
+  private buildErrorMessage(responseData: any): string {
+    let message = responseData.message || 'Errore sconosciuto';
+    if (responseData.data && Array.isArray(responseData.data)) {
+      const details = responseData.data
+        .filter((ds: any) => ds.valid === false && ds.message)
+        .map((ds: any) => ds.dataSetName ? `[${ds.dataSetName}] ${ds.message}` : ds.message);
+      if (details.length > 0) {
+        message += '\n\n' + details.join('\n');
+      }
+    }
+    return message;
   }
 
   // AI Chat Data Received Listener - per ricevere i dati dall'AI e popolare grid/form
@@ -1275,17 +1300,20 @@ export class GtsDataService {
         // realign page rules
         this.setPageDataSetRule(prjId, formId, dataAdapter, dataSetName);
 
-        valid = true;           
+        valid = true;
       } else {
         valid = false;
-      } 
+        if (!responseData.valid) {
+          this.sendDbError(this.translationService.getText(1702, 'Database Error'), this.buildErrorMessage(responseData));
+        }
+      }
 
     } else {
       if (!all && selectedKeys === null) {
         valid = true;
       } else {
         valid = false;
-      }      
+      }
     }
 
     // Only trigger full grid reload for full dataset refresh (all=true)
@@ -2289,9 +2317,9 @@ export class GtsDataService {
         connCode: connCode
       };
       this.dbLog.push(logReq);
-    } else if (responseData.message) {
-      // Show error message to user
-      this.sendDbError('Errore Database', responseData.message);
+    } else if (responseData.message || responseData.data) {
+      // Show error message to user with nested details
+      this.sendDbError(this.translationService.getText(1702, 'Database Error'), this.buildErrorMessage(responseData));
     }
 
     return responseData.valid;
@@ -2426,6 +2454,8 @@ export class GtsDataService {
           }
         });
       }
+    } else if (responseData.message || responseData.data) {
+      this.sendDbError(this.translationService.getText(1702, 'Database Error'), this.buildErrorMessage(responseData));
     }
 
     return valid;
@@ -2500,6 +2530,10 @@ export class GtsDataService {
       }
 
       return responseData;
+    }
+
+    if (!responseData.valid && (responseData.message || responseData.data)) {
+      this.sendDbError(this.translationService.getText(1702, 'Database Error'), this.buildErrorMessage(responseData));
     }
 
     return null;
