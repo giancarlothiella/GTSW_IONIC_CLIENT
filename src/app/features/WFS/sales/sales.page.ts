@@ -85,7 +85,11 @@ export class WFS_SalesComponent implements OnInit, OnDestroy {
       };
 
       //===== START FORM REQUEST CUSTOM CODE =====
-
+      if (formRequest.typeRequest === 'form') {
+        if (formRequest.formName === 'prvLotHdrForm') {
+          this.calcPrvHdr(formRequest);
+        }
+      }
       //===== END FORM REQUEST CUSTOM CODE =====
       this.gtsDataService.sendFormReply(reply);
     });
@@ -159,6 +163,98 @@ export class WFS_SalesComponent implements OnInit, OnDestroy {
     //===== START CUSTOM CODE =====
 
     //===== END CUSTOM CODE =====
+  }
+
+  //========= FORM CALCULATIONS =================
+
+  /** Helper: get numeric value - tries formData first, falls back to pageData */
+  private getFieldVal(fd: any[], name: string): number {
+    const f = fd.find((f: any) => f.objectName === name);
+    if (f?.value !== undefined && f?.value !== null) return parseFloat(f.value) || 0;
+    // Fallback to pageData (field in a different form)
+    const val = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, name);
+    return parseFloat(val) || 0;
+  }
+
+  /** Helper: set field value in formData (if present) and always sync pageData */
+  private setFieldVal(fd: any[], name: string, value: number) {
+    const f = fd.find((f: any) => f.objectName === name);
+    if (f) f.value = value;
+    this.gtsDataService.setPageFieldValue(this.prjId, this.formId, name, value);
+  }
+
+  /** Private Lots Header - weight and cost calculations */
+  private calcPrvHdr(formRequest: any) {
+    const code = formRequest.field.customCode;
+    const fd = formRequest.formData;
+    const get = (name: string) => this.getFieldVal(fd, name);
+    const set = (name: string, value: number) => this.setFieldVal(fd, name, value);
+    const round2 = (v: number) => Math.round(v * 100) / 100;
+    const round0 = (v: number) => Math.round(v);
+
+    // Field name constants
+    const F = {
+      BALES:     'gtsFldqPrvHdr_LOTPRV_BALES',
+      KG_GROSS:  'gtsFldqPrvHdr_LOTPRV_KG_GROSS',
+      KG_TARE:   'gtsFldqPrvHdr_LOTPRV_KG_TARE',
+      KG_NET:    'gtsFldqPrvHdr_LOTPRV_KG_NET',
+      YIELD:     'gtsFldqPrvHdr_LOTPRV_YIELD',
+      KG_CLEAN:  'gtsFldqPrvHdr_LOTPRV_KG_CLEAN',
+      COST_WU:   'gtsFldqPrvHdr_LOTPRV_COST_WU',
+      ACOF:      'gtsFldqPrvHdr_LOTPRV_COST_ACOF',
+      POST_SALE: 'gtsFldqPrvHdr_LOTPRV_POST_SALE_CHARGE',
+      BAREME:    'gtsFldqPrvHdr_LOTPRV_BALE_BAREME',
+      ACIF:      'gtsFldqPrvHdr_LOTPRV_COST_ACIF',
+    };
+
+    // Cascade: recalculate ACIF from current values
+    const recalcACIF = () => {
+      const acof = get(F.ACOF);
+      const kgClean = get(F.KG_CLEAN);
+      if (kgClean > 0) {
+        const postSale = get(F.POST_SALE);
+        const bareme = get(F.BAREME);
+        const bales = get(F.BALES);
+        // POST_SALE and BAREME are AUD/bale → convert to cents/kg clean
+        set(F.ACIF, round0(acof + (postSale + bareme) * bales * 100 / kgClean));
+      }
+    };
+
+    if (code === 'TARE') {
+      const kgNet = round2(get(F.KG_GROSS) - get(F.KG_TARE));
+      set(F.KG_NET, kgNet);
+
+      const yieldPct = get(F.YIELD);
+      if (yieldPct > 0) {
+        set(F.KG_CLEAN, round2(kgNet * yieldPct / 100));
+        const costWu = get(F.COST_WU);
+        if (costWu > 0) set(F.ACOF, round0(costWu * 100 / yieldPct));
+        recalcACIF();
+      }
+    }
+
+    if (code === 'YIELD') {
+      const kgNet = get(F.KG_NET);
+      const yieldPct = get(F.YIELD);
+      if (yieldPct > 0) {
+        set(F.KG_CLEAN, round2(kgNet * yieldPct / 100));
+        const costWu = get(F.COST_WU);
+        if (costWu > 0) set(F.ACOF, round0(costWu * 100 / yieldPct));
+        recalcACIF();
+      }
+    }
+
+    if (code === 'COST_WU') {
+      const yieldPct = get(F.YIELD);
+      if (yieldPct > 0) {
+        set(F.ACOF, round0(get(F.COST_WU) * 100 / yieldPct));
+        recalcACIF();
+      }
+    }
+
+    if (code === 'POST_SALE' || code === 'BAREME') {
+      recalcACIF();
+    }
   }
 
 }

@@ -801,6 +801,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         this.customDecodeResult = false;
         let formRequest = {
           typeRequest: 'form',
+          formName: this.objectName,
           field: field,
           formData: this.formData
         };
