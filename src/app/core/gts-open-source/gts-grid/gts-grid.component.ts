@@ -173,6 +173,9 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   // Store current column state to preserve during reloads (after user resizes columns)
   savedColumnState: any[] | null = null;
 
+  // Store filter model to preserve during tab switches
+  savedFilterModel: any = null;
+
   // Editing properties
   allowInserting: boolean = false;
   allowUpdating: boolean = false;
@@ -312,6 +315,13 @@ export class GtsGridComponent implements OnInit, OnDestroy {
               this.cdr.detectChanges();
               return;
             }
+            if (allowFlags[0] === 'Select') {
+              // Clear stale saved keys so restoreSelection uses pageData selectedKeys (Priority 2)
+              // savedSelectedRowKeys may contain old selection from prepareGridData before insert
+              this.savedSelectedRowKeys = [];
+              this.restoreSelection();
+              return;
+            }
             if (allowFlags[0] === 'Idle') {
               this.allowUpdating = false;
               this.allowInserting = false;
@@ -400,8 +410,23 @@ export class GtsGridComponent implements OnInit, OnDestroy {
             }
             this.gridObject.disabled = this.metaData.disabled || false;
             this.gridObject.visible = newVisible;
+          } else if (!newVisible && wasVisible) {
+            // Grid becoming hidden - save state before AG Grid is destroyed by @if
+            if (this.gridApi && !this.gridApi.isDestroyed()) {
+              const filterModel = this.gridApi.getFilterModel();
+              if (filterModel && Object.keys(filterModel).length > 0) {
+                this.metaData.savedFilterModel = filterModel;
+              }
+              // Save column state
+              this.metaData.savedColumnState = this.gridApi.getColumnState();
+            }
+            if (!this.gridObject) {
+              this.gridObject = {};
+            }
+            this.gridObject.disabled = this.metaData.disabled || false;
+            this.gridObject.visible = newVisible;
           } else {
-            // Grid becoming hidden
+            // Grid stays hidden
             if (!this.gridObject) {
               this.gridObject = {};
             }
@@ -495,6 +520,13 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Save filter model to metadata so it persists across component destroy/recreate (tab switches)
+    if (this.gridApi && !this.gridApi.isDestroyed()) {
+      const filterModel = this.gridApi.getFilterModel();
+      if (this.metaData && filterModel && Object.keys(filterModel).length > 0) {
+        this.metaData.savedFilterModel = filterModel;
+      }
+    }
     this.appViewListenerSubs?.unsubscribe();
     this.gridSelectListenerSubs?.unsubscribe();
     this.gridReloadListenerSubs?.unsubscribe();
@@ -507,12 +539,20 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Save current selection before reload
-    if (this.gridApi && this.selectedRows.length > 0) {
-      const keyField = this.gridObject?.keys?.[0] || 'id';
-      this.savedSelectedRowKeys = this.selectedRows
-        .filter((row: any) => row !== undefined && row !== null)
-        .map((row: any) => row[keyField]);
+    // Save current state before reload
+    if (this.gridApi && !this.gridApi.isDestroyed()) {
+      // Save selection
+      if (this.selectedRows.length > 0) {
+        const keyField = this.gridObject?.keys?.[0] || 'id';
+        this.savedSelectedRowKeys = this.selectedRows
+          .filter((row: any) => row !== undefined && row !== null)
+          .map((row: any) => row[keyField]);
+      }
+      // Save filter model
+      const filterModel = this.gridApi.getFilterModel();
+      if (filterModel && Object.keys(filterModel).length > 0) {
+        this.savedFilterModel = filterModel;
+      }
     }
 
     // Reset defaultColDef to base state (filter settings may vary per grid)
@@ -1023,6 +1063,23 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       // Restore selection if there was one saved
       this.restoreSelection();
 
+      // Restore column state from metadata (saved when grid became hidden during tab switch)
+      const columnStateToRestore = this.metaData?.savedColumnState;
+      if (columnStateToRestore) {
+        params.api.applyColumnState({ state: columnStateToRestore, applyOrder: true });
+        delete this.metaData.savedColumnState;
+      }
+
+      // Restore filter model if there was one saved (from component property or metadata)
+      const filterToRestore = this.savedFilterModel || this.metaData?.savedFilterModel;
+      if (filterToRestore) {
+        params.api.setFilterModel(filterToRestore);
+        this.savedFilterModel = null;
+        if (this.metaData?.savedFilterModel) {
+          delete this.metaData.savedFilterModel;
+        }
+      }
+
       // Check initial filter state
       this.checkActiveFilters();
     }, 100); // Small delay to ensure gridObject is set
@@ -1420,20 +1477,34 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const keyField = this.gridObject?.keys?.[0] || 'id';
-    let keysToSelect: any[] = [];
+    const keyFields = this.gridObject?.keys || [this.metaData?.dataAdapterIdField || 'id'];
+    let selectedKeys: any[] = [];
 
-    // First, check if we have saved selection keys from previous state
+    // Priority 1: component-level saved keys (from prepareGridData reload)
     if (this.savedSelectedRowKeys && this.savedSelectedRowKeys.length > 0) {
-      keysToSelect = this.savedSelectedRowKeys;
+      // Convert simple values to key objects for unified matching
+      const keyField = keyFields[0];
+      selectedKeys = this.savedSelectedRowKeys.map((val: any) => ({ [keyField]: val }));
     }
-    // If no saved keys, check gridObject.selectedRowKeys (set after INSERT)
+    // Priority 2: selectedKeys from pageData (persists across component destroy/recreate)
+    else if (this.metaData?.dataSetName) {
+      const pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
+      if (pageData) {
+        for (const adapter of pageData) {
+          const ds = adapter.data?.find((d: any) => d.dataSetName === this.metaData.dataSetName);
+          if (ds?.selectedKeys && ds.selectedKeys.length > 0) {
+            selectedKeys = ds.selectedKeys;
+            break;
+          }
+        }
+      }
+    }
+    // Priority 3: gridObject.selectedRowKeys (set after INSERT)
     else if (this.gridObject?.selectedRowKeys && this.gridObject.selectedRowKeys.length > 0) {
-      // gridObject.selectedRowKeys is array of objects: [{fieldName: value}]
-      keysToSelect = this.gridObject.selectedRowKeys.map((keyObj: any) => keyObj[keyField]);
+      selectedKeys = this.gridObject.selectedRowKeys;
     }
 
-    if (keysToSelect.length === 0) {
+    if (selectedKeys.length === 0) {
       return;
     }
 
@@ -1442,10 +1513,17 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
     const nodesToSelect: any[] = [];
 
-    // Find nodes matching the keys
+    // Find nodes matching ALL key fields (composite key support)
+    // Use String() comparison to handle type mismatches (e.g. '4613' vs 4613)
+    const keyFieldsUsed = selectedKeys.length > 0 ? Object.keys(selectedKeys[0]) : [];
     this.gridApi.forEachNode((node: any) => {
-      if (node.data && keysToSelect.includes(node.data[keyField])) {
-        nodesToSelect.push(node);
+      if (node.data) {
+        const matches = selectedKeys.some((keyObj: any) =>
+          Object.keys(keyObj).every((k: string) => String(node.data[k]) === String(keyObj[k]))
+        );
+        if (matches) {
+          nodesToSelect.push(node);
+        }
       }
     });
 
@@ -1496,7 +1574,30 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.selectedRows = event.api.getSelectedRows();
+    const newSelectedRows = event.api.getSelectedRows();
+
+    // Ignore spurious deselection events (e.g. triggered by DOM reflow when form hides)
+    // Real deselection goes through unselectDS / setDataSetSelected, not through the grid
+    if (newSelectedRows.length === 0 && this.selectedRows.length > 0) {
+      // Restore visual selection in AG Grid
+      const previousRows = this.selectedRows;
+      const keyFields = this.gridObject?.keys || [this.metaData?.dataAdapterIdField || 'id'];
+      setTimeout(() => {
+        this.isRestoringSelection = true;
+        event.api.forEachNode((node: any) => {
+          if (node.data) {
+            const matches = previousRows.some((prevRow: any) =>
+              keyFields.every((k: string) => node.data[k] === prevRow[k])
+            );
+            if (matches) node.setSelected(true);
+          }
+        });
+        this.isRestoringSelection = false;
+      }, 0);
+      return;
+    }
+
+    this.selectedRows = newSelectedRows;
 
     // Get ALL key fields from gridObject.keys for composite key support
     // gridObject.keys comes from metadata sqlKeys: ['connCode', 'dbMode']

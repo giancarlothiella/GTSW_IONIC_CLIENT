@@ -691,7 +691,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         field.validated = false;
         field.updateFromLookUp = false;
 
-        if (!field.disabled && !field.readOnly) {
+        if (!field.disabled && !field.readOnly && field.editorType !== 'GroupHdr') {
           if (field.allowEmpty && (field.value === undefined || field.value === null || field.value === '')) {
             // Campo opzionale vuoto - segna come validato e continua
             field.validated = true;

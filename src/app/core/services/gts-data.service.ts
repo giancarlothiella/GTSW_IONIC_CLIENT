@@ -995,6 +995,9 @@ export class GtsDataService {
           } else if (element.actionType === 'gridUnLockRows') {
             this.sendGridReload(element.dataSetName+';Lock:false');
             this.actionCanRun = true
+          } else if (element.actionType === 'setGridSelected') {
+            this.sendGridReload(element.dataSetName+';Select:true');
+            this.actionCanRun = true
           } else if (element.actionType === 'gridPostChanges') {
             this.actionCanRun = await this.dataSetPost(prjId, formId, element.dataSetName, element.gridName);
           } else if (element.actionType === 'gridRollback') {
@@ -1420,19 +1423,20 @@ export class GtsDataService {
       const data = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId);
       for (let i = 0; i < data.length; i++) {
         const dataAdapter = data[i];
-        dataSet = dataAdapter.data.filter((dataSet: any) => dataSet.dataSetName === action.dataSetName)[0];
-        if (dataSet !== undefined && dataSet !== null) {
+        const found = dataAdapter.data.filter((ds: any) => ds.dataSetName === action.dataSetName)[0];
+        if (found !== undefined && found !== null) {
+          dataSet = found;
           break;
         }
       }
 
-      sqlParams = dataSet.sqlParams;
+      sqlParams = dataSet?.sqlParams || [];
 
       actionRow = {
-        sqlType: dataSet.sqlType,
-        sqlParams: dataSet.sqlParams,
-        doc: dataSet.doc,
-        queryParams: dataSet.queryParams
+        sqlType: dataSet?.sqlType,
+        sqlParams: dataSet?.sqlParams || [],
+        doc: dataSet?.doc,
+        queryParams: dataSet?.queryParams
       }
 
     } else {
@@ -1452,6 +1456,15 @@ export class GtsDataService {
     actionRow.sqlId = sqlId;
 
     const params = this.buildParamsArray(prjId, formId, actionRow);
+
+    // Convert null params to '' so the server includes them in the UPDATE/INSERT
+    // (server skips null params by design for reports, but form posts need to clear fields)
+    Object.keys(params).forEach(key => {
+      if (params[key] === null || params[key] === undefined) {
+        params[key] = '';
+      }
+    });
+
     const valid = await this.execProc(prjId, formId, sqlId, params, sqlParams, dataSet);
 
     if (valid && status === 'insert') {
@@ -2946,6 +2959,24 @@ export class GtsDataService {
       });  
     } else {
       if (firstDataSetRow !== null) {
+        // Update selectedRows and selectedKeys in pageData
+        const targetAdapter = this.pageData.find((data: any) => data.prjId === prjId && data.formId === formId && data.dataAdapter === dataAdapter);
+        if (targetAdapter) {
+          const targetDs = targetAdapter.data.find((ds: any) => ds.dataSetName === dataSetName);
+          if (targetDs) {
+            targetDs.selectedRows = [firstDataSetRow];
+            // Build selectedKeys from dataset key fields
+            const dsMetaData = this.getPageMetaData(prjId, formId, 'dataSets', dataSetName);
+            if (dsMetaData?.sqlKeys && dsMetaData.sqlKeys.length > 0) {
+              const keyObj: any = {};
+              dsMetaData.sqlKeys.forEach((key: any) => {
+                keyObj[key.keyField] = firstDataSetRow[key.keyField];
+              });
+              targetDs.selectedKeys = [keyObj];
+            }
+          }
+        }
+
         // realign page fields data
         this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
         .pageData
@@ -2953,7 +2984,7 @@ export class GtsDataService {
           if (field.dataSetName === dataSetName) {
             field.value = firstDataSetRow[field.dbFieldName];
           }
-        });  
+        });
       }
     }
    
