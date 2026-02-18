@@ -475,6 +475,9 @@ export class HomePage implements OnInit, ViewWillEnter {
    * Click su tile progetto
    */
   onProjectClick(project: ProjectInfo) {
+    // Se il progetto è già attivo, non fare nulla
+    if (project.prjId === this.user?.prjId) return;
+
     // Se il progetto ha connessioni, usa quella di default
     let connCode: string | undefined;
     if (project.dbConnections && project.dbConnections.length > 0) {
@@ -504,6 +507,9 @@ export class HomePage implements OnInit, ViewWillEnter {
    */
   onConnectionClick(event: Event, project: ProjectInfo, connection: any) {
     event.stopPropagation();
+
+    // Se il progetto è già attivo e la connessione è quella di default, non fare nulla
+    if (project.prjId === this.user?.prjId && connection.connDefault) return;
 
     // Salva lo stato della sezione in base al tipo di progetto selezionato
     const isAdmin = this.isAdminProject(project);

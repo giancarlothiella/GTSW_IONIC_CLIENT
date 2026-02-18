@@ -271,17 +271,20 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   //========= FORM EVENTS =================
   async toolbarSubmitEvent(event: any) {
     const valid = await this.formValidation();
-    if (valid) {
-      this.formData.forEach((field: any) => {
-        // Convert value format depending if dataType is N or D
-        if (field.dataType === 'N' && field.value !== undefined && field.value !== null && field.value !== '') {
-          field.value = Number(field.value);
-        }
-
-        this.gtsDataService.setFormFieldValue(this.prjId, this.formId, this.objectName, field.objectName, field.value);
-      });
-      this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
+    if (!valid) {
+      // Force UI update to show all validation messages
+      this.changeDetector.detectChanges();
+      return;
     }
+    this.formData.forEach((field: any) => {
+      // Convert value format depending if dataType is N or D
+      if (field.dataType === 'N' && field.value !== undefined && field.value !== null && field.value !== '') {
+        field.value = Number(field.value);
+      }
+
+      this.gtsDataService.setFormFieldValue(this.prjId, this.formId, this.objectName, field.objectName, field.value);
+    });
+    this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
   }
 
   lookUpSubmitEvent(event: any) {

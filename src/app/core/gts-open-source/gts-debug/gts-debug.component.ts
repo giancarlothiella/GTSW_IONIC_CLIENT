@@ -99,6 +99,7 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
 
   // DB Action Log Tab
   dbLogRows: any[] = [];
+  selectedLogRow: any = null;
 
   // Rules Tab
   rulesRows: any[] = [];
@@ -261,9 +262,54 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
   private loadDbLog(): void {
     if (!this.selectedPage) {
       this.dbLogRows = [];
+      this.selectedLogRow = null;
       return;
     }
     this.dbLogRows = this.selectedPage.dbLog || [];
+    this.selectedLogRow = this.dbLogRows.length > 0 ? this.dbLogRows[this.dbLogRows.length - 1] : null;
+  }
+
+  onLogRowSelect(row: any): void {
+    this.selectedLogRow = row;
+  }
+
+  formatTime(date: any): string {
+    if (!date) return '-';
+    const d = date instanceof Date ? date : new Date(date);
+    return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  getLogRowIndex(row: any): number {
+    return this.dbLogRows.indexOf(row) + 1;
+  }
+
+  getActionLabel(row: any): string {
+    if (row.action === 'dsPost' && row.dataSetAction) {
+      return `dsPost (${row.dataSetAction})`;
+    }
+    return row.action || '-';
+  }
+
+  getTargetLabel(row: any): string {
+    if (row.dataAdapter) return row.dataAdapter;
+    if (row.dataSetName) return row.dataSetName;
+    return '-';
+  }
+
+  hasAnySqlId(row: any): boolean {
+    if (row.sqlId) return true;
+    return row.dataSets?.some((ds: any) => ds.sqlId) || false;
+  }
+
+  showLogSql(row: any): void {
+    if (row.sqlId) {
+      this.showDbLogSQL(row);
+    } else if (row.dataSets) {
+      const ds = row.dataSets.find((d: any) => d.sqlId);
+      if (ds) {
+        this.showDbLogSQL({ sqlId: ds.sqlId, action: row.action });
+      }
+    }
   }
 
   private loadRules(): void {
@@ -292,24 +338,26 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
     this.debugStateChanged.emit(false);
   }
 
-  // SQL Dialog
-  async showMetaDataSQL(row: any): Promise<void> {
-    if (!row || !row.sqlId) {
-      return;
+  // SQL Dialog - helper to build params (never pass empty connCode)
+  private buildSqlParams(sqlId: number, connCodeOverride?: string): any {
+    const connCode = connCodeOverride || this.gtsDataService.getActualConnCode();
+    const params: any = {
+      prjId: this.prjId,
+      sqlId: sqlId,
+      getConnCode: true
+    };
+    if (connCode) {
+      params.connCode = connCode;
     }
+    return params;
+  }
+
+  async showMetaDataSQL(row: any): Promise<void> {
+    if (!row || !row.sqlId) return;
 
     this.gtsDataService.sendAppLoaderListener(true);
-
     try {
-      const connCode = this.gtsDataService.getActualConnCode();
-      const params = {
-        prjId: this.prjId,
-        sqlId: row.sqlId,
-        connCode: connCode,
-        getConnCode: true
-      };
-      const result = await this.gtsDataService.execMethod('data', 'getSQLSpec', params);
-
+      const result = await this.gtsDataService.execMethod('data', 'getSQLSpec', this.buildSqlParams(row.sqlId));
       if (result.valid) {
         this.sqlCode = result.sql.sqlCode;
         this.sqlPopupTitle = `SQL Code - ID: ${row.sqlId}`;
@@ -321,30 +369,16 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   async showDataSetSQL(dataSet: any): Promise<void> {
-    if (!dataSet) {
-      return;
-    }
+    if (!dataSet) return;
 
     const sqlId = this.selectedPage.metadata.dataSets.find((ds: any) =>
       ds.dataSetName === dataSet.dataSetName
     )?.sqlId;
-
-    if (!sqlId) {
-      return;
-    }
+    if (!sqlId) return;
 
     this.gtsDataService.sendAppLoaderListener(true);
-
     try {
-      const connCode = this.gtsDataService.getActualConnCode();
-      const params = {
-        prjId: this.prjId,
-        sqlId: sqlId,
-        connCode: connCode,
-        getConnCode: true
-      };
-      const result = await this.gtsDataService.execMethod('data', 'getSQLSpec', params);
-
+      const result = await this.gtsDataService.execMethod('data', 'getSQLSpec', this.buildSqlParams(sqlId));
       if (result.valid) {
         this.sqlCode = result.sql.sqlCode;
         this.sqlPopupTitle = `SQL Code - DataSet: ${dataSet.dataSetName}`;
@@ -356,25 +390,14 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   async showDbLogSQL(row: any): Promise<void> {
-    if (!row || !row.sqlId) {
-      return;
-    }
+    if (!row || !row.sqlId) return;
 
     this.gtsDataService.sendAppLoaderListener(true);
-
     try {
-      const connCode = this.gtsDataService.getActualConnCode();
-      const params = {
-        prjId: this.prjId,
-        sqlId: row.sqlId,
-        connCode: connCode,
-        getConnCode: true
-      };
-      const result = await this.gtsDataService.execMethod('data', 'getSQLSpec', params);
-
+      const result = await this.gtsDataService.execMethod('data', 'getSQLSpec', this.buildSqlParams(row.sqlId, row.connCode));
       if (result.valid) {
         this.sqlCode = result.sql.sqlCode;
-        this.sqlPopupTitle = `SQL Code - DB Log (${row.action})`;
+        this.sqlPopupTitle = `SQL Code - ${row.action || 'SQL'} (ID: ${row.sqlId})`;
         this.sqlPopupVisible = true;
       }
     } finally {

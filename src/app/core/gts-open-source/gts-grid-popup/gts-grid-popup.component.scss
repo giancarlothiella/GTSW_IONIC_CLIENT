@@ -87,8 +87,9 @@
   }
 }
 
-// Grid menu and overlays must appear above the popup dialog (z-index 10001)
-// p-menu with appendTo="body" becomes a direct child of body
-body > .p-menu {
-  z-index: 10002 !important;
+// Grid menu (p-menu) and AG Grid popups must appear above the popup dialog (z-index 10001)
+// PrimeNG menu with appendTo="body" - use broad selector for PrimeNG 21 compatibility
+.p-menu-overlay,
+.p-menu[style*="position"] {
+  z-index: 10010 !important;
 }

@@ -1523,13 +1523,15 @@ export class GtsDataService {
         logDate: new Date(),
         prjId: prjId,
         formId: formId,
+        route: 'db/execProc',
         action: 'dsPost',
-        sqlId:  null,
+        sqlId: sqlId,
         dataAdapter: null,
-        dataSetAction: action.actionType,
+        dataSetAction: status,
         dataSetName: action.dataSetName,
         params: sqlParams,
-        connCode: null
+        connCode: this.getConnCode(prjId),
+        user: this.authService.getCurrentUser()?.email || ''
       };
       this.dbLog.push(logReq);
     }
@@ -2327,13 +2329,16 @@ export class GtsDataService {
         logDate: new Date(),
         prjId: prjId,
         formId: formId,
+        route: 'db/execProc',
         action: 'execProc',
         sqlId: sqlId,
         dataAdapter: null,
         dataSetAction: null,
         dataSetName: null,
         params: params,
-        connCode: connCode
+        sqlParams: sqlParams,
+        connCode: connCode,
+        user: this.authService.getCurrentUser()?.email || ''
       };
       this.dbLog.push(logReq);
     } else if (responseData.message || responseData.data) {
@@ -2375,18 +2380,34 @@ export class GtsDataService {
         });
       }
 
+      // Resolve sqlIds from metadata dataSets for this adapter
+      const pageMeta = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0];
+      const metaDataSets = pageMeta?.pageData?.dataSets || [];
+      const logDataSets: any[] = [];
+      if (responseData.data) {
+        responseData.data.forEach((ds: any) => {
+          const metaDs = metaDataSets.find((mds: any) => mds.dataSetName === ds.dataSetName);
+          if (metaDs) {
+            logDataSets.push({ dataSetName: ds.dataSetName, sqlId: metaDs.sqlId });
+          }
+        });
+      }
+
       // save log
       const logReq: any = {
         logDate: new Date(),
         prjId: prjId,
         formId: formId,
+        route: 'db/getData',
         action: 'getData',
-        sqlId: null,
+        sqlId: logDataSets.length === 1 ? logDataSets[0].sqlId : null,
         dataAdapter: dataAdapter,
         dataSetAction: null,
-        dataSetName: null,
+        dataSetName: logDataSets.length === 1 ? logDataSets[0].dataSetName : null,
+        dataSets: logDataSets.length > 1 ? logDataSets : undefined,
         params: dataParams,
-        connCode: connCode
+        connCode: connCode,
+        user: this.authService.getCurrentUser()?.email || ''
       };
       this.dbLog.push(logReq);
       

@@ -445,32 +445,169 @@ ion-alert.overlay-hidden {
   display: none !important;
 }
 
-.gts-message-question {
-  // Bottone Cancel - grigio con bordo
-  .gts-btn-cancel.sc-ion-alert-md {
-    color: #666 !important;
-    border: 1px solid #ddd !important;
-    border-radius: 6px !important;
-    padding: 8px 16px !important;
-    background-color: #f5f5f5 !important;
-  }
-
-  // Bottone OK - blu scuro con bordo
-  .gts-btn-ok.sc-ion-alert-md {
-    color: white !important;
-    border: 1px solid #00008b !important;
-    border-radius: 6px !important;
-    padding: 8px 16px !important;
-    background-color: #00008b !important;
-  }
-}
-
-// Stile per il bottone selezionato (keyboard navigation)
+/* GTS Message Alert - Base styling for all message types */
 .gts-message-alert {
+  --min-width: 340px;
+  --max-width: 480px;
+
+  .alert-wrapper {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
+  }
+
+  // Header with icon area
+  .alert-head {
+    padding: 16px 20px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    border-bottom: 1px solid #e0e0e0 !important;
+  }
+
+  // Icon before title - using ::before pseudo-element
+  .alert-head::before {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .alert-title {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+  }
+
+  // Message body
+  .alert-message {
+    padding: 16px 20px !important;
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    color: #333 !important;
+  }
+
+  // Button group - toolbar area
+  .alert-button-group {
+    padding: 10px 16px 14px !important;
+    border-top: 1px solid #e8e8e8 !important;
+    background: #f8f9fa !important;
+    gap: 8px !important;
+    justify-content: flex-end !important;
+  }
+
+  // Keyboard navigation selected state
   .button-selected.sc-ion-alert-md {
     outline: 2px solid #4a90d9 !important;
     outline-offset: 2px !important;
     box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.3) !important;
+  }
+}
+
+/* Question (Q) - Blue theme with question mark icon */
+.gts-message-question {
+  .alert-head {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
+    border-bottom-color: #90caf9 !important;
+  }
+
+  .alert-head::before {
+    content: '❓';
+  }
+
+  .alert-title {
+    color: #1565c0 !important;
+  }
+
+  .gts-btn-cancel.sc-ion-alert-md {
+    color: #666 !important;
+    border: 1px solid #ccc !important;
+    border-radius: 6px !important;
+    padding: 8px 20px !important;
+    background-color: #f5f5f5 !important;
+    font-weight: 600 !important;
+  }
+
+  .gts-btn-ok.sc-ion-alert-md {
+    color: white !important;
+    border: 1px solid #00008b !important;
+    border-radius: 6px !important;
+    padding: 8px 20px !important;
+    background-color: #00008b !important;
+    font-weight: 600 !important;
+  }
+}
+
+/* Info Message (I/M) - Blue/teal theme with info icon */
+.gts-message-i,
+.gts-message-m {
+  .alert-head {
+    background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%) !important;
+    border-bottom-color: #80deea !important;
+  }
+
+  .alert-head::before {
+    content: 'ℹ️';
+  }
+
+  .alert-title {
+    color: #00838f !important;
+  }
+
+  .gts-btn-close.sc-ion-alert-md {
+    color: white !important;
+    border: 1px solid #00838f !important;
+    border-radius: 6px !important;
+    padding: 8px 20px !important;
+    background-color: #00838f !important;
+    font-weight: 600 !important;
+  }
+}
+
+/* Error Message (E) - Red theme with error icon */
+.gts-message-e {
+  .alert-head {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%) !important;
+    border-bottom-color: #ef9a9a !important;
+  }
+
+  .alert-head::before {
+    content: '❌';
+  }
+
+  .alert-title {
+    color: #c62828 !important;
+  }
+
+  .gts-btn-close.sc-ion-alert-md {
+    color: white !important;
+    border: 1px solid #c62828 !important;
+    border-radius: 6px !important;
+    padding: 8px 20px !important;
+    background-color: #c62828 !important;
+    font-weight: 600 !important;
+  }
+}
+
+/* Warning Message (W) - Orange/amber theme with warning icon */
+.gts-message-w {
+  .alert-head {
+    background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%) !important;
+    border-bottom-color: #ffe082 !important;
+  }
+
+  .alert-head::before {
+    content: '⚠️';
+  }
+
+  .alert-title {
+    color: #e65100 !important;
+  }
+
+  .gts-btn-close.sc-ion-alert-md {
+    color: white !important;
+    border: 1px solid #e65100 !important;
+    border-radius: 6px !important;
+    padding: 8px 20px !important;
+    background-color: #e65100 !important;
+    font-weight: 600 !important;
   }
 }
 

@@ -441,39 +441,156 @@
       <!-- Tab 3: DB Action Log -->
       @if (activeTabIndex === '2' && selectedPage) {
         <div class="dblog-container">
-          <p-table
-            [value]="dbLogRows"
-            [rowHover]="true"
-            [showGridlines]="true"
-            [scrollable]="true"
-            scrollHeight="600px"
-            (onRowDblClick)="showRowJson($event)"
-          >
-            <ng-template pTemplate="header">
-              <tr>
-                <th style="width: 150px">Action</th>
-                <th style="width: 150px">Data Adapter</th>
-                <th style="width: 150px">DataSet</th>
-                <th style="width: 120px">SQL ID</th>
-                <th style="width: 100px">Timestamp</th>
-                <th style="width: 80px">Actions</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-row>
-              <tr>
-                <td>{{ row.action }}</td>
-                <td>{{ row.dataAdapter }}</td>
-                <td>{{ row.dataSetName }}</td>
-                <td>{{ row.sqlId }}</td>
-                <td>{{ row.timestamp }}</td>
-                <td>
-                  <ion-button size="small" fill="clear" (click)="showDbLogSQL(row)">
-                    <ion-icon name="document-text-outline"></ion-icon>
-                  </ion-button>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
+          <div class="dblog-header">
+            <span class="dblog-count">{{ dbLogRows.length }} calls</span>
+          </div>
+
+          <div class="dblog-split-layout">
+            <!-- Left Panel: Grid -->
+            <div class="dblog-grid-panel">
+              <p-table
+                [value]="dbLogRows"
+                [rowHover]="true"
+                [showGridlines]="true"
+                [scrollable]="true"
+                scrollHeight="500px"
+                selectionMode="single"
+                [(selection)]="selectedLogRow"
+                dataKey="logDate"
+              >
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th style="width: 40px">#</th>
+                    <th style="width: 70px">Time</th>
+                    <th style="width: 70px">PrjId</th>
+                    <th style="width: 60px">FormId</th>
+                    <th style="width: 110px">Route</th>
+                    <th style="width: 130px">Action</th>
+                    <th style="width: 110px">Target</th>
+                    <th style="width: 60px">SQL</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-row>
+                  <tr [pSelectableRow]="row" [class.row-selected]="selectedLogRow === row"
+                      [class.row-getdata]="row.action === 'getData'"
+                      [class.row-execproc]="row.action === 'execProc'"
+                      [class.row-dspost]="row.action === 'dsPost'">
+                    <td class="cell-index">{{ getLogRowIndex(row) }}</td>
+                    <td class="cell-time">{{ formatTime(row.logDate) }}</td>
+                    <td>{{ row.prjId }}</td>
+                    <td>{{ row.formId }}</td>
+                    <td class="cell-route">{{ row.route || '-' }}</td>
+                    <td class="cell-action">{{ getActionLabel(row) }}</td>
+                    <td class="cell-target">{{ getTargetLabel(row) }}</td>
+                    <td class="cell-sql">
+                      @if (hasAnySqlId(row)) {
+                        <ion-button size="small" fill="clear" (click)="showLogSql(row); $event.stopPropagation()" title="View SQL">
+                          <ion-icon name="code-outline"></ion-icon>
+                        </ion-button>
+                      }
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                  <tr>
+                    <td colspan="8" class="empty-message">No server calls recorded yet</td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+
+            <!-- Right Panel: Detail -->
+            <div class="dblog-detail-panel">
+              <div class="json-panel-header">
+                <span class="json-panel-title">Call Detail</span>
+                @if (selectedLogRow) {
+                  <div class="detail-actions">
+                    @if (selectedLogRow.sqlId) {
+                      <ion-button size="small" fill="clear" (click)="showDbLogSQL(selectedLogRow)" title="View SQL Code">
+                        <ion-icon name="code-outline"></ion-icon>
+                      </ion-button>
+                    }
+                    <ion-button size="small" fill="clear" (click)="copyJsonToClipboard(selectedLogRow)" title="Copy JSON">
+                      <ion-icon name="copy-outline"></ion-icon>
+                    </ion-button>
+                  </div>
+                }
+              </div>
+              <div class="json-panel-content">
+                @if (selectedLogRow) {
+                  <div class="detail-fields">
+                    <div class="detail-row">
+                      <span class="detail-label">Time</span>
+                      <span class="detail-value">{{ formatTime(selectedLogRow.logDate) }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">User</span>
+                      <span class="detail-value">{{ selectedLogRow.user || '-' }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Route</span>
+                      <span class="detail-value route-badge">{{ selectedLogRow.route || '-' }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Action</span>
+                      <span class="detail-value">{{ getActionLabel(selectedLogRow) }}</span>
+                    </div>
+                    @if (selectedLogRow.dataAdapter) {
+                      <div class="detail-row">
+                        <span class="detail-label">Adapter</span>
+                        <span class="detail-value">{{ selectedLogRow.dataAdapter }}</span>
+                      </div>
+                    }
+                    @if (selectedLogRow.dataSetName) {
+                      <div class="detail-row">
+                        <span class="detail-label">DataSet</span>
+                        <span class="detail-value">{{ selectedLogRow.dataSetName }}</span>
+                      </div>
+                    }
+                    @if (selectedLogRow.sqlId) {
+                      <div class="detail-row">
+                        <span class="detail-label">SQL ID</span>
+                        <span class="detail-value sql-id-link" (click)="showDbLogSQL(selectedLogRow)">{{ selectedLogRow.sqlId }}</span>
+                      </div>
+                    }
+                    @if (selectedLogRow.connCode) {
+                      <div class="detail-row">
+                        <span class="detail-label">Connection</span>
+                        <span class="detail-value">{{ selectedLogRow.connCode }}</span>
+                      </div>
+                    }
+                  </div>
+                  @if (selectedLogRow.dataSets && selectedLogRow.dataSets.length > 0) {
+                    <div class="detail-section">
+                      <div class="detail-section-title">DataSets</div>
+                      @for (ds of selectedLogRow.dataSets; track ds.dataSetName) {
+                        <div class="detail-dataset-row">
+                          <span class="ds-name">{{ ds.dataSetName }}</span>
+                          @if (ds.sqlId) {
+                            <span class="ds-sqlid sql-id-link" (click)="showDbLogSQL({sqlId: ds.sqlId, action: 'getData'})">SQL: {{ ds.sqlId }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                  <div class="detail-section">
+                    <div class="detail-section-title">Parameters</div>
+                    <pre class="json-code">{{ selectedLogRow.params | json }}</pre>
+                  </div>
+                  @if (selectedLogRow.sqlParams) {
+                    <div class="detail-section">
+                      <div class="detail-section-title">SQL Params</div>
+                      <pre class="json-code">{{ selectedLogRow.sqlParams | json }}</pre>
+                    </div>
+                  }
+                } @else {
+                  <div class="json-placeholder">
+                    Select a row to view call details
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
         </div>
       }
 

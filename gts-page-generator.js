@@ -442,7 +442,12 @@ export class ${className} implements OnInit, OnDestroy {
       };
 
       //===== START FORM REQUEST CUSTOM CODE =====
-
+      if (formRequest.typeRequest === 'form') {
+        // Dispatch by formName (objectName from metadata)
+        // if (formRequest.formName === 'myFormName') {
+        //   this.calcMyForm(formRequest);
+        // }
+      }
       //===== END FORM REQUEST CUSTOM CODE =====
       this.gtsDataService.sendFormReply(reply);
     });
@@ -511,6 +516,24 @@ ${isDynamic ? `    // Get formId from query params and run page
     //===== START CUSTOM CODE =====
 
     //===== END CUSTOM CODE =====
+  }
+
+  //========= FORM CALCULATIONS =================
+
+  /** Helper: get numeric value - tries formData first, falls back to pageData */
+  private getFieldVal(fd: any[], name: string): number {
+    const f = fd.find((f: any) => f.objectName === name);
+    if (f?.value !== undefined && f?.value !== null) return parseFloat(f.value) || 0;
+    // Fallback to pageData (field in a different form)
+    const val = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, name);
+    return parseFloat(val) || 0;
+  }
+
+  /** Helper: set field value in formData (if present) and always sync pageData */
+  private setFieldVal(fd: any[], name: string, value: number) {
+    const f = fd.find((f: any) => f.objectName === name);
+    if (f) f.value = value;
+    this.gtsDataService.setPageFieldValue(this.prjId, this.formId, name, value);
   }
 
 }

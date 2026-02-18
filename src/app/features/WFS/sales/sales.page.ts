@@ -89,6 +89,9 @@ export class WFS_SalesComponent implements OnInit, OnDestroy {
         if (formRequest.formName === 'prvLotHdrForm') {
           this.calcPrvHdr(formRequest);
         }
+        if (formRequest.formName === 'prvLotWLForm') {
+          this.calcPrvWL(formRequest);
+        }
       }
       //===== END FORM REQUEST CUSTOM CODE =====
       this.gtsDataService.sendFormReply(reply);
@@ -254,6 +257,25 @@ export class WFS_SalesComponent implements OnInit, OnDestroy {
 
     if (code === 'POST_SALE' || code === 'BAREME') {
       recalcACIF();
+    }
+  }
+
+  /** Bales Weight List - net weight calculation */
+  private calcPrvWL(formRequest: any) {
+    const code = formRequest.field.customCode;
+    const fd = formRequest.formData;
+    const get = (name: string) => this.getFieldVal(fd, name);
+    const set = (name: string, value: number) => this.setFieldVal(fd, name, value);
+    const round2 = (v: number) => Math.round(v * 100) / 100;
+
+    const F = {
+      KG_GROSS: 'gtsFldqPrvWL_LOTPRVWL_KG_GROSS',
+      KG_TARE:  'gtsFldqPrvWL_LOTPRVWL_KG_TARE',
+      KG_NET:   'gtsFldqPrvWL_LOTPRVWL_KG_NET',
+    };
+
+    if (code === 'TARE') {
+      set(F.KG_NET, round2(get(F.KG_GROSS) - get(F.KG_TARE)));
     }
   }
 

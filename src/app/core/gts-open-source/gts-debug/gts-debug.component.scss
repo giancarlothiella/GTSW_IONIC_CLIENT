@@ -453,20 +453,263 @@
 
 // DB Action Log Tab
 .dblog-container {
-  ::ng-deep .p-datatable {
-    font-size: 13px;
+  .dblog-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
 
-    .p-datatable-thead > tr > th {
-      background: #e9ecef;
-      color: #495057;
+    .dblog-count {
+      font-size: 14px;
       font-weight: 600;
-      padding: 8px;
+      color: #495057;
+      background: #ffffff;
+      padding: 2px 10px;
+      border-radius: 12px;
+      border: 1px solid #c5cdd8;
+    }
+  }
+
+  .dblog-split-layout {
+    display: flex;
+    gap: 16px;
+    height: 540px;
+
+    .dblog-grid-panel {
+      flex: 3;
+      min-width: 400px;
+      overflow: hidden;
       border: 1px solid #dee2e6;
+      border-radius: 6px;
+
+      ::ng-deep .p-datatable {
+        font-size: 12px;
+
+        .p-datatable-thead > tr > th {
+          background: #1e3a5f;
+          color: #ffffff;
+          font-weight: 600;
+          padding: 8px 6px;
+          border: none;
+          border-bottom: 2px solid #00008b;
+        }
+
+        .p-datatable-tbody > tr {
+          cursor: pointer;
+          transition: background-color 0.15s ease;
+
+          &:hover {
+            background-color: #e3f2fd !important;
+          }
+
+          &.p-highlight,
+          &.row-selected {
+            background-color: #bbdefb !important;
+          }
+
+          // Row colors by action type
+          &.row-getdata {
+            border-left: 3px solid #2196f3;
+          }
+          &.row-execproc {
+            border-left: 3px solid #ff9800;
+          }
+          &.row-dspost {
+            border-left: 3px solid #4caf50;
+          }
+
+          > td {
+            padding: 5px 6px;
+            border: none;
+            border-bottom: 1px solid #e9ecef;
+
+            &.cell-index {
+              text-align: center;
+              color: #6c757d;
+              font-size: 11px;
+            }
+            &.cell-time {
+              font-family: 'Consolas', 'Monaco', monospace;
+              font-size: 11px;
+              color: #495057;
+            }
+            &.cell-route {
+              font-family: 'Consolas', 'Monaco', monospace;
+              font-size: 11px;
+              color: #1e3a5f;
+              font-weight: 600;
+            }
+            &.cell-action {
+              font-weight: 600;
+            }
+            &.cell-target {
+              font-size: 11px;
+            }
+            &.cell-sql {
+              text-align: center;
+              padding: 0;
+              ion-button {
+                --padding-start: 4px;
+                --padding-end: 4px;
+                margin: 0;
+              }
+            }
+          }
+        }
+
+        .empty-message {
+          text-align: center;
+          color: #6c757d;
+          font-style: italic;
+          padding: 2rem;
+        }
+      }
     }
 
-    .p-datatable-tbody > tr > td {
-      padding: 6px 8px;
+    .dblog-detail-panel {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
       border: 1px solid #dee2e6;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #1e1e1e;
+
+      .json-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: #1e3a5f;
+        border-bottom: 2px solid #00008b;
+
+        .json-panel-title {
+          color: #ffffff;
+          font-weight: 600;
+          font-size: 13px;
+          text-transform: uppercase;
+        }
+
+        .detail-actions {
+          display: flex;
+          gap: 4px;
+
+          ion-button {
+            --color: #ffffff;
+            --padding-start: 6px;
+            --padding-end: 6px;
+            margin: 0;
+          }
+        }
+      }
+
+      .json-panel-content {
+        flex: 1;
+        overflow: auto;
+        padding: 12px;
+
+        .detail-fields {
+          margin-bottom: 16px;
+
+          .detail-row {
+            display: flex;
+            align-items: baseline;
+            padding: 3px 0;
+            border-bottom: 1px solid #333;
+
+            .detail-label {
+              width: 90px;
+              min-width: 90px;
+              color: #888;
+              font-size: 11px;
+              text-transform: uppercase;
+              font-weight: 600;
+            }
+
+            .detail-value {
+              color: #d4d4d4;
+              font-size: 13px;
+              font-family: 'Consolas', 'Monaco', monospace;
+
+              &.route-badge {
+                color: #569cd6;
+                font-weight: 600;
+              }
+
+              &.sql-id-link {
+                color: #dcdcaa;
+                cursor: pointer;
+                text-decoration: underline;
+
+                &:hover {
+                  color: #ffe484;
+                }
+              }
+            }
+          }
+        }
+
+        .detail-section {
+          margin-bottom: 12px;
+
+          .detail-section-title {
+            color: #569cd6;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #333;
+          }
+
+          .detail-dataset-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 8px;
+            margin-bottom: 2px;
+            background: #2d2d2d;
+            border-radius: 3px;
+
+            .ds-name {
+              color: #d4d4d4;
+              font-family: 'Consolas', 'Monaco', monospace;
+              font-size: 12px;
+            }
+
+            .ds-sqlid {
+              color: #dcdcaa;
+              font-family: 'Consolas', 'Monaco', monospace;
+              font-size: 12px;
+              cursor: pointer;
+              text-decoration: underline;
+
+              &:hover {
+                color: #ffe484;
+              }
+            }
+          }
+        }
+
+        .json-code {
+          margin: 0;
+          color: #d4d4d4;
+          font-size: 12px;
+          font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+          line-height: 1.5;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+
+        .json-placeholder {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+          color: #6c757d;
+          font-style: italic;
+          font-size: 14px;
+        }
+      }
     }
   }
 }
@@ -588,6 +831,21 @@
     }
 
     .metadata-json-panel {
+      min-height: 300px;
+    }
+  }
+
+  .dblog-container .dblog-split-layout {
+    flex-direction: column;
+    height: auto;
+
+    .dblog-grid-panel {
+      flex: none;
+      min-width: 100%;
+      max-height: 350px;
+    }
+
+    .dblog-detail-panel {
       min-height: 300px;
     }
   }
