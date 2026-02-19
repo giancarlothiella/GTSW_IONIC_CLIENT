@@ -453,6 +453,11 @@ ion-toolbar.form001Toolbar {
   &:disabled {
     cursor: not-allowed;
   }
+
+  &.task-checkbox-readonly {
+    pointer-events: none;
+    cursor: default;
+  }
 }
 
 // Task Icon

@@ -228,9 +228,9 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode) => {
+      .subscribe(async (event) => {
         //===== START CUSTOM CODE =====
-        if (customCode === 'setCtxProject') {
+        if (event.customCode === 'setCtxProject') {
           this.toolbarSelectedValue = this.pageData
             .filter((element: any) => element.dataAdapter === 'daProjects')[0]
             .data[0]
@@ -267,7 +267,7 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
           console.log('Custom Data after setCtxProject:', this.customData);
         }
 
-        if (customCode === 'setCtxProject2') {
+        if (event.customCode ==='setCtxProject2') {
           this.toolbarSelectedValue = this.metaData.pageFields
             .filter((field: any) => field.pageFieldName === 'gtsFldqProjects_prjId')[0].value;
 
@@ -277,7 +277,7 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
           this.filterProject('gtsGridObjects', this.toolbarSelectedValue, 'qObjects');
         }
 
-        if (customCode === 'MENU_ROLES') {
+        if (event.customCode ==='MENU_ROLES') {
           this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
           let roles: any[] = [];
 
@@ -299,7 +299,7 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
           }
         }
 
-        if (customCode === 'OBJECT_ROLES') {
+        if (event.customCode ==='OBJECT_ROLES') {
           this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
           let roles: any[] = [];
 
@@ -319,10 +319,9 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
 
             this.gtsDataService.setPageDataSet(this.prjId, this.formId, 'daObjectRoles', 'qObjectRoles', roles);
           }
-          await this.gtsDataService.runAction(this.prjId, this.formId, 'showObj');
         }
 
-        if (customCode === 'MENU_ROLE_ADD') {
+        if (event.customCode ==='MENU_ROLE_ADD') {
           const role = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daPrjData', 'qAllRoles');
 
           let rolesDS = [];
@@ -344,7 +343,7 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
           this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqMenu_roles', rolesArray);
         }
 
-        if (customCode === 'MENU_ROLE_REMOVE') {
+        if (event.customCode ==='MENU_ROLE_REMOVE') {
           const role = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daMenuRoles', 'qMenuRoles');
           const rolesDS = this.gtsDataService.getDataSet(this.prjId, this.formId, 'daMenuRoles', 'qMenuRoles')
             .filter((row: any) => row.role !== role.role);
@@ -360,7 +359,7 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
           this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqMenu_roles', rolesArray);
         }
 
-        if (customCode === 'OBJ_ROLE_ADD') {
+        if (event.customCode ==='OBJ_ROLE_ADD') {
           const role = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daPrjData', 'qAllRoles');
 
           let rolesDS = [];
@@ -382,7 +381,7 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
           this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqObjects_roles', rolesArray);
         }
 
-        if (customCode === 'OBJ_ROLE_REMOVE') {
+        if (event.customCode ==='OBJ_ROLE_REMOVE') {
           const role = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daObjectRoles', 'qObjectRoles');
           const rolesDS = this.gtsDataService.getDataSet(this.prjId, this.formId, 'daObjectRoles', 'qObjectRoles')
             .filter((row: any) => row.role !== role.role);
@@ -398,9 +397,14 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
           this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqObjects_roles', rolesArray);
         }
 
-        if (customCode === 'REFRESH_GRID_OBJS') {
+        if (event.customCode ==='REFRESH_GRID_OBJS') {
           this.gtsDataService.sendGridReload('qMenu');
           this.gtsDataService.sendGridReload('qObjects');
+        }
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
         }
 
         //===== END CUSTOM CODE =====

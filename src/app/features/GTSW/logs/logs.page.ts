@@ -406,10 +406,10 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode) => {
+      .subscribe(async (event) => {
         //===== START CUSTOM CODE =====
 
-        if (customCode === 'INIT_LOG') {
+        if (event.customCode === 'INIT_LOG') {
           if (this.paramLog === 'reports') {
             this.gtsDataService.setPageRule(this.prjId, this.formId, 1, 1);
           } else if (this.paramLog === 'errors') {
@@ -425,7 +425,7 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
           }
         }
 
-        if (customCode === 'SHOW_JSON') {
+        if (event.customCode ==='SHOW_JSON') {
           if (this.paramLog === 'reports') {
             const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daRptLog','qRptLog');
             this.jsonDataTitle = row.reportCode + ' - ' + row.reportName;
@@ -455,12 +455,12 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
           this.jsonVisible = !this.jsonVisible;
         }
 
-        if (customCode === 'SHOW_MAIL') {
+        if (event.customCode ==='SHOW_MAIL') {
           this.mailTextHtml = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daMailsLog','qMailsLog').mailTextHtml;
           this.showMailHtml = true;
         }
 
-        if (customCode === 'SHOW_REPORT') {
+        if (event.customCode ==='SHOW_REPORT') {
           this.gtsDataService.sendAppLoaderListener(true);
           const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daRptLog','qRptLog');
           this.reportCode = row.reportCode;
@@ -488,7 +488,7 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
           }
         }
 
-        if (customCode === 'SHOW_RPTDATA') {
+        if (event.customCode ==='SHOW_RPTDATA') {
           this.gtsDataService.sendAppLoaderListener(true);
           const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daRptLog','qRptLog');
           this.reportCode = row.reportCode;
@@ -525,7 +525,7 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
           }
         }
 
-        if (customCode === 'SHOW_RPT_METADATA') {
+        if (event.customCode ==='SHOW_RPT_METADATA') {
           this.gtsDataService.sendAppLoaderListener(true);
           const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daRptLog','qRptLog');
           this.reportCode = row.reportCode;
@@ -563,7 +563,7 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
           }
         }
 
-        if (customCode === 'SHOW_SQL') {
+        if (event.customCode ==='SHOW_SQL') {
           const row = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daDBLog','qDBLog');
           let SQL: any = {};
           let sqlId: number = 0;
@@ -602,6 +602,11 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
         }
 
         this.gtsDataService.sendAppLoaderListener(false);
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
+        }
 
         //===== END CUSTOM CODE =====
       });

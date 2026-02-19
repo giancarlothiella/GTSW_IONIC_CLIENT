@@ -187,9 +187,9 @@ export class GTSW_AuthMailsComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode) => {
+      .subscribe(async (event) => {
         //===== START CUSTOM CODE =====
-        if (customCode === 'GET_MM') {
+        if (event.customCode === 'GET_MM') {
           // Get mail merge data and show HTML
           // Nota: usa getDataSet invece di getDataSetSelectRow e prende il primo elemento
           const mmDataArray = this.gtsDataService.getDataSet(this.prjId, this.formId, 'daMMdata', 'qMMdata');
@@ -208,10 +208,15 @@ export class GTSW_AuthMailsComponent implements OnInit, OnDestroy {
           this.mailMergeMode = 'view';
           this.showHtml = true;
           this.gtsDataService.sendAppLoaderListener(false);
-        } else if (customCode === 'MM_GO_BACK') {
+        } else if (event.customCode === 'MM_GO_BACK') {
           // Hide HTML preview
           this.showHtml = false;
           this.gtsDataService.sendAppLoaderListener(false);
+        }
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
         }
         //===== END CUSTOM CODE =====
       });

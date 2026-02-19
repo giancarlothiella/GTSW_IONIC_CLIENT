@@ -189,15 +189,15 @@ export class GTSW_DbConnComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode) => {
+      .subscribe(async (event) => {
         //===== START CUSTOM CODE =====
 
-        if (customCode === 'GET_PARAM') {
+        if (event.customCode === 'GET_PARAM') {
           const params = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daConn', 'qConn').connParams;
           this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'connParams', JSON.stringify(params, null, 2));
         }
 
-        if (customCode === 'SET_PARAM') {
+        if (event.customCode === 'SET_PARAM') {
           this.gtsDataService.saveFormDataValues(this.prjId, this.formId, 3);
 
           const paramsValue = JSON.parse(this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'connParams'));
@@ -206,7 +206,7 @@ export class GTSW_DbConnComponent implements OnInit, OnDestroy {
           this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqConn_connParams', paramsValue);
         }
 
-        if (customCode === 'GET_PSSW') {
+        if (event.customCode === 'GET_PSSW') {
           const params = {
             "psswType": "conn",
             "psswKey": {
@@ -218,10 +218,9 @@ export class GTSW_DbConnComponent implements OnInit, OnDestroy {
           this.showPassw = false;
           const result = await this.gtsDataService.execMethod('setup', 'getPassword', params);
           this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'password', result.password);
-          this.gtsDataService.runAction(this.prjId, this.formId, 'connPsswShow');
         }
 
-        if (customCode === 'SET_PSSW') {
+        if (event.customCode === 'SET_PSSW') {
           const password = this.gtsDataService.getFormFieldValue(this.prjId, this.formId, 'psswDataForm', 'password');
           const params = {
             "psswType": "conn",
@@ -233,10 +232,9 @@ export class GTSW_DbConnComponent implements OnInit, OnDestroy {
           };
           const result = await this.gtsDataService.execMethod('setup', 'setPassword', params);
           this.metaData.customMsg = result.message;
-          this.gtsDataService.runAction(this.prjId, this.formId, 'connPsswMsg');
         }
 
-        if (customCode === 'PSSW_TOGGLE') {
+        if (event.customCode === 'PSSW_TOGGLE') {
           this.showPassw = !this.showPassw;
           const reply: any = {
             valid: true,
@@ -246,7 +244,7 @@ export class GTSW_DbConnComponent implements OnInit, OnDestroy {
           this.gtsDataService.sendFormReply(reply);
         }
 
-        if (customCode === 'TEST_CONN') {
+        if (event.customCode === 'TEST_CONN') {
           const params = {
             "connCode": this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daConn', 'qConn').connCode,
             "dbModeTest": this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daConn', 'qConn').dbMode
@@ -259,6 +257,11 @@ export class GTSW_DbConnComponent implements OnInit, OnDestroy {
           } else {
             this.gtsDataService.runAction(this.prjId, this.formId, 'connTestMsg');
           }
+        }
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
         }
 
         //===== END CUSTOM CODE =====

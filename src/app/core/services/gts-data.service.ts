@@ -80,6 +80,7 @@ export class GtsDataService {
 
   private actualPrjId: string = '';
   private actualFormId: number = 0;
+  private customServerUrl: string = '';
   private actualView: string = '';
   private actualMessageStatus: string = 'idle';
   private previousView: string[] = [];
@@ -149,7 +150,7 @@ export class GtsDataService {
     return this.appViewListener.asObservable();
   }
 
-  private pageCustomListener = new Subject<string>();
+  private pageCustomListener = new Subject<{ customCode: string, actionName?: string }>();
   getPageCustomListener() {
     return this.pageCustomListener.asObservable();
   }
@@ -572,6 +573,7 @@ export class GtsDataService {
     await this.runAction(prjId, formId, page[0].pageData.page.initAction);
     this.actualFormId = formId;
     this.actualPrjId = prjId;
+    this.customServerUrl = this.menuService.getCurrentProjectInfo()?.customServerUrl || '';
     this.pageReady = true;
     this.appLoaderListener.next(false);
   }
@@ -619,6 +621,11 @@ export class GtsDataService {
 
       this.appViewListener.next(this.actualView);
     }
+  }
+
+  setCustomMsg(prjId: string, formId: number, msg: string) {
+    const page = this.metaData.filter((page) => page.prjId === prjId && page.formId == formId)[0];
+    if (page) page.pageData.customMsg = msg;
   }
 
   setPageFieldValue(prjId: string, formId: number, name: string, value: any) {
@@ -928,7 +935,17 @@ export class GtsDataService {
           } else if (element.actionType === 'unselectDS') {
             this.setDataSetSelected(prjId, formId, element.dataSetName, false);
           } else if (element.actionType === 'execCustom') {
-            this.pageCustomListener.next(element.customCode);        
+            this.pageCustomListener.next({ customCode: element.customCode, actionName: element.actionName || undefined });
+          } else if (element.actionType === 'setField') {
+            let fieldValue: any = element.fieldValue;
+            const pageField: any = this.getPageMetaData(prjId, formId, 'pageFields', element.pageFldName);
+            if (pageField?.fieldType?.toLowerCase() === 'check' && pageField.fieldOptions) {
+              const options = typeof pageField.fieldOptions === 'string'
+                ? JSON.parse(pageField.fieldOptions) : pageField.fieldOptions;
+              const match = options.find((opt: any) => String(opt.value) === String(fieldValue));
+              fieldValue = match ? match.checked : false;
+            }
+            this.setPageFieldValue(prjId, formId, element.pageFldName, fieldValue);
           } else if (element.actionType === 'execProc') {
             const params = this.buildParamsArray(prjId, formId, element);
             this.actionCanRun = await this.execProc(prjId, formId, element.sqlId, params, element.sqlParams);                  
@@ -965,6 +982,9 @@ export class GtsDataService {
             this.actionCanRun = await this.dataSetAction(prjId, formId, element);        
           } else if (element.actionType === 'dsDelete') {
             this.actionCanRun = await this.dataSetAction(prjId, formId, element);
+            if (this.actionCanRun) {
+              this.setDataSetSelected(prjId, formId, element.dataSetName, false);
+            }
           } else if (element.actionType === 'showMsg') {
             this.actionCanRun = await this.showOKCancel(prjId, formId, element, objectName, i, debugLevel);
             if (this.iLoop > 0) { 
@@ -2273,8 +2293,25 @@ export class GtsDataService {
   }
 
   // Execute Server Method
-  async execMethod(apiRoute: string, methodName: string, params: any) {
-    const responseData: any = await this.postServerData(apiRoute, methodName, params)    
+  async execMethod(apiRoute: string, methodName: string, params: any, useCustomServer: boolean = false) {
+    if (useCustomServer) {
+      if (!this.customServerUrl) {
+        console.error('[GtsDataService] execMethod: customServerUrl not configured for this project');
+        return { valid: false, message: 'Custom server URL not configured' };
+      }
+      const url = this.customServerUrl + '/api/' + apiRoute + '/' + methodName;
+      const postHttp = this.http.post(url, params);
+      try {
+        const response: any = await lastValueFrom(postHttp);
+        return response;
+      } catch (error: any) {
+        this.appLoaderListener.next(false);
+        const message = error?.error?.message || error?.message || 'Custom server connection error';
+        this.sendDbError(this.translationService.getText(1703, 'Connection Error'), message);
+        return { valid: false, message: message };
+      }
+    }
+    const responseData: any = await this.postServerData(apiRoute, methodName, params)
     return responseData;
   }
 
@@ -2303,9 +2340,7 @@ export class GtsDataService {
             .pageFields
             .forEach((field: any) => {  
               if (field.pageFieldName === param.paramObjectName) {
-                // value is an array of data
-                // get first element of array
-                field.value = (value as any[])[0];
+                field.value = Array.isArray(value) ? value[0] : value;
                 outBinds.push({
                   paramName: key, 
                   pageFieldName: field.pageFieldName,

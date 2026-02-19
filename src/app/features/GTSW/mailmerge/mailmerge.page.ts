@@ -199,10 +199,10 @@ export class GTSW_MailMergeComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode) => {
+      .subscribe(async (event) => {
         //===== START CUSTOM CODE =====
 
-        if (customCode === 'GET_DETAILS') {
+        if (event.customCode === 'GET_DETAILS') {
           this.mailMergeData = {
             'code': this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'pageFields', 'gtsFldqMailMerge_mailMergeCode').value,
             'description': this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'pageFields', 'gtsFldqMailMerge_description').value,
@@ -214,11 +214,16 @@ export class GTSW_MailMergeComponent implements OnInit, OnDestroy {
           this.showHtml = true;
         }
 
-        if (customCode === 'DETAILS_GO_BACK') {
+        if (event.customCode === 'DETAILS_GO_BACK') {
           if (this.mailMergeData.saved) {
             this.gtsDataService.setPageRule(this.prjId, this.formId, 12, 2);
           }
           this.showHtml = false;
+        }
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
         }
 
         //===== END CUSTOM CODE =====

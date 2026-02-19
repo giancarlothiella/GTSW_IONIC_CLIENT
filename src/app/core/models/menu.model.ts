@@ -17,6 +17,7 @@ export interface ProjectInfo {
   iconImage: string;
   homeImage: string;
   dbConnections?: DbConnection[];
+  customServerUrl?: string;
 }
 
 export interface DbConnection {
@@ -30,6 +31,7 @@ export interface MenuResponse {
   message: string;
   menu: MenuItem[];
   projects: ProjectInfo[];
+  customServerUrl?: string;
 }
 
 export interface MenuRequest {

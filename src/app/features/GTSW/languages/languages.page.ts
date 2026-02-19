@@ -469,10 +469,10 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode) => {
+      .subscribe(async (event) => {
         //===== START CUSTOM CODE =====
 
-        if (customCode === 'SHOW_TRANS') {
+        if (event.customCode === 'SHOW_TRANS') {
           this.dataLanguages = this.gtsDataService.getDataSet(this.prjId, this.formId, 'daLang', 'qLang');
           this.languages = [];
 
@@ -513,7 +513,7 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
           this.showTrans = true;
         }
 
-        if (customCode === 'TRANS_GET_TEXTS') {
+        if (event.customCode ==='TRANS_GET_TEXTS') {
           const result = await this.gtsDataService.execMethod('data', 'getStdMLText', { prjId: this.toolbarSelectedValue });
           this.metaData.customMsg = result.message;
 
@@ -526,10 +526,9 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
             }
           }
 
-          this.gtsDataService.runAction(this.prjId, this.formId, 'transGetTextsMsg');
         }
 
-        if (customCode === 'TRANS_DOWNLOAD') {
+        if (event.customCode ==='TRANS_DOWNLOAD') {
           // Build an array of objects with one row for each txtId and one column for each languageId
           let exportTexts: any[] = [];
           this.mlTextData.data.forEach((language: any) => {
@@ -596,14 +595,14 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
           this.gtsDataService.sendAppLoaderListener(false);
         }
 
-        if (customCode === 'TRANS_UPLOAD') {
+        if (event.customCode ==='TRANS_UPLOAD') {
           this.gtsDataService.sendAppLoaderListener(false);
           this.gtsDataService.sendFileLoaderListener({
             fileUploadVisible: true
           });
         }
 
-        if (customCode === 'EXCEL_DOWNLOAD') {
+        if (event.customCode ==='EXCEL_DOWNLOAD') {
           const result = await this.gtsDataService.execMethod('data', 'downloadMLExcel', {
             prjId: this.toolbarSelectedValue,
             filePath: 'Temp/excel_download_' + this.toolbarSelectedValue + '.xlsx'
@@ -622,8 +621,13 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
           this.gtsDataService.sendAppLoaderListener(false);
         }
 
-        if (customCode === 'SHOW_LANG') {
+        if (event.customCode ==='SHOW_LANG') {
           this.showTrans = false;
+        }
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
         }
 
         //===== END CUSTOM CODE =====

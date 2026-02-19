@@ -233,12 +233,12 @@ export class GTSW_SchedulerComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode) => {
+      .subscribe(async (event) => {
         //===== START CUSTOM CODE =====
         let message = '';
         let valid = false;
 
-        if (customCode === 'CRON_GET_TASK') {
+        if (event.customCode === 'CRON_GET_TASK') {
           const response = await this.gtsDataService.execMethod('task', 'getTasksList', {});
           this.cronList = response.taskList || [];
           this.cronStatus = 'SERVER CRON STATUS: ' + (response.cronActive === 'Y' ? 'ACTIVE' : 'INACTIVE');
@@ -246,43 +246,43 @@ export class GTSW_SchedulerComponent implements OnInit, OnDestroy {
           this.showCronList = true;
         }
 
-        if (customCode === 'CRON_START') {
+        if (event.customCode === 'CRON_START') {
           const taskCode = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqSchedule_taskCode');
           const response = await this.gtsDataService.execMethod('task', 'activateTask', { taskCode: taskCode });
           valid = response.valid;
           message = response.message;
         }
 
-        if (customCode === 'CRON_STOP') {
+        if (event.customCode === 'CRON_STOP') {
           const taskCode = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqSchedule_taskCode');
           const response = await this.gtsDataService.execMethod('task', 'deactivateTask', { taskCode: taskCode });
           valid = response.valid;
           message = response.message;
         }
 
-        if (customCode === 'CRON_LOAD') {
+        if (event.customCode === 'CRON_LOAD') {
           const data = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daSchedule', 'qSchedule');
           const response = await this.gtsDataService.execMethod('task', 'loadTask', data);
           valid = response.valid;
           message = response.message;
         }
 
-        if (customCode === 'CRON_UNLOAD') {
+        if (event.customCode === 'CRON_UNLOAD') {
           const taskCode = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqSchedule_taskCode');
           const response = await this.gtsDataService.execMethod('task', 'unloadTask', { taskCode: taskCode });
           valid = response.valid;
           message = response.message;
         }
 
-        if (customCode === 'CRON_RUN') {
+        if (event.customCode === 'CRON_RUN') {
           const data = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daSchedule', 'qSchedule');
           const response = await this.gtsDataService.execMethod('task', 'runTask', data);
           valid = response.valid;
           message = response.message;
         }
 
-        if (customCode === 'CRON_UNLOAD' || customCode === 'CRON_LOAD' || customCode === 'CRON_START' ||
-            customCode === 'CRON_STOP' || customCode === 'CRON_RUN') {
+        if (event.customCode === 'CRON_UNLOAD' || event.customCode === 'CRON_LOAD' || event.customCode === 'CRON_START' ||
+            event.customCode === 'CRON_STOP' || event.customCode === 'CRON_RUN') {
           this.gtsDataService.sendAppLoaderListener(false);
           this.messageService.add({
             severity: valid ? 'success' : 'error',
@@ -290,6 +290,11 @@ export class GTSW_SchedulerComponent implements OnInit, OnDestroy {
             detail: message,
             life: 3000
           });
+        }
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
         }
 
         //===== END CUSTOM CODE =====

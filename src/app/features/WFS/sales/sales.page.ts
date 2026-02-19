@@ -100,18 +100,23 @@ export class WFS_SalesComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
     .getPageCustomListener()
-    .subscribe(async (customCode) => {
+    .subscribe(async (event) => {
       //===== START CUSTOM CODE =====
 
       // Riattiva il loader per il custom code
       this.gtsDataService.sendAppLoaderListener(true);
 
-      await this.getCustomData(this.prjId, this.formId, customCode, this.actualView);
+      await this.getCustomData(this.prjId, this.formId, event.customCode, this.actualView);
 
       // Disattiva il loader dopo il custom code
       setTimeout(() => {
         this.gtsDataService.sendAppLoaderListener(false);
       }, 300);
+
+      // Run next action if specified
+      if (event.actionName) {
+        this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
+      }
 
       //===== END CUSTOM CODE =====
     });
@@ -165,7 +170,35 @@ export class WFS_SalesComponent implements OnInit, OnDestroy {
   async getCustomData(prjId: string, formId: number, customCode: string, actualView: string) {
     //===== START CUSTOM CODE =====
 
+    if (customCode === 'RUN_FTP_CAT_REQ') {
+      await this.runFtpCatRequest(prjId, formId);
+    }
+
     //===== END CUSTOM CODE =====
+  }
+
+  /** EDI FTP Catalogue Request - sends req file and receives rep file */
+  private async runFtpCatRequest(prjId: string, formId: number) {
+    const getField = (name: string) => this.gtsDataService.getPageFieldValue(prjId, formId, name);
+    const sessId = getField('gtsFldGetFTP_FPT_SESS');
+    const params = {
+      country: getField('pickUpSale_COUNTRY_CODE'),
+      reqFileName: 'SEND_' + sessId + '.req',
+      reqContent: getField('gtsFldGetFTP_FILE_REQ'),
+      repFileName: 'SEND_' + sessId + '.rep'
+    };
+
+    console.log('Sending FTP Catalogue Request with params:', params);
+
+    const result = await this.gtsDataService.execMethod('edi', 'sendRequest', params, true);
+
+    // Build customMsg with message and log
+    const logText = result.log ? result.log.join('\n') : '';
+    this.gtsDataService.setCustomMsg(prjId, formId, result.message + (logText ? '\n\n' + logText : ''));
+
+    if (result.valid && result.repContent) {
+      this.gtsDataService.setPageFieldValue(prjId, formId, 'gtsFldGetFTP_FILE_REP', result.repContent);
+    }
   }
 
   //========= FORM CALCULATIONS =================

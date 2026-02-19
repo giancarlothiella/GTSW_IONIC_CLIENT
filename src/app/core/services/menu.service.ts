@@ -166,6 +166,16 @@ export class MenuService {
         });
       }
 
+      // Map customServerUrl from response root to the current project
+      if (response.customServerUrl) {
+        projectsWithImages = projectsWithImages.map(project => {
+          if (project.prjId === prjId) {
+            return { ...project, customServerUrl: response.customServerUrl };
+          }
+          return project;
+        });
+      }
+
       this.projectsSubject.next(projectsWithImages);
 
       // Imposta il progetto corrente

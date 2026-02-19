@@ -122,18 +122,23 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
     .getPageCustomListener()
-    .subscribe(async (customCode) => {
+    .subscribe(async (event) => {
       //===== START CUSTOM CODE =====
 
       // Riattiva il loader per il custom code
       this.gtsDataService.sendAppLoaderListener(true);
 
-      await this.getCustomData(this.prjId, this.formId, customCode, this.actualView);
+      await this.getCustomData(this.prjId, this.formId, event.customCode, this.actualView);
 
       // Disattiva il loader dopo il custom code
       setTimeout(() => {
         this.gtsDataService.sendAppLoaderListener(false);
       }, 300);
+
+      // Run next action if specified
+      if (event.actionName) {
+        this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
+      }
 
       //===== END CUSTOM CODE =====
     });

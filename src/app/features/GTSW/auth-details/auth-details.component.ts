@@ -177,8 +177,13 @@ export class AuthDetailsComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode: string) => {
-        await this.handleCustomCode(customCode);
+      .subscribe(async (event) => {
+        await this.handleCustomCode(event.customCode);
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
+        }
       });
 
     // Run Page

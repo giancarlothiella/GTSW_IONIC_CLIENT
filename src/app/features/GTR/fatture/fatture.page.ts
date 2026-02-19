@@ -209,26 +209,34 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
     .getPageCustomListener()
-    .subscribe(async (customCode) => {
+    .subscribe(async (event) => {
       //===== START CUSTOM CODE =====
 
       // Gestisci SHOW_AI_ANALYZER separatamente (non richiede filterCompany)
-      if (customCode === 'SHOW_AI_ANALYZER') {
-        await this.getCustomData(this.prjId, this.formId, customCode, this.actualView);
+      if (event.customCode === 'SHOW_AI_ANALYZER') {
+        await this.getCustomData(this.prjId, this.formId, event.customCode, this.actualView);
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
+        }
         return;
       }
 
       // setStatusC e setStatusP non richiedono filterCompany (dsRefreshSel aggiornerà la riga)
       // filterCompany causa un reload della griglia che perde la selezione
-      if (customCode === 'setStatusC' || customCode === 'setStatusP') {
-        await this.getCustomData(this.prjId, this.formId, customCode, this.actualView);
+      if (event.customCode === 'setStatusC' || event.customCode === 'setStatusP') {
+        await this.getCustomData(this.prjId, this.formId, event.customCode, this.actualView);
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
+        }
         return;
       }
 
       // Riattiva il loader per il custom code
       this.gtsDataService.sendAppLoaderListener(true);
 
-      await this.getCustomData(this.prjId, this.formId, customCode, this.actualView);
+      await this.getCustomData(this.prjId, this.formId, event.customCode, this.actualView);
       setTimeout(() => {
         this.filterCompany('gtsGridInvHdr', this.toolbarSelectedValue);
         // Disattiva il loader dopo che la griglia è stata filtrata e renderizzata
@@ -236,6 +244,11 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
           this.gtsDataService.sendAppLoaderListener(false);
         }, 500);
       }, 1);
+
+      // Run next action if specified
+      if (event.actionName) {
+        this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
+      }
 
       //===== END CUSTOM CODE =====
     });

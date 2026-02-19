@@ -196,16 +196,21 @@ export class GTSW_UsersComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode: string) => {
+      .subscribe(async (event) => {
         // Riattiva il loader per il custom code
         this.gtsDataService.sendAppLoaderListener(true);
 
-        await this.handleCustomCode(customCode);
+        await this.handleCustomCode(event.customCode);
 
         // Disattiva il loader dopo che i dati sono stati elaborati e la griglia renderizzata
         setTimeout(() => {
           this.gtsDataService.sendAppLoaderListener(false);
         }, 500);
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
+        }
       });
 
     // Run Page

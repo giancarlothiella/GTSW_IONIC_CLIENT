@@ -99,8 +99,13 @@ export class DCW_SchedeContabiliComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
     .getPageCustomListener()
-    .subscribe(async (customCode) => {
+    .subscribe(async (event) => {
       //===== START CUSTOM CODE =====
+
+      // Run next action if specified
+      if (event.actionName) {
+        this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
+      }
 
       //===== END CUSTOM CODE =====
     });

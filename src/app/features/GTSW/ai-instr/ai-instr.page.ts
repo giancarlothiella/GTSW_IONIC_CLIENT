@@ -271,11 +271,11 @@ export class GTSW_AiInstrComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode) => {
+      .subscribe(async (event) => {
         //===== START CUSTOM CODE =====
 
         // Open AI Chat dialog with selected instruction
-        if (customCode === 'GET_CHAT') {
+        if (event.customCode === 'GET_CHAT') {
           // Spegni loader prima di aprire il dialog
           this.gtsDataService.sendAppLoaderListener(false);
 
@@ -300,7 +300,7 @@ export class GTSW_AiInstrComponent implements OnInit, OnDestroy {
         }
 
         // CHAT_ON_GRID - Apre dialog configurazione per AI su griglia
-        if (customCode === 'CHAT_ON_GRID') {
+        if (event.customCode === 'CHAT_ON_GRID') {
           const selectedPrjId = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqAIInstr_prjId');
           const chatCode = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqAIInstr_chatCode');
           if (chatCode) {
@@ -317,7 +317,7 @@ export class GTSW_AiInstrComponent implements OnInit, OnDestroy {
         }
 
         // CHAT_ON_FORM - Apre dialog configurazione per AI su form
-        if (customCode === 'CHAT_ON_FORM') {
+        if (event.customCode === 'CHAT_ON_FORM') {
           const selectedPrjId = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqAIInstr_prjId');
           const chatCode = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqAIInstr_chatCode');
           if (chatCode) {
@@ -331,6 +331,11 @@ export class GTSW_AiInstrComponent implements OnInit, OnDestroy {
             console.warn('[ai-instr] CHAT_ON_FORM: No chatCode selected');
             this.gtsDataService.sendAppLoaderListener(false);
           }
+        }
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
         }
 
         //===== END CUSTOM CODE =====

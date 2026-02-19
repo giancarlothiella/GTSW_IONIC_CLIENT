@@ -278,10 +278,10 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode) => {
+      .subscribe(async (event) => {
         //===== START CUSTOM CODE =====
 
-        if (customCode === 'PRJ_DETAIL_SHOW') {
+        if (event.customCode === 'PRJ_DETAIL_SHOW') {
           const selPrj = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daSetup', 'qPrj');
           let prjData: any = {};
           if (this.prjArray.length > 0) {
@@ -318,12 +318,12 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
           this.prjShowImages = true;
         }
 
-        if (customCode === 'PRJ_DETAIL_EXIT') {
+        if (event.customCode === 'PRJ_DETAIL_EXIT') {
           this.gtsDataService.sendAppLoaderListener(false);
           this.prjShowImages = false;
         }
 
-        if (customCode === 'UPLOAD_IMAGE') {
+        if (event.customCode === 'UPLOAD_IMAGE') {
           const selPrj = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daSetup', 'qPrj');
           this.uploadName = selPrj.prjId + '_home';
           this.fileUploaderVisible = true;
@@ -334,7 +334,7 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
           this.gtsDataService.sendAppLoaderListener(false);
         }
 
-        if (customCode === 'UPLOAD_LOGO') {
+        if (event.customCode === 'UPLOAD_LOGO') {
           const selPrj = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daSetup', 'qPrj');
           this.uploadName = selPrj.prjId + '_logo';
           this.fileUploaderVisible = true;
@@ -345,14 +345,14 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
           this.gtsDataService.sendAppLoaderListener(false);
         }
 
-        if (customCode === 'PRJCONN_POST') {
+        if (event.customCode === 'PRJCONN_POST') {
           const selPrj = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daSetup', 'qPrj');
           const connRows = this.gtsDataService.getDataSet(this.prjId, this.formId, 'daPrjConn', 'qPrjConn');
           selPrj.dbConnections = connRows;
           this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqPrj_dbConnections', connRows);
         }
 
-        if (customCode === 'GET_PSSW') {
+        if (event.customCode === 'GET_PSSW') {
           const params = {
             "psswType": "mail",
             "psswKey": {
@@ -363,10 +363,9 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
           this.showPassw = false;
           const result = await this.gtsDataService.execMethod('setup', 'getPassword', params);
           this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'password', result.password);
-          this.gtsDataService.runAction(this.prjId, this.formId, 'mailPsswShow');
         }
 
-        if (customCode === 'SET_PSSW') {
+        if (event.customCode === 'SET_PSSW') {
           const password = this.gtsDataService.getFormFieldValue(this.prjId, this.formId, 'mailPsswDataForm', 'password');
           const params = {
             "psswType": "mail",
@@ -377,10 +376,9 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
           };
           const result = await this.gtsDataService.execMethod('setup', 'setPassword', params);
           this.metaData.customMsg = result.message;
-          this.gtsDataService.runAction(this.prjId, this.formId, 'mailPsswMsg');
         }
 
-        if (customCode === 'PSSW_TOGGLE') {
+        if (event.customCode === 'PSSW_TOGGLE') {
           this.showPassw = !this.showPassw;
           const reply: any = {
             valid: true,
@@ -390,11 +388,16 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
           this.gtsDataService.sendFormReply(reply);
         }
 
-        if (customCode === 'GET_DESKTOP_APP_DATA') {
+        if (event.customCode === 'GET_DESKTOP_APP_DATA') {
           const params = {};
           const result = await this.gtsDataService.execMethod('data', 'getDesktopAppConfig', params);
           this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqUpload_serverURL', result.serverUrl);
-          this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqUpload_desktopAppSecret', result.appSecret);          
+          this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqUpload_desktopAppSecret', result.appSecret);
+        }
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
         }
 
         //===== END CUSTOM CODE =====

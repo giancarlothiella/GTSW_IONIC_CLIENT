@@ -447,8 +447,8 @@ ion-alert.overlay-hidden {
 
 /* GTS Message Alert - Base styling for all message types */
 .gts-message-alert {
-  --min-width: 340px;
-  --max-width: 480px;
+  --min-width: 400px;
+  --max-width: 620px;
 
   .alert-wrapper {
     border-radius: 12px !important;

@@ -20,11 +20,9 @@
                 @if (item.pageFieldName) {
                   <input
                     type="checkbox"
-                    class="task-checkbox"
+                    class="task-checkbox task-checkbox-readonly"
                     [checked]="item.checked"
-                    [disabled]="item.disabled"
-                    (click)="onTaskCheckboxChange(item, $event)"
-                    (change)="$event.stopPropagation()" />
+                    tabindex="-1" />
                 }
                 <!-- Icon -->
                 @if (item.icon) {

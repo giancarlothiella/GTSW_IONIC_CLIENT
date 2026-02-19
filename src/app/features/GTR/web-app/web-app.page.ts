@@ -156,10 +156,10 @@ export class GTR_WebAppComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
     .getPageCustomListener()
-    .subscribe(async (customCode) => {
+    .subscribe(async (event) => {
       //===== START CUSTOM CODE =====
 
-      if (customCode === 'SHOW_CHART') {
+      if (event.customCode === 'SHOW_CHART') {
         this.chartVisible = true;
         this.chartDS = this.gtsDataService.getDataSet(this.prjId, this.formId, 'daConsumiStag', 'qConsumi');
         const tipoForn = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqUtenze_UTENZA_COD_TIPO_FORNITURA');
@@ -194,12 +194,12 @@ export class GTR_WebAppComponent implements OnInit, OnDestroy {
 
         this.gtsDataService.sendAppLoaderListener(false);
       }
-      if (customCode === 'PDF_GO_BACK') {
+      if (event.customCode === 'PDF_GO_BACK') {
         this.showPdf = false;
         this.pdfFileData = '';
       }
 
-      if (customCode === 'GET_FATTURA_PDF') {
+      if (event.customCode === 'GET_FATTURA_PDF') {
         const fileName = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqFatture_INV_FILE_NAME');
         const result = await this.gtsDataService.execMethod('file', 'downloadfile', { fileName: 'Repository/GTR/FATTURE/'+fileName });
         console.log('fileName: ', result);
@@ -210,7 +210,7 @@ export class GTR_WebAppComponent implements OnInit, OnDestroy {
         this.gtsDataService.sendAppLoaderListener(false);
       }
 
-      if (customCode === 'GET_TARIFFA_PDF') {
+      if (event.customCode === 'GET_TARIFFA_PDF') {
         const fileName = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, 'gtsFldqFatture_TARIF_FILE_NAME');
         const result = await this.gtsDataService.execMethod('file', 'downloadfile', { fileName: 'Repository/GTR/TARIFFE/'+fileName });
         console.log('fileName: ', result);
@@ -219,6 +219,11 @@ export class GTR_WebAppComponent implements OnInit, OnDestroy {
           this.showPdf = true;
         }
         this.gtsDataService.sendAppLoaderListener(false);
+      }
+
+      // Run next action if specified
+      if (event.actionName) {
+        this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
       }
 
       //===== END CUSTOM CODE =====

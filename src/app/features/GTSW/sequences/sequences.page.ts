@@ -170,9 +170,9 @@ export class GTSW_SequencesComponent implements OnInit, OnDestroy {
     // Custom Code Listener
     this.pageCustomListenerSubs = this.gtsDataService
       .getPageCustomListener()
-      .subscribe(async (customCode) => {
+      .subscribe(async (event) => {
         //===== START CUSTOM CODE =====
-        if (customCode === 'GET_LAST') {
+        if (event.customCode === 'GET_LAST') {
           const actualPrjId = this.metaData.pageFields.filter((field: any) => field.pageFieldName === 'gtsFldqSeq_prjId')[0].value;
           const result = await this.gtsDataService.execMethod('data', 'getLastSequence', {prjId: actualPrjId});
           this.metaData.pageFields.filter((field: any) => field.pageFieldName === 'gtsFldqLastSQL_sqlId')[0].value = result.lastSQL;
@@ -182,7 +182,7 @@ export class GTSW_SequencesComponent implements OnInit, OnDestroy {
           this.gtsDataService.sendAppLoaderListener(false);
         }
 
-        if (customCode === 'UPD_PRJ') {
+        if (event.customCode === 'UPD_PRJ') {
           this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all').forms[0].fields.filter((field: any) => field.objectName === 'gtsFldqLastSQL_sqlId')[0].visible = true;
           this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all').forms[0].fields.filter((field: any) => field.objectName === 'gtsFldqLastMongo_mongoId')[0].visible = true;
           this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all').forms[0].fields.filter((field: any) => field.objectName === 'gtsFldqLastMsg_msgId')[0].visible = true;
@@ -193,12 +193,17 @@ export class GTSW_SequencesComponent implements OnInit, OnDestroy {
           this.gtsDataService.sendAppLoaderListener(false);
         }
 
-        if (customCode === 'NEW_PRJ') {
+        if (event.customCode === 'NEW_PRJ') {
           this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all').forms[0].fields.filter((field: any) => field.objectName === 'gtsFldqLastSQL_sqlId')[0].visible = false;
           this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all').forms[0].fields.filter((field: any) => field.objectName === 'gtsFldqLastMongo_mongoId')[0].visible = false;
           this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all').forms[0].fields.filter((field: any) => field.objectName === 'gtsFldqLastMsg_msgId')[0].visible = false;
           this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all').forms[0].fields.filter((field: any) => field.objectName === 'gtsFldqLastCol_colId')[0].visible = false;
           this.gtsDataService.sendAppLoaderListener(false);
+        }
+
+        // Run next action if specified
+        if (event.actionName) {
+          this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
         }
 
         //===== END CUSTOM CODE =====
