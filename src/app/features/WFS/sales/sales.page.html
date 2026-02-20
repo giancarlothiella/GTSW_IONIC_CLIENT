@@ -94,6 +94,12 @@
     }
   </div>
 
+  @if (gtsDataService.pdfVisible) {
+    <app-gts-pdf
+      [base64PdfStream]="gtsDataService.pdfFileData"
+    ></app-gts-pdf>
+  }
+
   <app-gts-message
     [prjId]="prjId"
     [formId]="formId"

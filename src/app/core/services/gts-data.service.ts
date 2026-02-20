@@ -92,6 +92,10 @@ export class GtsDataService {
   private pageRules: any[] = [];
   private dbLog: any[] = [];
 
+  // PDF Viewer state
+  pdfVisible: boolean = false;
+  pdfFileData: string = '';
+
   private iLoop: number = 0;
 
   // Helper method to get current connection code based on project
@@ -223,6 +227,11 @@ export class GtsDataService {
   private formReloadListener = new Subject<number>();
   getFormReloadListener() {
     return this.formReloadListener.asObservable();
+  }
+
+  private formRefreshLockedListener = new Subject<number>();
+  getFormRefreshLockedListener() {
+    return this.formRefreshLockedListener.asObservable();
   }
 
   private toolbarEventListener = new Subject<any>();
@@ -569,6 +578,15 @@ export class GtsDataService {
     } else {
       // set all page element not visible
       this.resetMetadataVisibility(prjId, formId);
+
+      // Reset pageRules to initial condValue from metadata
+      const condRules = page[0].pageData.condRules || [];
+      condRules.forEach((rule: any) => {
+        const pageRule = this.pageRules.find((r: any) => r.prjId === prjId && r.formId === formId && r.condId === rule.condId);
+        if (pageRule) {
+          pageRule.condValue = rule.condValue;
+        }
+      });
     }
     await this.runAction(prjId, formId, page[0].pageData.page.initAction);
     this.actualFormId = formId;
@@ -958,6 +976,8 @@ export class GtsDataService {
           } else if (element.actionType === 'reloadFormData') {
             this.getFormData(prjId, formId, element.clFldGrpId);
             this.formReloadListener.next(element.clFldGrpId);
+          } else if (element.actionType === 'refreshFormLocked') {
+            this.formRefreshLockedListener.next(element.clFldGrpId);
           } else if (element.actionType === 'clearFields') {
             this.clearFields(prjId, formId, element.clFldGrpId);
           } else if (element.actionType === 'pkLock') {
@@ -1066,6 +1086,27 @@ export class GtsDataService {
                 }
               }
             }
+            this.actionCanRun = true;
+          } else if (element.actionType === 'showPDF') {
+            // Download PDF from server and show inline viewer
+            const pdfFieldName = element.pageFldName;
+            let pdfFileName = this.getPageFieldValue(prjId, formId, pdfFieldName) || '';
+            if (pdfFileName) {
+              // Append .pdf extension if missing
+              if (!pdfFileName.toLowerCase().endsWith('.pdf')) {
+                pdfFileName += '.pdf';
+              }
+              const pdfPath = element.customCode ? element.customCode + '/' + pdfFileName : pdfFileName;
+              const pdfResult = await this.execMethod('file', 'downloadfile', { fileName: pdfPath });
+              if (pdfResult.valid && pdfResult.fileData) {
+                this.pdfFileData = pdfResult.fileData;
+                this.pdfVisible = true;
+              }
+            }
+            this.actionCanRun = true;
+          } else if (element.actionType === 'hidePDF') {
+            this.pdfVisible = false;
+            this.pdfFileData = '';
             this.actionCanRun = true;
           }
 
@@ -1942,32 +1983,51 @@ export class GtsDataService {
           field.sqlParams.forEach((fieldParam: any) => {
             let value: any;
 
-            // Check if ObjectParamName is a Form Field
-            const paramIsFormFields = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-            .pageData
-            .forms
-            .filter((form: any) => form.groupId === clFldGrpId)[0]
-            .fields
-            .filter((metaField: any) => metaField.objectName === fieldParam.paramObjectName).length === 1;
-
-            if (paramIsFormFields) {
-              value = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+            if (fieldParam.paramObjectName) {
+              // Check if ObjectParamName is a Form Field
+              const paramIsFormFields = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
               .pageData
               .forms
               .filter((form: any) => form.groupId === clFldGrpId)[0]
               .fields
-              .filter((metaField: any) => metaField.objectName === fieldParam.paramObjectName)[0]
-              .value;
-            } else {
-              const pageField = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-              .pageData
-              .pageFields
-              .filter((pageField: any) => pageField.pageFieldName === fieldParam.paramObjectName)[0];
-              if (pageField) {
-                value = pageField.value;
+              .filter((metaField: any) => metaField.objectName === fieldParam.paramObjectName).length === 1;
+
+              if (paramIsFormFields) {
+                value = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+                .pageData
+                .forms
+                .filter((form: any) => form.groupId === clFldGrpId)[0]
+                .fields
+                .filter((metaField: any) => metaField.objectName === fieldParam.paramObjectName)[0]
+                .value;
               } else {
-                console.warn(`getExportedData: pageField '${fieldParam.paramObjectName}' not found`);
-                value = null;
+                const pageField = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+                .pageData
+                .pageFields
+                .filter((pageField: any) => pageField.pageFieldName === fieldParam.paramObjectName)[0];
+                if (pageField) {
+                  value = pageField.value;
+                } else {
+                  console.warn(`getExportedData: pageField '${fieldParam.paramObjectName}' not found`);
+                  value = null;
+                }
+              }
+            } else if (fieldParam.paramDataSetName && fieldParam.paramDataSetField) {
+              // Read value from dataset's selected row
+              const dsAdapter = this.getDataSetAdapter(prjId, formId, fieldParam.paramDataSetName);
+              if (dsAdapter?.data) {
+                const ds = dsAdapter.data.find((d: any) => d.dataSetName === fieldParam.paramDataSetName);
+                if (ds?.selectedRows?.length > 0) {
+                  value = ds.selectedRows[0][fieldParam.paramDataSetField];
+                  if (value instanceof Date) {
+                    value = this.pageService.formatDate(value);
+                  } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+                    const date = new Date(value);
+                    if (!isNaN(date.getTime())) {
+                      value = this.pageService.formatDate(date);
+                    }
+                  }
+                }
               }
             }
 
@@ -2063,16 +2123,37 @@ export class GtsDataService {
     if (field !== undefined && field.sqlParams !== undefined && field.sqlParams !== null && field.sqlParams.length > 0) {
       field.sqlParams.forEach((fieldParam: any) => {
         let value: any;
-        if (formData.filter((formField: any) => formField.objectName === fieldParam.paramObjectName).length === 1) {
-          value = formData.filter((formField: any) => formField.objectName === fieldParam.paramObjectName)[0].value;   
-        } else {
-          value = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-          .pageData
-          .pageFields
-          .filter((pageField: any) => pageField.pageFieldName === fieldParam.paramObjectName)[0]. value;          
+        if (fieldParam.paramObjectName) {
+          // Try formData first, then pageFields
+          if (formData.filter((formField: any) => formField.objectName === fieldParam.paramObjectName).length === 1) {
+            value = formData.filter((formField: any) => formField.objectName === fieldParam.paramObjectName)[0].value;
+          } else {
+            const pageField = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+            .pageData
+            .pageFields
+            .filter((pageField: any) => pageField.pageFieldName === fieldParam.paramObjectName)[0];
+            value = pageField ? pageField.value : null;
+          }
+        } else if (fieldParam.paramDataSetName && fieldParam.paramDataSetField) {
+          // Read value from dataset's selected row
+          const dsAdapter = this.getDataSetAdapter(prjId, formId, fieldParam.paramDataSetName);
+          if (dsAdapter?.data) {
+            const ds = dsAdapter.data.find((d: any) => d.dataSetName === fieldParam.paramDataSetName);
+            if (ds?.selectedRows?.length > 0) {
+              value = ds.selectedRows[0][fieldParam.paramDataSetField];
+              if (value instanceof Date) {
+                value = this.pageService.formatDate(value);
+              } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+                const date = new Date(value);
+                if (!isNaN(date.getTime())) {
+                  value = this.pageService.formatDate(date);
+                }
+              }
+            }
+          }
         }
 
-        params[fieldParam.paramName] = value;        
+        params[fieldParam.paramName] = value;
       });
     }    
 
@@ -2202,33 +2283,26 @@ export class GtsDataService {
               }
             });        
           } else  if (param.paramDataSetName !== undefined && param.paramDataSetName !== '' && param.paramDataSetName !== null) {
-            this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-            .pageData
-            .pageFields
-            .forEach((field: any) => {
-              if (field.dataSetName === param.paramDataSetName && field.dbFieldName === param.paramDataSetField) {
-                params[param.paramName] = field.value;
+            // Read value directly from the dataset's selected row using the DB field name
+            const dsAdapter = this.getDataSetAdapter(prjId, formId, param.paramDataSetName);
+            if (dsAdapter?.data) {
+              const ds = dsAdapter.data.find((d: any) => d.dataSetName === param.paramDataSetName);
+              if (ds?.selectedRows?.length > 0) {
+                const value = ds.selectedRows[0][param.paramDataSetField];
+                params[param.paramName] = value;
 
                 // Convert DateTime or Date to string DD/MM/YYYY
-                if (field.dataType === 'DateTime' || field.dataType === 'Date') {
-                  const date = new Date(field.value);
+                if (value instanceof Date) {
+                  params[param.paramName] = this.pageService.formatDate(value);
+                }
+                else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+                  const date = new Date(value);
                   if (!isNaN(date.getTime())) {
                     params[param.paramName] = this.pageService.formatDate(date);
                   }
-                }
-                // Also detect ISO date strings even if dataType is not set correctly
-                else if (typeof field.value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(field.value)) {
-                  const date = new Date(field.value);
-                  if (!isNaN(date.getTime())) {
-                    params[param.paramName] = this.pageService.formatDate(date);
-                  }
-                }
-                // Handle Date objects
-                else if (field.value instanceof Date) {
-                  params[param.paramName] = this.pageService.formatDate(field.value);
                 }
               }
-            });     
+            }     
           }
         });
       }

@@ -61,6 +61,9 @@
         <ion-segment-button value="3">
           <ion-label>Rules</ion-label>
         </ion-segment-button>
+        <ion-segment-button value="4">
+          <ion-label>Selected</ion-label>
+        </ion-segment-button>
       </ion-segment>
     </div>
 
@@ -633,6 +636,81 @@
               </tr>
             </ng-template>
           </p-table>
+        </div>
+      }
+
+      <!-- Tab 5: Selected Rows & Keys -->
+      @if (activeTabIndex === '4' && selectedPage) {
+        <div class="selection-container">
+          <div class="selection-split-layout">
+            <!-- Left: Dataset list -->
+            <div class="selection-ds-panel">
+              <div class="selection-ds-header">DataSets ({{ selectionDataSets.length }})</div>
+              <div class="selection-ds-list">
+                @for (ds of selectionDataSets; track ds.dataSetName) {
+                  <div
+                    class="selection-ds-item"
+                    [class.selected]="selectedSelectionDS === ds"
+                    (click)="onSelectionDSSelect(ds)"
+                  >
+                    <div class="ds-info">
+                      <span class="ds-name">{{ ds.dataSetName }}</span>
+                      <span class="ds-adapter">{{ ds.dataAdapter }}</span>
+                    </div>
+                    <div class="ds-counts">
+                      <span class="count-badge" [class.has-data]="ds.selectedRows?.length > 0">{{ ds.selectedRows?.length || 0 }} rows</span>
+                      <span class="count-badge" [class.has-data]="ds.selectedKeys?.length > 0">{{ ds.selectedKeys?.length || 0 }} keys</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Right: Detail panel -->
+            <div class="selection-detail-panel">
+              @if (selectedSelectionDS) {
+                <div class="selection-detail-content">
+                  <!-- Selected Keys -->
+                  <div class="selection-section">
+                    <div class="selection-section-header">
+                      <span class="selection-section-title">Selected Keys</span>
+                      <span class="selection-section-count">{{ selectedSelectionDS.selectedKeys?.length || 0 }}</span>
+                      @if (selectedSelectionDS.selectedKeys?.length > 0) {
+                        <ion-button size="small" fill="clear" (click)="copyJsonToClipboard(selectedSelectionDS.selectedKeys)" title="Copy Keys">
+                          <ion-icon name="copy-outline"></ion-icon>
+                        </ion-button>
+                      }
+                    </div>
+                    @if (selectedSelectionDS.selectedKeys?.length > 0) {
+                      <pre class="json-code">{{ selectedSelectionDS.selectedKeys | json }}</pre>
+                    } @else {
+                      <div class="selection-empty">No selected keys</div>
+                    }
+                  </div>
+
+                  <!-- Selected Rows -->
+                  <div class="selection-section">
+                    <div class="selection-section-header">
+                      <span class="selection-section-title">Selected Rows</span>
+                      <span class="selection-section-count">{{ selectedSelectionDS.selectedRows?.length || 0 }}</span>
+                      @if (selectedSelectionDS.selectedRows?.length > 0) {
+                        <ion-button size="small" fill="clear" (click)="copyJsonToClipboard(selectedSelectionDS.selectedRows)" title="Copy Rows">
+                          <ion-icon name="copy-outline"></ion-icon>
+                        </ion-button>
+                      }
+                    </div>
+                    @if (selectedSelectionDS.selectedRows?.length > 0) {
+                      <pre class="json-code">{{ selectedSelectionDS.selectedRows | json }}</pre>
+                    } @else {
+                      <div class="selection-empty">No selected rows</div>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <div class="selection-placeholder">Select a dataset to view selection data</div>
+              }
+            </div>
+          </div>
         </div>
       }
     </div>

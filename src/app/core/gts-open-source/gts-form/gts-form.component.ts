@@ -71,6 +71,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   formRepListenerSubs: Subscription | undefined;
   formExternalListenerSubs: Subscription | undefined;
   formReloadListenerSubs: Subscription | undefined;
+  formRefreshLockedListenerSubs: Subscription | undefined;
   formFormFocusListenerSubs: Subscription | undefined;
   appViewListenerSubs: Subscription | undefined;
 
@@ -145,6 +146,16 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe((groupId) => {
         if (groupId === this.metaData.groupId) {
           this.prepareFormData();
+          this.changeDetector.detectChanges();
+        }
+      });
+
+    // Form Refresh Locked Listener - refresh only readOnly fields (re-evaluate defaults from pageFields)
+    this.formRefreshLockedListenerSubs = this.gtsDataService
+      .getFormRefreshLockedListener()
+      .subscribe((groupId) => {
+        if (groupId === this.metaData.groupId) {
+          this.refreshLockedFields();
           this.changeDetector.detectChanges();
         }
       });
@@ -232,6 +243,10 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
           this.formData
             .filter((f: any) => f.objectName === field.fieldName)
             .forEach((formField: any) => {
+              // Skip if loadOnlyIfEmpty and field already has a value
+              if (formField.loadOnlyIfEmpty && formField.value !== undefined && formField.value !== null && formField.value !== '') {
+                return;
+              }
               formField.updateFromLookUp = true;
               formField.value = field.fieldValue;
             });
@@ -265,6 +280,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     this.formFormFocusListenerSubs?.unsubscribe();
     this.formExternalListenerSubs?.unsubscribe();
     this.formReloadListenerSubs?.unsubscribe();
+    this.formRefreshLockedListenerSubs?.unsubscribe();
     this.appViewListenerSubs?.unsubscribe();
   }
 
@@ -346,6 +362,31 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   //========= FORM FUNCTIONS =================
+  /** Refresh only readOnly fields - re-evaluate defaults from pageFields */
+  refreshLockedFields() {
+    if (!this.formData || !this.metaData?.fields) return;
+
+    this.formData.forEach((field: any, i: number) => {
+      if (!field.readOnly) return;
+
+      const metaField = this.metaData.fields[i];
+      if (!metaField) return;
+
+      const defaultVal = metaField.defaultValue;
+      if (defaultVal !== undefined && defaultVal !== null && typeof defaultVal === 'string') {
+        if (defaultVal.substring(0, 6) === '@FIELD') {
+          field.value = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, defaultVal.substring(7));
+        } else if (defaultVal.substring(0, 5) === '@NEXT') {
+          field.value = this.gtsDataService.getNextFieldValue(this.prjId, this.formId, defaultVal.substring(6));
+        }
+      } else {
+        // No special default - re-read from pageField
+        field.value = this.gtsDataService.getPageFieldValue(this.prjId, this.formId, metaField.objectName);
+      }
+      // Do NOT sync back to pageFields - those only update on submit
+    });
+  }
+
   prepareFormData() {
     this.formTitle = this.metaData.groupCaption;
     this.formLayout = this.metaData.cssStyle;
@@ -592,6 +633,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
             value: this.metaData.fields[i].details[j].value,
             style: 'grid-area: ' + this.metaData.fields[i].details[j].pageFieldName + ';',
             readOnly: this.metaData.fields[i].details[j].detailFieldLocked,
+            loadOnlyIfEmpty: this.metaData.fields[i].details[j].detailFieldLoadOnlyIfEmpty || false,
             focusStateEnabled: !this.metaData.fields[i].details[j].detailFieldLocked,
             cssClass: this.metaData.cssClass + 'Field',
             editorType: 'TextBox',
@@ -600,7 +642,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
           if (this.metaData.fields[i].details[j].detailFieldLocked) {
             fieldDetail.editorType = 'TextBoxRO';
-            field.focusStateEnabled = false;
+            fieldDetail.focusStateEnabled = false;
           }
 
           this.formData.push(fieldDetail);
@@ -789,6 +831,10 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
           this.formData
             .filter((f: any) => f.masterFieldName === field.objectName)
             .forEach((formField: any) => {
+              // Skip if loadOnlyIfEmpty and field already has a value
+              if (formField.loadOnlyIfEmpty && formField.value !== undefined && formField.value !== null && formField.value !== '') {
+                return;
+              }
               formField.validated = true;
               formField.value = responseData.data[0].rows[0][formField.fieldName];
             });

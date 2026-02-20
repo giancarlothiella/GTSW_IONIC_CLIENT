@@ -16,6 +16,7 @@ import { GtsGridPopupComponent } from '../../../core/gts-open-source/gts-grid-po
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
 import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';
+import { GtsPdfComponent } from '../../../core/gts-open-source/gts-pdf/gts-pdf.component';
 
 @Component({
   selector: 'app-sales',
@@ -32,7 +33,8 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
     GtsGridPopupComponent,
     GtsMessageComponent,
     GtsLoaderComponent,
-    GtsReportsComponent
+    GtsReportsComponent,
+    GtsPdfComponent
   ],
   templateUrl: './sales.page.html',
   styleUrls: ['./sales.page.scss']
@@ -174,6 +176,16 @@ export class WFS_SalesComponent implements OnInit, OnDestroy {
       await this.runFtpCatRequest(prjId, formId);
     }
 
+    if (customCode === 'CHECK_EDI_REP') {
+      const repContent = this.gtsDataService.getPageFieldValue(prjId, formId, 'gtsFldGetFTP_FILE_REP') || '';
+      if (repContent.includes('NDTS')) {
+        this.gtsDataService.setPageRule(prjId, formId, 103, 1);
+        this.gtsDataService.setCustomMsg(prjId, formId, 'No data to send');
+      } else {
+        this.gtsDataService.setPageRule(prjId, formId, 103, 2);
+      }
+    }
+
     //===== END CUSTOM CODE =====
   }
 
@@ -192,11 +204,17 @@ export class WFS_SalesComponent implements OnInit, OnDestroy {
 
     const result = await this.gtsDataService.execMethod('edi', 'sendRequest', params, true);
 
+    if (!result.valid) {
+      this.gtsDataService.setCustomMsg(prjId, formId, result.message);
+      this.gtsDataService.setPageRule(prjId, formId, 103, 1);
+      return;
+    }
+
     // Build customMsg with message and log
     const logText = result.log ? result.log.join('\n') : '';
     this.gtsDataService.setCustomMsg(prjId, formId, result.message + (logText ? '\n\n' + logText : ''));
 
-    if (result.valid && result.repContent) {
+    if (result.repContent) {
       this.gtsDataService.setPageFieldValue(prjId, formId, 'gtsFldGetFTP_FILE_REP', result.repContent);
     }
   }

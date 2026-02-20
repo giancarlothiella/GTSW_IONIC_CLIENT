@@ -104,8 +104,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     resizable: true,
     floatingFilter: false,
     minWidth: 100,
-    maxWidth: 500,  // Evita colonne troppo larghe
-    flex: 1  // Le colonne si espandono proporzionalmente
+    maxWidth: 500,
+    flex: 1
   };
 
   // Grid options
@@ -345,6 +345,9 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         // Normal data reload - check dataSetName and visibility
         if (this.metaData?.dataSetName === dataSetName && this.metaData?.visible) {
 
+          // Track whether grid had data before reload (to decide auto-size vs restore)
+          const hadDataBefore = this.rowData && this.rowData.length > 0;
+
           // Save current column state before reload (preserves user's column widths)
           if (this.gridApi && !this.gridApi.isDestroyed()) {
             this.savedColumnState = this.gridApi.getColumnState();
@@ -361,19 +364,23 @@ export class GtsGridComponent implements OnInit, OnDestroy {
             await this.prepareGridData();
           }
 
-          // Restore column state after reload (preserves column widths)
-          // Use setTimeout to ensure AG Grid has finished processing new columnDefs
-          if (this.savedColumnState) {
-            const stateToRestore = this.savedColumnState;
-            setTimeout(() => {
-              if (this.gridApi && !this.gridApi.isDestroyed()) {
+          // After reload: auto-size if grid was empty before (first data load),
+          // otherwise restore saved column state (preserves user's column widths)
+          setTimeout(() => {
+            if (this.gridApi && !this.gridApi.isDestroyed()) {
+              if (!hadDataBefore && this.rowData && this.rowData.length > 0) {
+                // First data load - auto-size to content
+                this.gridApi.autoSizeAllColumns(false);
+                // Update initial state so Reset Columns uses content-based widths
+                this.initialColumnState = this.gridApi.getColumnState();
+              } else if (this.savedColumnState) {
                 this.gridApi.applyColumnState({
-                  state: stateToRestore,
+                  state: this.savedColumnState,
                   applyOrder: true
                 });
               }
-            }, 100);
-          }
+            }
+          }, 100);
         }
       });
 
@@ -645,7 +652,22 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     this.showSearchPanel = newGridObject.searchPanelFlag || false;
 
     // Convert columns to AG Grid format (AFTER setting filter options)
-    this.convertColumnsToAGGrid(columns);
+    // Skip on data reloads when the grid already exists to prevent flex from
+    // overriding auto-sized column widths (columnDefs rebuild triggers flex re-apply)
+    const isDataReload = this.gridApi && !this.gridApi.isDestroyed() && this.columnDefs.length > 0;
+    if (!isDataReload) {
+      this.convertColumnsToAGGrid(columns);
+    } else {
+      // Still need to check multiline for gridKey computation
+      const checkMultiline = (cols: any[]): boolean => {
+        return cols.some((col: any) => {
+          if (col.columnType === 'B') return true;
+          if (col.columns && Array.isArray(col.columns)) return checkMultiline(col.columns);
+          return false;
+        });
+      };
+      this.hasMultilineColumns = checkMultiline(columns);
+    }
 
     // Extract columns with summaryType for pinned bottom row calculation
     // Also look inside band (grouped) columns
@@ -870,10 +892,10 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       colDef.filter = col.allowFiltering !== false;
     }
 
-    // Se la colonna ha una larghezza specifica, usala; altrimenti usa flex
+    // Se la colonna ha una larghezza specifica, usala come minWidth; altrimenti usa flex
     if (col.width) {
-      colDef.width = col.width;
-      colDef.maxWidth = col.width * 2; // Max 2x la larghezza specificata
+      colDef.minWidth = col.width;
+      colDef.flex = 1;
     } else {
       colDef.flex = 1; // Espande proporzionalmente
       colDef.maxWidth = 400; // Max width ragionevole
@@ -1552,25 +1574,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   }
 
   onSelectionChanged(event: SelectionChangedEvent): void {
-    // If grid is disabled or rows are locked, prevent selection change by restoring previous selection
-    if ((this.gridObject?.disabled || this.rowsLocked) && !this.isRestoringSelection) {
-      // Store the previous selection keys before the change
-      const previousKeys = this.selectedRows;
+    // Ignore events triggered by our own restore logic
+    if (this.isRestoringSelection) return;
 
-      // Restore previous selection
-      setTimeout(() => {
-        this.isRestoringSelection = true;
-        event.api.deselectAll();
-        if (previousKeys.length > 0) {
-          const keyField = this.gridObject?.keys?.[0] || 'id';
-          event.api.forEachNode((node: any) => {
-            if (node.data && previousKeys.some((prevRow: any) => prevRow[keyField] === node.data[keyField])) {
-              node.setSelected(true);
-            }
-          });
-        }
-        this.isRestoringSelection = false;
-      }, 0);
+    // If grid is disabled, ignore selection changes (rowsLocked uses suppressRowClickSelection instead)
+    if (this.gridObject?.disabled) {
       return;
     }
 

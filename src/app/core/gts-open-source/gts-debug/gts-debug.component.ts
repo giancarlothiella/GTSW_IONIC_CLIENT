@@ -105,6 +105,10 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
   rulesRows: any[] = [];
   selectedRuleRow: any = null;
 
+  // Selected Tab
+  selectionDataSets: any[] = [];
+  selectedSelectionDS: any = null;
+
   // Actions Debug State
   actionDebugActive: boolean = false;
   actionDebugMessage: string = 'Debug Inactive';
@@ -184,7 +188,8 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
               dataSetName: data.dataSetName,
               rows: data.rows,
               sqlKeys: data.sqlKeys,
-              selectedRows: data.selectedRows
+              selectedRows: data.selectedRows,
+              selectedKeys: data.selectedKeys
             });
           });
 
@@ -214,6 +219,7 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
       this.loadMetaDataCategory();
       this.loadDbLog();
       this.loadRules();
+      this.loadSelection();
     }
 
     this.actionDebugActive = this.appInfoService.appActionsDebug;
@@ -224,6 +230,7 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
     this.loadMetaDataCategory();
     this.loadDbLog();
     this.loadRules();
+    this.loadSelection();
   }
 
   onTabChange(): void {
@@ -321,6 +328,32 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
     // Get condRules from metadata with current values from pageRules
     this.rulesRows = this.selectedPage.metadata.condRules || [];
     this.selectedRuleRow = this.rulesRows.length > 0 ? this.rulesRows[0] : null;
+  }
+
+  // Selection Tab
+  private loadSelection(): void {
+    if (!this.selectedPage) {
+      this.selectionDataSets = [];
+      this.selectedSelectionDS = null;
+      return;
+    }
+    // Flatten all datasets from all adapters
+    this.selectionDataSets = [];
+    this.selectedPage.adapters.forEach((adapter: any) => {
+      adapter.dataSets.forEach((ds: any) => {
+        this.selectionDataSets.push({
+          dataSetName: ds.dataSetName,
+          dataAdapter: adapter.dataAdapter,
+          selectedRows: ds.selectedRows || [],
+          selectedKeys: ds.selectedKeys || []
+        });
+      });
+    });
+    this.selectedSelectionDS = this.selectionDataSets.length > 0 ? this.selectionDataSets[0] : null;
+  }
+
+  onSelectionDSSelect(ds: any): void {
+    this.selectedSelectionDS = ds;
   }
 
   // Actions Debug Controls
