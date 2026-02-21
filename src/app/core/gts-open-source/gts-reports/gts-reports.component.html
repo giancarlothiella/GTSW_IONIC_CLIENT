@@ -31,7 +31,7 @@
 @if (showReport) {
   <!-- Main Tabs: PDF / DATA -->
   <div class="gts-tabs">
-    <ion-segment [(ngModel)]="mainTabIndex">
+    <ion-segment [(ngModel)]="mainTabIndex" (ionChange)="onMainTabChange(mainTabIndex)">
       <ion-segment-button value="pdf">
         <ion-label>PDF</ion-label>
       </ion-segment-button>
@@ -58,6 +58,12 @@
 
   <!-- Data Tab Content -->
   @if (mainTabIndex === 'data') {
+    @if (tabLoading) {
+      <div class="tab-loader">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Loading data...</span>
+      </div>
+    } @else {
     <!-- Grids Tabs -->
     @if (grids.length > 1) {
       <div class="grids-tabs">
@@ -114,6 +120,7 @@
           </div>
         </div>
       }
+    }
     }
   }
 }

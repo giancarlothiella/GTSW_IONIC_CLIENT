@@ -3,7 +3,7 @@
 // Matching GTS Form styling for consistency
 
 .reports-wrapper {
-  max-width: 100%;
+  max-width: 600px;
   width: 100%;
 }
 
@@ -346,6 +346,22 @@
         }
       }
     }
+  }
+}
+
+.tab-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 0;
+  font-size: 14px;
+  color: #666;
+
+  ion-spinner {
+    --color: #00008b;
+    width: 24px;
+    height: 24px;
   }
 }
 

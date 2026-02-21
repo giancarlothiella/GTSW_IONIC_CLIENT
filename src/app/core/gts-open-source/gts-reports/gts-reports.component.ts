@@ -4,7 +4,7 @@ import { GtsDataService } from '../../services/gts-data.service';
 import { AppInfoService } from '../../services/app-info.service';
 import { GtsLoaderComponent } from '../gts-loader/gts-loader.component';
 import { GtsGridComponent } from '../gts-grid/gts-grid.component';
-import { IonSegment, IonSegmentButton, IonLabel, IonRadioGroup, IonRadio, IonItem, IonButton } from '@ionic/angular/standalone';
+import { IonSegment, IonSegmentButton, IonLabel, IonRadioGroup, IonRadio, IonItem, IonButton, IonSpinner } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { NgxExtendedPdfViewerModule, VerbosityLevel } from 'ngx-extended-pdf-viewer';
 import { Workbook } from 'exceljs';
@@ -24,6 +24,7 @@ import { saveAs } from 'file-saver';
     IonRadio,
     IonItem,
     IonButton,
+    IonSpinner,
     NgxExtendedPdfViewerModule
   ],
   templateUrl: './gts-reports.component.html',
@@ -78,6 +79,7 @@ export class GtsReportsComponent implements OnInit, OnDestroy {
 
   // Tabs
   mainTabIndex: string = 'pdf'; // 'pdf' or 'data'
+  tabLoading: boolean = false;
 
   base64PdfStream: string = '';
   grids: any[] = [];
@@ -87,6 +89,16 @@ export class GtsReportsComponent implements OnInit, OnDestroy {
   pdfLanguage: string = this.appInfo.getLanguageId || 'en';
   pdfLogLevel = VerbosityLevel.ERRORS;
   //==================================
+
+  onMainTabChange(newTab: string) {
+    if (newTab === 'data' && this.grids.length > 0) {
+      this.tabLoading = true;
+      // Let Angular render the spinner first, then allow data tab content to render
+      setTimeout(() => {
+        this.tabLoading = false;
+      }, 100);
+    }
+  }
 
   onGridsTabClick(index: number) {
     this.gridsTabsIndex = index;
