@@ -45,6 +45,7 @@ export const COMPONENT_REGISTRY: { [key: string]: () => Promise<any> } = {
 
 // WFS Components
   'WFS/sales': () => import('../../features/WFS/sales/sales.page').then(m => m.WFS_SalesComponent),
+  'WFS/organisations': () => import('../../features/WFS/organisations/organisations.page').then(m => m.WFS_OrganisationsComponent),
   // Altri progetti qui...
 };
 

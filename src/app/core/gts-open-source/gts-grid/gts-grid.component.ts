@@ -384,13 +384,19 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Grid select listener (per deselezionare)
+    // Grid select listener (select/deselect and goToFirstRow/goToLastRow)
     this.gridSelectListenerSubs = this.gtsDataService
       .getGridSelectListener()
       .subscribe((select) => {
-        if (!select.isSelected && select.dataSetName === this.metaData?.dataSetName) {
+        if (select.dataSetName !== this.metaData?.dataSetName) return;
+        if (!select.isSelected) {
           this.agGrid?.api?.deselectAll();
           this.focusedRowKey = null;
+        } else if (select.restoreGrid) {
+          // Clear stale saved keys so restoreSelection uses updated pageData selectedKeys
+          this.savedSelectedRowKeys = [];
+          // Re-select the row matching the updated selectedKeys in pageData (goToFirstRow/goToLastRow)
+          this.restoreSelection();
         }
       });
 

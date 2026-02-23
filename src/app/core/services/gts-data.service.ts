@@ -945,9 +945,9 @@ export class GtsDataService {
           } else if (element.actionType === 'setPreviousView') {
             this.actionCanRun = this.setView(prjId, formId, '', true);
           } else if (element.actionType === 'goToFirstRow') {
-            this.setDataSetSelected(prjId, formId, element.dataSetName, true, true, false);
+            this.setDataSetSelected(prjId, formId, element.dataSetName, true, true, false, true);
           } else if (element.actionType === 'goToLastRow') {
-            this.setDataSetSelected(prjId, formId, element.dataSetName, true, false, true);
+            this.setDataSetSelected(prjId, formId, element.dataSetName, true, false, true, true);
           } else if (element.actionType === 'selectDS') {
             this.setDataSetSelected(prjId, formId, element.dataSetName, true);
           } else if (element.actionType === 'unselectDS') {
@@ -3030,7 +3030,7 @@ export class GtsDataService {
   }
 
   // Set dataSet selected status
-  setDataSetSelected(prjId: string, formId: number, dataSetName: string, isSelected: boolean, goToFirstRow: boolean = false, goToLastRow: boolean = false) {
+  setDataSetSelected(prjId: string, formId: number, dataSetName: string, isSelected: boolean, goToFirstRow: boolean = false, goToLastRow: boolean = false, restoreGrid: boolean = false) {
     let changedSelectedStatus: boolean = false;
     let dataAdapter = '';
     let firstDataSetRow: any = null; 
@@ -3094,15 +3094,42 @@ export class GtsDataService {
         if (targetAdapter) {
           const targetDs = targetAdapter.data.find((ds: any) => ds.dataSetName === dataSetName);
           if (targetDs) {
-            targetDs.selectedRows = [firstDataSetRow];
-            // Build selectedKeys from dataset key fields
+            // For goToFirstRow/goToLastRow: overwrite selectedRows with the target row
+            // For selectDS (normal): only overwrite if selectedRows is empty (don't clobber multi-row selection)
+            if (goToFirstRow || goToLastRow || !targetDs.selectedRows || targetDs.selectedRows.length === 0) {
+              targetDs.selectedRows = [firstDataSetRow];
+            }
+            // Build selectedKeys from dataset sqlKeys or grid sqlKeys as fallback
             const dsMetaData = this.getPageMetaData(prjId, formId, 'dataSets', dataSetName);
+            let keyFields: string[] = [];
             if (dsMetaData?.sqlKeys && dsMetaData.sqlKeys.length > 0) {
-              const keyObj: any = {};
-              dsMetaData.sqlKeys.forEach((key: any) => {
-                keyObj[key.keyField] = firstDataSetRow[key.keyField];
-              });
-              targetDs.selectedKeys = [keyObj];
+              keyFields = dsMetaData.sqlKeys.map((k: any) => k.keyField);
+            } else {
+              // Fallback: try to find keys from the grid linked to this dataset
+              const gridMeta = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+                ?.pageData?.grids?.find((g: any) => g.dataSetName === dataSetName);
+              if (gridMeta?.sqlKeys && gridMeta.sqlKeys.length > 0) {
+                keyFields = gridMeta.sqlKeys.map((k: any) => k.keyField);
+              }
+            }
+            if (keyFields.length > 0) {
+              // For goToFirstRow/goToLastRow: single key. For selectDS: rebuild keys from all selectedRows
+              if (goToFirstRow || goToLastRow || !targetDs.selectedRows || targetDs.selectedRows.length <= 1) {
+                const keyObj: any = {};
+                keyFields.forEach((kf: string) => {
+                  keyObj[kf] = firstDataSetRow[kf];
+                });
+                targetDs.selectedKeys = [keyObj];
+              } else {
+                // Multi-row: build keys for all selectedRows
+                targetDs.selectedKeys = targetDs.selectedRows.map((row: any) => {
+                  const keyObj: any = {};
+                  keyFields.forEach((kf: string) => {
+                    keyObj[kf] = row[kf];
+                  });
+                  return keyObj;
+                });
+              }
             }
           }
         }
@@ -3121,7 +3148,7 @@ export class GtsDataService {
     this.setPageDataSetRule(prjId, formId, dataAdapter, dataSetName);
     
     // emit gridSelectListener
-    this.gridSelectListener.next({dataSetName: dataSetName, isSelected: isSelected});    
+    this.gridSelectListener.next({dataSetName: dataSetName, isSelected: isSelected, restoreGrid: restoreGrid});    
   }
 
   // Set pageFields Values from DataSet
