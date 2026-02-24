@@ -952,6 +952,31 @@ export class GtsDataService {
             this.setDataSetSelected(prjId, formId, element.dataSetName, true);
           } else if (element.actionType === 'unselectDS') {
             this.setDataSetSelected(prjId, formId, element.dataSetName, false);
+          } else if (element.actionType === 'clearDS') {
+            // Clear dataset rows, selection, and related pageFields
+            this.setDataSetSelected(prjId, formId, element.dataSetName, false);
+            this.pageData.forEach((data: any) => {
+              data.data.forEach((dataSet: any) => {
+                if (dataSet.dataSetName === element.dataSetName) {
+                  dataSet.rows = [];
+                }
+              });
+            });
+            this.sendGridReload(element.dataSetName);
+          } else if (element.actionType === 'closeDA') {
+            // Remove entire dataAdapter from pageData (opposite of getData)
+            const adapterName = element.dataAdapter;
+            const idx = this.pageData.findIndex((data: any) =>
+              data.prjId === prjId && data.formId === formId && data.dataAdapter === adapterName
+            );
+            if (idx >= 0) {
+              // Unselect all datasets and clear pageFields before removing
+              this.pageData[idx].data.forEach((dataSet: any) => {
+                this.setDataSetSelected(prjId, formId, dataSet.dataSetName, false);
+                this.sendGridReload(dataSet.dataSetName);
+              });
+              this.pageData.splice(idx, 1);
+            }
           } else if (element.actionType === 'execCustom') {
             this.pageCustomListener.next({ customCode: element.customCode, actionName: element.actionName || undefined });
           } else if (element.actionType === 'setField') {

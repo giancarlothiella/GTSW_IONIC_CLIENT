@@ -450,15 +450,6 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
 
   // METHODS
   filterProject(objectName: string, selectedValue: any, dataSetName: string) {
-    if (this.metaData.grids
-        .filter((element: any) => element.objectName === objectName)[0]
-        .data !== undefined) {
-
-      this.metaData.grids
-        .filter((element: any) => element.objectName === objectName)[0]
-        .data.dataSource.load();
-    }
-
     this.metaData.dataSets.forEach((dataSet: any) => {
       if (dataSet.dataSetName === dataSetName) {
         dataSet.filterObject = { 'prjId': selectedValue };
