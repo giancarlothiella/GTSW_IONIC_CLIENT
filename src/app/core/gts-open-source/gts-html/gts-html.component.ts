@@ -1,4 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GtsDataService } from '../../services/gts-data.service';
@@ -46,7 +47,8 @@ import {
 export class GtsHtmlComponent implements OnInit {
   constructor(
     private gtsDataService: GtsDataService,
-    private changeDetector: ChangeDetectorRef
+    private changeDetector: ChangeDetectorRef,
+    private sanitizer: DomSanitizer
   ) { }
 
   @Input() mode: string = 'view';
@@ -70,7 +72,7 @@ export class GtsHtmlComponent implements OnInit {
   fieldsData: any[] = [];
   testDataVisible: boolean = false;
   testDataString: string = '';
-  testValueContent: string = '';
+  testValueContent: SafeHtml = '';
   resultDataVisible: boolean = false;
 
   languages: any = [];
@@ -273,7 +275,7 @@ export class GtsHtmlComponent implements OnInit {
     };
 
     const resultData = await this.gtsDataService.execMethod('data', 'getMailMergeHtml', previewResult);
-    this.testValueContent = resultData.htmlString;
+    this.testValueContent = this.sanitizer.bypassSecurityTrustHtml(resultData.htmlString);
     this.resultDataVisible = true;
   }
 

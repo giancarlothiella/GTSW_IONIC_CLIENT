@@ -151,7 +151,52 @@ export class WFS_OrganisationsComponent implements OnInit, OnDestroy {
   async getCustomData(prjId: string, formId: number, customCode: string, actualView: string) {
     //===== START CUSTOM CODE =====
 
+    if (customCode === 'RUN_FPT_ORG_REQ') {
+      await this.runFtpOrgRequest(prjId, formId);
+    }
+
+    if (customCode === 'CHECK_EDI_REP') {
+      const repContent = this.gtsDataService.getPageFieldValue(prjId, formId, 'gtsFldGetFTP_FILE_REP') || '';
+      if (!repContent) {
+        // No response - keep the error message already set by runFtpOrgRequest
+        this.gtsDataService.setPageRule(prjId, formId, 13, 1);
+      } else if (repContent.includes('NDTS')) {
+        this.gtsDataService.setPageRule(prjId, formId, 13, 1);
+        this.gtsDataService.setCustomMsg(prjId, formId, 'No data to send');
+      } else {
+        this.gtsDataService.setPageRule(prjId, formId, 13, 2);
+      }
+    }
+
     //===== END CUSTOM CODE =====
+  }
+
+  /** EDI FTP Organisation Request - sends req file and receives rep file */
+  private async runFtpOrgRequest(prjId: string, formId: number) {
+    const getField = (name: string) => this.gtsDataService.getPageFieldValue(prjId, formId, name);
+    const sessId = getField('gtsFldGetFTP_FPT_SESS');
+    const params = {
+      country: getField('gtsFldqOffices_COUNTRY_CODE'),
+      reqFileName: 'SEND_' + sessId + '.req',
+      reqContent: getField('gtsFldGetFTP_FILE_REQ'),
+      repFileName: 'SEND_' + sessId + '.rep'
+    };
+
+    const result = await this.gtsDataService.execMethod('edi', 'sendRequest', params, true);
+
+    if (!result.valid) {
+      this.gtsDataService.setCustomMsg(prjId, formId, result.message);
+      this.gtsDataService.setPageRule(prjId, formId, 13, 1);
+      return;
+    }
+
+    // Build customMsg with message and log
+    const logText = result.log ? result.log.join('\n') : '';
+    this.gtsDataService.setCustomMsg(prjId, formId, result.message + (logText ? '\n\n' + logText : ''));
+
+    if (result.repContent) {
+      this.gtsDataService.setPageFieldValue(prjId, formId, 'gtsFldGetFTP_FILE_REP', result.repContent);
+    }
   }
 
   //========= FORM CALCULATIONS =================

@@ -1,5 +1,6 @@
 // src/app/features/GTSW/authrules/authrules.page.ts
 import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
@@ -296,6 +297,7 @@ export class GTSW_AuthrulesComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   public gtsDataService = inject(GtsDataService);
   private cd = inject(ChangeDetectorRef);
+  private sanitizer = inject(DomSanitizer);
 
   constructor() {
     // Register Ionic icons
@@ -335,7 +337,8 @@ export class GTSW_AuthrulesComponent implements OnInit, OnDestroy {
   emailList: any[] = [];
   authKey = '';
   showHtml = false;
-  testValueContent = 'Test Value Content';
+  testValueContent: SafeHtml = 'Test Value Content';
+  testValueContentRaw = '';
   sentMailResult: any[] = [];
   showMailSentResult = false;
 
@@ -556,7 +559,7 @@ export class GTSW_AuthrulesComponent implements OnInit, OnDestroy {
       const data = {
         mailCode: 'SignUp',
         mailTo: email,
-        textHtml: this.testValueContent,
+        textHtml: this.testValueContentRaw,
       };
       const result = await this.gtsDataService.execMethod('mail', 'sendAuthMail', data);
       this.sentMailResult.push({
@@ -619,7 +622,8 @@ export class GTSW_AuthrulesComponent implements OnInit, OnDestroy {
     };
 
     const resultData = await this.gtsDataService.execMethod('data', 'getMailMergeHtml', previewResult);
-    this.testValueContent = resultData.htmlString;
+    this.testValueContentRaw = resultData.htmlString;
+    this.testValueContent = this.sanitizer.bypassSecurityTrustHtml(resultData.htmlString);
     this.gtsDataService.sendAppLoaderListener(false);
   }
 }

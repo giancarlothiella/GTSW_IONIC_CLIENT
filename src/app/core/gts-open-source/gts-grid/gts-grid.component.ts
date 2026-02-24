@@ -1755,6 +1755,16 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       this.gridObject.backupDataSet = this.gridObject.dataSet.map((row: any) => ({ ...row }));
     }
 
+    // Sync grid data back to the service dataset so other components read the latest state
+    if (this.metaData?.dataAdapter && this.metaData?.dataSetName && this.gridObject?.dataSet) {
+      this.gtsDataService.setPageDataSet(
+        this.prjId, this.formId,
+        this.metaData.dataAdapter,
+        this.metaData.dataSetName,
+        this.gridObject.dataSet
+      );
+    }
+
     // Clear edited rows BEFORE executing action (toolbar will hide)
     this.editedRows.clear();
 

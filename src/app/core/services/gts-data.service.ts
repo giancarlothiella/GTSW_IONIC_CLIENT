@@ -1104,6 +1104,29 @@ export class GtsDataService {
               }
             }
             this.actionCanRun = true;
+          } else if (element.actionType === 'showPDFRemote') {
+            // Download PDF via remote service (POST /api/data/getServiceFile)
+            const pdfFieldName = element.pageFldName;
+            const serviceName = element.customCode || '';
+            let pdfFileName = this.getPageFieldValue(prjId, formId, pdfFieldName) || '';
+            if (pdfFileName && serviceName) {
+              if (!pdfFileName.toLowerCase().endsWith('.pdf')) {
+                pdfFileName += '.pdf';
+              }
+              const pdfResult = await this.execMethod('data', 'getServiceFile', {
+                serviceName: serviceName,
+                fileName: pdfFileName
+              });
+              if (pdfResult.valid && pdfResult.data) {
+                this.pdfFileData = pdfResult.data;
+                this.pdfVisible = true;
+                this.setPageRule(prjId, formId, 402, 2);
+              } else {
+                this.setCustomMsg(prjId, formId, pdfResult.message || 'File not found');
+                this.setPageRule(prjId, formId, 402, 1);
+              }
+            }
+            this.actionCanRun = true;
           } else if (element.actionType === 'hidePDF') {
             this.pdfVisible = false;
             this.pdfFileData = '';

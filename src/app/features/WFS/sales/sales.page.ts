@@ -178,7 +178,10 @@ export class WFS_SalesComponent implements OnInit, OnDestroy {
 
     if (customCode === 'CHECK_EDI_REP') {
       const repContent = this.gtsDataService.getPageFieldValue(prjId, formId, 'gtsFldGetFTP_FILE_REP') || '';
-      if (repContent.includes('NDTS')) {
+      if (!repContent) {
+        // No response - keep the error message already set by runFtpCatRequest
+        this.gtsDataService.setPageRule(prjId, formId, 103, 1);
+      } else if (repContent.includes('NDTS')) {
         this.gtsDataService.setPageRule(prjId, formId, 103, 1);
         this.gtsDataService.setCustomMsg(prjId, formId, 'No data to send');
       } else {
