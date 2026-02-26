@@ -4,14 +4,14 @@ import { GetFileData } from './pages.model';
 import { environment } from '../../../environments/environment';
 import { lastValueFrom } from 'rxjs';
 
-const BACKEND_URL = environment.apiUrl + '/data';
-const DB_URL = environment.apiUrl + '/db';
-const USER_URL = environment.apiUrl + '/user';
-const MAIL_URL = environment.apiUrl + '/mail';
-const FILE_URL = environment.apiUrl + '/files';
-const SETUP_URL = environment.apiUrl + '/setup';
-const TASK_URL = environment.apiUrl + '/task';
-const PRJ_URL = environment.apiUrl + '/prj';
+const BACKEND_URL = () => environment.apiUrl + '/data';
+const DB_URL = () => environment.apiUrl + '/db';
+const USER_URL = () => environment.apiUrl + '/user';
+const MAIL_URL = () => environment.apiUrl + '/mail';
+const FILE_URL = () => environment.apiUrl + '/files';
+const SETUP_URL = () => environment.apiUrl + '/setup';
+const TASK_URL = () => environment.apiUrl + '/task';
+const PRJ_URL = () => environment.apiUrl + '/prj';
 
 @Injectable({ providedIn: 'root' })
 export class PageService {
@@ -145,21 +145,21 @@ export class PageService {
     async postServerData(apiRoute: string, url: string, params: any) {
         // try {
             if (apiRoute === 'data') {
-                url = BACKEND_URL+'/'+url;
-            } else if (apiRoute === 'db') { 
-                url = DB_URL+'/'+url;                 
+                url = BACKEND_URL()+'/'+url;
+            } else if (apiRoute === 'db') {
+                url = DB_URL()+'/'+url;
             } else if (apiRoute === 'file') {
-                url = FILE_URL+'/'+url; 
+                url = FILE_URL()+'/'+url;
             } else if (apiRoute === 'auth') {
-                url = USER_URL+'/'+url; 
+                url = USER_URL()+'/'+url;
             } else if (apiRoute === 'mail') {
-                url = MAIL_URL+'/'+url; 
+                url = MAIL_URL()+'/'+url;
             } else if (apiRoute === 'setup') {
-                url = SETUP_URL+'/'+url; 
+                url = SETUP_URL()+'/'+url;
             } else if (apiRoute === 'task') {
-                url = TASK_URL+'/'+url; 
+                url = TASK_URL()+'/'+url;
             } else if (apiRoute === 'prj') {
-                url = PRJ_URL+'/'+url; 
+                url = PRJ_URL()+'/'+url; 
             }
 
             const postHttp = this.http.post(url, params);

@@ -941,6 +941,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
     // Handle image columns
     if (col.cellTemplate === 'cellTemplate') {
+      colDef.headerClass = 'gts-header-center';
       colDef.cellStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center' };
       colDef.cellRenderer = (params: any) => {
         if (params.value === null || params.value === undefined || params.value === '') return '';

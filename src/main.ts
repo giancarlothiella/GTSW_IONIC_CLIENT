@@ -3,8 +3,7 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { RouteReuseStrategy, provideRouter } from '@angular/router';
 import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular/standalone';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
-import { importProvidersFrom, provideZoneChangeDetection } from '@angular/core';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { importProvidersFrom, provideZoneChangeDetection, provideAppInitializer, inject } from '@angular/core';
 import { IonicStorageModule } from '@ionic/storage-angular';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
@@ -34,6 +33,7 @@ import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 import { authInterceptor } from './app/core/interceptors/auth.interceptor';
 import { pdfDefaultOptions } from 'ngx-extended-pdf-viewer';
+import { ConfigService } from './app/core/services/config.service';
 
 // Silenzia i log di PDF.js
 pdfDefaultOptions.verbosity = 0;
@@ -85,7 +85,10 @@ bootstrapApplication(AppComponent, {
       withFetch(),  // Abilita Fetch API (richiesto in Angular 20)
       withInterceptors([authInterceptor])
     ),
-    provideAnimationsAsync(),
+    provideAppInitializer(() => {
+      const configService = inject(ConfigService);
+      return configService.load();
+    }),
     providePrimeNG({
       theme: {
         preset: Aura,

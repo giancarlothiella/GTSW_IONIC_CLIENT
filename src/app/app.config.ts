@@ -1,9 +1,7 @@
 // src/app/app.config.ts
-// Configura l'interceptor nell'app config
-import { ApplicationConfig, importProvidersFrom } from '@angular/core';
+import { ApplicationConfig, importProvidersFrom, inject, provideAppInitializer } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { IonicModule } from '@ionic/angular';
 import { IonicStorageModule } from '@ionic/storage-angular';
 import { providePrimeNG } from 'primeng/config';
@@ -11,6 +9,7 @@ import Aura from '@primeng/themes/aura';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { provideQuillConfig } from 'ngx-quill';
+import { ConfigService } from './core/services/config.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,7 +17,10 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(
       withInterceptors([authInterceptor])
     ),
-    provideAnimationsAsync(),
+    provideAppInitializer(() => {
+      const configService = inject(ConfigService);
+      return configService.load();
+    }),
     providePrimeNG({
       theme: {
         preset: Aura,

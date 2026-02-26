@@ -1,8 +1,10 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://www.gtsoftware.ch/api',
-  //apiUrl: 'http://localhost:3000/api',
-  localUrl: 'https://www.gtsoftware.ch',
+  //apiUrl: 'https://www.gtsoftware.ch/api',
+  //localUrl: 'https://www.gtsoftware.ch',
+  
+  apiUrl: 'http://192.168.75.130/api',
+  localUrl: 'http://192.168.75.130',
 
   reCaptchaEnabled: false,
   reCaptchaKey: '6LcCP9gpAAAAAP-tR83NsGBoL5tm--Odo1DvmmOm',

@@ -203,20 +203,40 @@
 :host ::ng-deep {
   .gts-grid {
     // Bordi verticali tra colonne
-    .ag-header-cell {
+    .ag-header-cell,
+    .ag-header-group-cell {
       border-right: 1px solid #ddd !important;
+    }
 
-      &:last-child {
-        border-right: none !important;
+    // Titoli gruppo colonne centrati
+    .ag-header-group-cell .ag-header-cell-comp-wrapper {
+      justify-content: center !important;
+    }
+
+    // Header centrato per colonne icona
+    .gts-header-center {
+      .ag-header-cell-label {
+        justify-content: center !important;
+      }
+    }
+
+    // Resize handle: sottile e coerente col bordo
+    .ag-header-cell-resize {
+      width: 4px !important;
+      right: -2px !important;
+      opacity: 0;
+      transition: opacity 0.2s;
+
+      &:hover,
+      &::after {
+        opacity: 1;
+        background-color: #bbb;
+        width: 2px;
       }
     }
 
     .ag-cell {
       border-right: 1px solid #e9ecef !important;
-
-      &:last-child {
-        border-right: none !important;
-      }
     }
 
     // Transparent left border on header, filter and data rows to reserve space
