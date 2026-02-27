@@ -85,30 +85,32 @@ import { TranslationService } from '../../core/services/translation.service';
         </div>
       } @else {
         <div class="profile-container">
-          <!-- Profile Picture Card -->
-          <ion-card>
-            <ion-card-header>
-              <ion-card-title>{{ getText(615) }}</ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
-              <div class="profile-avatar-container">
-                <ion-avatar class="profile-avatar">
-                  <img [src]="user?.picture || '/assets/images/profile.jpg'" alt="Profile Picture">
-                </ion-avatar>
-              </div>
+          <!-- Profile Picture Card (hide for root) -->
+          @if (!isRootUser()) {
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>{{ getText(615) }}</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <div class="profile-avatar-container">
+                  <ion-avatar class="profile-avatar">
+                    <img [src]="user?.picture || '/assets/images/profile.jpg'" alt="Profile Picture">
+                  </ion-avatar>
+                </div>
 
-              <div class="profile-actions">
-                <ion-button expand="block" (click)="onUploadImage()">
-                  <ion-icon slot="start" name="camera-outline"></ion-icon>
-                  {{ getText(629) }}
-                </ion-button>
-                <ion-button expand="block" color="danger" (click)="onDeleteImage()">
-                  <ion-icon slot="start" name="trash-outline"></ion-icon>
-                  {{ getText(630) }}
-                </ion-button>
-              </div>
-            </ion-card-content>
-          </ion-card>
+                <div class="profile-actions">
+                  <ion-button expand="block" (click)="onUploadImage()">
+                    <ion-icon slot="start" name="camera-outline"></ion-icon>
+                    {{ getText(629) }}
+                  </ion-button>
+                  <ion-button expand="block" color="danger" (click)="onDeleteImage()">
+                    <ion-icon slot="start" name="trash-outline"></ion-icon>
+                    {{ getText(630) }}
+                  </ion-button>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          }
 
           <!-- Profile Info Card -->
           <ion-card>
@@ -122,14 +124,16 @@ import { TranslationService } from '../../core/services/translation.service';
                   <ion-input [value]="user?.email" disabled></ion-input>
                 </ion-item>
 
-                <ion-item>
-                  <ion-label position="stacked">{{ getText(604) }}</ion-label>
-                  <ion-input
-                    [(ngModel)]="name"
-                    (ionChange)="onNameChanged()"
-                    [placeholder]="getText(631)">
-                  </ion-input>
-                </ion-item>
+                @if (!isRootUser()) {
+                  <ion-item>
+                    <ion-label position="stacked">{{ getText(604) }}</ion-label>
+                    <ion-input
+                      [(ngModel)]="name"
+                      (ionChange)="onNameChanged()"
+                      [placeholder]="getText(631)">
+                    </ion-input>
+                  </ion-item>
+                }
 
                 <!-- Language e Auth Profile sulla stessa riga -->
                 <div class="row-two-cols">
@@ -152,16 +156,18 @@ import { TranslationService } from '../../core/services/translation.service';
                 </div>
               </ion-list>
 
-              <div class="save-button-container">
-                <ion-button
-                  expand="block"
-                  color="success"
-                  [disabled]="saveDisabled"
-                  (click)="onSaveProfile()">
-                  <ion-icon slot="start" name="save-outline"></ion-icon>
-                  {{ getText(618) }}
-                </ion-button>
-              </div>
+              @if (!isRootUser()) {
+                <div class="save-button-container">
+                  <ion-button
+                    expand="block"
+                    color="success"
+                    [disabled]="saveDisabled"
+                    (click)="onSaveProfile()">
+                    <ion-icon slot="start" name="save-outline"></ion-icon>
+                    {{ getText(618) }}
+                  </ion-button>
+                </div>
+              }
             </ion-card-content>
           </ion-card>
 
@@ -569,6 +575,10 @@ export class ProfilePage implements OnInit {
     });
 
     await alert.present();
+  }
+
+  isRootUser(): boolean {
+    return this.user?.email === 'root';
   }
 
   goBack() {

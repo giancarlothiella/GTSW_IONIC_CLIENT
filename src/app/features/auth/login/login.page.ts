@@ -23,6 +23,7 @@ import { addIcons } from 'ionicons';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
 import { AuthService, LoginCredentials } from '../../../core/services/auth.service';
 import { TranslationService, Language } from '../../../core/services/translation.service';
+import { ConfigService } from '../../../core/services/config.service';
 import { environment, webInfo } from '../../../../environments/environment';
 
 // Register icons
@@ -162,7 +163,7 @@ addIcons({
                 {{ getText(8) }}
               </ion-button>
 
-              @if (environment.TOTP2FAEnabled) {
+              @if (configService.publicConfig.totpEnabled) {
                 <ion-button
                   fill="clear"
                   size="small"
@@ -609,6 +610,7 @@ addIcons({
 export class LoginPage implements OnInit, ViewWillEnter {
   private authService = inject(AuthService);
   private translationService = inject(TranslationService);
+  configService = inject(ConfigService);
   private router = inject(Router);
   private loadingCtrl = inject(LoadingController);
   private toastCtrl = inject(ToastController);
@@ -733,11 +735,13 @@ export class LoginPage implements OnInit, ViewWillEnter {
       return false;
     }
 
-    // Validazione email con regex semplice
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(this.formData.email)) {
-      this.emailError = 'Email non valida';
-      return false;
+    // Validazione email con regex semplice (bypass per utente root)
+    if (this.formData.email !== 'root') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(this.formData.email)) {
+        this.emailError = 'Email non valida';
+        return false;
+      }
     }
 
     if (!this.formData.password) {
@@ -781,7 +785,7 @@ export class LoginPage implements OnInit, ViewWillEnter {
           });
         }
         // Se 2FA è abilitato, salva i dati e naviga alla pagina TOTP
-        else if (environment.TOTP2FAEnabled && response.totp2FAenabled) {
+        else if (this.configService.publicConfig.totpEnabled && response.totp2FAenabled) {
           // Salva i dati temporanei 2FA in localStorage
           const totpData = {
             totp2FAToken: response.totp2FAToken,

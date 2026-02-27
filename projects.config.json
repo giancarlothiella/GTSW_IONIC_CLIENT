@@ -1,0 +1,6 @@
+{
+  "profiles": {
+    "all": ["*"],
+    "dist": ["GTSW"]
+  }
+}

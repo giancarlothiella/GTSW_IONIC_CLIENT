@@ -1130,6 +1130,21 @@ p-datepicker .p-datepicker-next {
 }
 
 /* ============================================
+   Suite Config Modal - Split layout width
+   ============================================ */
+ion-modal.suite-config-modal {
+  --width: 800px !important;
+  --max-width: 95vw !important;
+  --height: 85vh !important;
+  --border-radius: 12px !important;
+
+  &::part(content) {
+    width: 800px !important;
+    max-width: 95vw !important;
+  }
+}
+
+/* ============================================
    GTS Loader - Global Loading State
    ============================================ */
 

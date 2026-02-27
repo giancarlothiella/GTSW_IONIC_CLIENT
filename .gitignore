@@ -71,3 +71,6 @@ Thumbs.db
 nul
 
 src/devextreme-license.js
+
+# Generated build profile registry
+src/app/core/config/component-registry.dist.ts

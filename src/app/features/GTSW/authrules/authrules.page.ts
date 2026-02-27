@@ -15,7 +15,7 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
 import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component';
 import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';
 import { AuthDetailsComponent } from '../auth-details/auth-details.component';
-import { webInfo } from '../../../../environments/environment';
+import { ConfigService } from '../../../core/services/config.service';
 // Ionic imports
 import {
   IonModal,
@@ -298,6 +298,7 @@ export class GTSW_AuthrulesComponent implements OnInit, OnDestroy {
   public gtsDataService = inject(GtsDataService);
   private cd = inject(ChangeDetectorRef);
   private sanitizer = inject(DomSanitizer);
+  private configService = inject(ConfigService);
 
   constructor() {
     // Register Ionic icons
@@ -571,7 +572,7 @@ export class GTSW_AuthrulesComponent implements OnInit, OnDestroy {
   async prepareKeyData(): Promise<void> {
     const htmlParams: any = {
       authKey: this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daAuth', 'qAuthKey').authKey,
-      appTitle: webInfo.appTitle,
+      appTitle: this.configService.publicConfig.appTitle,
       signUpURL: window.location.origin + '/register',
     };
 

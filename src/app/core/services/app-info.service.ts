@@ -1,11 +1,13 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { webInfo, environment } from '../../../environments/environment';
 import { Subject } from 'rxjs';
+import { ConfigService } from './config.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AppInfoService {
+  private configService = inject(ConfigService);
   constructor() {}
 
   resetPassword: boolean = true;
@@ -39,7 +41,7 @@ export class AppInfoService {
 
   homePrjListShow: boolean = false;
 
-  pageTitle: string = webInfo.appTitle;
+  pageTitle: string = '';
 
   private languageListener = new Subject<string>();
   getLanguageListener() {
@@ -144,7 +146,7 @@ export class AppInfoService {
   }
 
   public get getAppTitle() {
-    return webInfo.appTitle;
+    return this.configService.publicConfig.appTitle;
   }
 
   public get getAppOwner() {

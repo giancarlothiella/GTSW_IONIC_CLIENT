@@ -5,8 +5,6 @@
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:3000/api',
-  // apiUrl: 'http://192.168.75.131:3000/api',
- //  apiUrl: 'http://62.149.166.78:3000/api',
   localUrl: 'http://localhost:8100',
   
   reCaptchaEnabled: false,
@@ -15,9 +13,6 @@ export const environment = {
    
   dbMode: 'D',
   languageId: 'EN',
-  signWithGoogle: false,
-  signWithMicrosoft: false,
-  TOTP2FAEnabled: true,
 
   aiEnabled: true,
   aiChatgptEnabled: true,
@@ -28,7 +23,6 @@ export const environment = {
 
 export const webInfo = {
   appCode: 'GTSuiteWeb',
-  appTitle: 'GTS App Portal',
   appOwner: 'GTsoftware di Giancarlo Thiella',
   homeLogo: '/assets/images/GTS.png',
   termsURL: '/assets/disclaimers/terms.html',

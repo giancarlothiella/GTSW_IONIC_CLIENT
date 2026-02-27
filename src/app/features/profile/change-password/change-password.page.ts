@@ -56,7 +56,7 @@ addIcons({
     FloatLabel
   ],
   template: `
-    <ion-content class="change-password-content">
+    <div class="change-password-content">
       <div class="change-password-container">
         <!-- Card Cambio Password -->
         <ion-card class="change-password-card">
@@ -257,12 +257,13 @@ addIcons({
           </ion-card-content>
         </ion-card>
       </div>
-    </ion-content>
+    </div>
   `,
   styles: [`
     /* Content background */
     .change-password-content {
-      --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100%;
     }
 
     /* Container */

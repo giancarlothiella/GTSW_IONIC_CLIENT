@@ -1,19 +1,16 @@
 export const environment = {
   production: true,
-  //apiUrl: 'https://www.gtsoftware.ch/api',
-  //localUrl: 'https://www.gtsoftware.ch',
+  apiUrl: 'https://www.gtsoftware.ch/api',
+  localUrl: 'https://www.gtsoftware.ch',
   
-  apiUrl: 'http://192.168.75.130/api',
-  localUrl: 'http://192.168.75.130',
+  // apiUrl: 'http://192.168.75.130/api',
+  // localUrl: 'http://192.168.75.130',
 
   reCaptchaEnabled: false,
   reCaptchaKey: '6LcCP9gpAAAAAP-tR83NsGBoL5tm--Odo1DvmmOm',
 
   dbMode: 'P',
   languageId: 'EN',
-  signWithGoogle: false,
-  signWithMicrosoft: false,
-  TOTP2FAEnabled: true,
 
   aiEnabled: true,
   aiChatgptEnabled: true,
@@ -23,7 +20,6 @@ export const environment = {
 
 export const webInfo = {
   appCode: 'GTSuiteWeb',
-  appTitle: 'GTSW App Portal',
   appOwner: 'GTsoftware di Giancarlo Thiella',
   homeLogo: '/assets/images/GTS.png',
   termsURL: '/assets/disclaimers/terms.html',

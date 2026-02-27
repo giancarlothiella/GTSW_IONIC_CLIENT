@@ -7,6 +7,7 @@
     "ng": "ng",
     "start": "node --max-old-space-size=8192 node_modules/@angular/cli/bin/ng serve",
     "build": "ng build",
+    "build:dist": "node scripts/filter-projects.js dist && ng build -c dist",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",

@@ -2,6 +2,8 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import {
   IonHeader,
   IonToolbar,
@@ -16,8 +18,13 @@ import {
   IonLabel,
   IonSpinner,
   IonModal,
+  IonToggle,
+  IonInput,
+  IonFooter,
   MenuController,
-  ModalController
+  ModalController,
+  ToastController,
+  AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -31,7 +38,12 @@ import {
   closeOutline,
   personCircleOutline,
   bugOutline,
-  bug
+  bug,
+  settingsOutline,
+  saveOutline,
+  trashOutline,
+  swapHorizontalOutline,
+  constructOutline
 } from 'ionicons/icons';
 import { AuthService } from '../../core/services/auth.service';
 import { MenuService } from '../../core/services/menu.service';
@@ -44,7 +56,9 @@ import { GtsActionsDebugComponent } from '../../core/gts-open-source/gts-actions
 import { GtsAiChatComponent, AiChatConfig } from '../../core/gts-open-source/gts-ai-chat/gts-ai-chat.component';
 import { GtsDataService } from '../../core/services/gts-data.service';
 import { AppInfoService } from '../../core/services/app-info.service';
-import { Subscription } from 'rxjs';
+import { ConfigService } from '../../core/services/config.service';
+import { environment } from '../../../environments/environment';
+import { Subscription, lastValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-shell',
@@ -52,6 +66,7 @@ import { Subscription } from 'rxjs';
   imports: [
     CommonModule,
     RouterModule,
+    FormsModule,
     IonHeader,
     IonToolbar,
     IonTitle,
@@ -65,6 +80,9 @@ import { Subscription } from 'rxjs';
     IonLabel,
     IonSpinner,
     IonModal,
+    IonToggle,
+    IonInput,
+    IonFooter,
     GtsLoaderComponent,
     GtsDebugComponent,
     GtsActionsDebugComponent,
@@ -220,6 +238,13 @@ import { Subscription } from 'rxjs';
               </ion-button>
             </div>
 
+            <!-- Suite Config button (only for root) -->
+            @if (isRootUser()) {
+              <ion-button fill="clear" (click)="openSuiteConfigModal()" class="config-btn" title="Suite Config">
+                <ion-icon slot="icon-only" name="settings-outline"></ion-icon>
+              </ion-button>
+            }
+
             <!-- Debug button (only for developers) -->
             @if (isDeveloper()) {
               <ion-button (click)="openDebugModal()" [color]="actionsDebugActive ? 'success' : 'warning'" [class.debug-active]="actionsDebugActive">
@@ -227,7 +252,7 @@ import { Subscription } from 'rxjs';
               </ion-button>
             }
 
-            <ion-button (click)="onLogout()">
+            <ion-button fill="clear" (click)="onLogout()" class="logout-btn">
               <ion-icon slot="start" name="log-out-outline"></ion-icon>
               {{ getText(601) }}
             </ion-button>
@@ -271,6 +296,220 @@ import { Subscription } from 'rxjs';
             (debugStateChanged)="onDebugStateChanged($event)"
           ></app-gts-debug>
         </ion-content>
+      </ng-template>
+    </ion-modal>
+
+    <!-- Suite Config Modal -->
+    <ion-modal
+      [isOpen]="suiteConfigModalOpen"
+      (didDismiss)="suiteConfigModalOpen = false"
+      cssClass="suite-config-modal"
+    >
+      <ng-template>
+        <ion-header>
+          <ion-toolbar color="primary">
+            <ion-title>Suite Administration</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="suiteConfigModalOpen = false">
+                <ion-icon name="close-outline"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="suite-config-content">
+          <div class="suite-config-layout">
+            <!-- Left navigation -->
+            <div class="suite-config-nav">
+              <ion-list lines="none">
+                <ion-item button (click)="selectConfigSection('setup')" [class.active]="suiteConfigSection === 'setup'">
+                  <ion-icon slot="start" name="construct-outline"></ion-icon>
+                  <ion-label>Setup Data</ion-label>
+                </ion-item>
+                <ion-item button (click)="selectConfigSection('delete')" [class.active]="suiteConfigSection === 'delete'">
+                  <ion-icon slot="start" name="trash-outline"></ion-icon>
+                  <ion-label>Remove Project</ion-label>
+                </ion-item>
+                <ion-item button (click)="selectConfigSection('migrate')" [class.active]="suiteConfigSection === 'migrate'">
+                  <ion-icon slot="start" name="swap-horizontal-outline"></ion-icon>
+                  <ion-label>Migrate</ion-label>
+                </ion-item>
+              </ion-list>
+            </div>
+
+            <!-- Right panel -->
+            <div class="suite-config-panel">
+              @switch (suiteConfigSection) {
+                @case ('setup') {
+                  @if (suiteConfigLoading) {
+                    <div class="config-loading">
+                      <ion-spinner></ion-spinner>
+                    </div>
+                  } @else if (suiteConfig) {
+                    <ion-list>
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>General</strong></ion-label>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="App Title" labelPlacement="stacked" [(ngModel)]="suiteConfig.appTitle"></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Admin Email" labelPlacement="stacked" type="email" [(ngModel)]="suiteConfig.appAdminEmail"></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Sales Contact Email" labelPlacement="stacked" type="email" [(ngModel)]="suiteConfig.salesContactEmail"></ion-input>
+                      </ion-item>
+
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>Authentication</strong></ion-label>
+                      </ion-item>
+                      <ion-item>
+                        <ion-toggle [(ngModel)]="suiteConfig.signWithGoogle">Sign with Google</ion-toggle>
+                      </ion-item>
+                      <ion-item>
+                        <ion-toggle [(ngModel)]="suiteConfig.signWithMicrosoft">Sign with Microsoft</ion-toggle>
+                      </ion-item>
+
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>Two-Factor Authentication</strong></ion-label>
+                      </ion-item>
+                      <ion-item>
+                        <ion-toggle [(ngModel)]="suiteConfig.totpEnabled">TOTP Enabled</ion-toggle>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="TOTP Issuer" labelPlacement="stacked" [(ngModel)]="suiteConfig.totpIssuer"></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Max Error Count" labelPlacement="stacked" type="number" [(ngModel)]="suiteConfig.totpMaxErrorCount"></ion-input>
+                      </ion-item>
+
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>Security</strong></ion-label>
+                      </ion-item>
+                      <ion-item>
+                        <ion-toggle [(ngModel)]="suiteConfig.jwtUniqueValidation">JWT Unique Validation</ion-toggle>
+                      </ion-item>
+
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>Logging</strong></ion-label>
+                      </ion-item>
+                      <ion-item>
+                        <ion-toggle [(ngModel)]="suiteConfig.activateLog">Activate Log</ion-toggle>
+                      </ion-item>
+                      <ion-item>
+                        <ion-toggle [(ngModel)]="suiteConfig.dbLogs">DB Logs</ion-toggle>
+                      </ion-item>
+                      <ion-item>
+                        <ion-toggle [(ngModel)]="suiteConfig.authLogs">Auth Logs</ion-toggle>
+                      </ion-item>
+                      <ion-item>
+                        <ion-toggle [(ngModel)]="suiteConfig.errorLogs">Error Logs</ion-toggle>
+                      </ion-item>
+
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>Scheduler</strong></ion-label>
+                      </ion-item>
+                      <ion-item>
+                        <ion-toggle [(ngModel)]="suiteConfig.activateCron">Activate Cron</ion-toggle>
+                      </ion-item>
+                    </ion-list>
+                  }
+                }
+                @case ('delete') {
+                  @if (deleteProjectLoading) {
+                    <div class="config-loading">
+                      <ion-spinner></ion-spinner>
+                    </div>
+                  } @else {
+                    <ion-list>
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>Select a project to remove</strong></ion-label>
+                      </ion-item>
+                      @for (prj of deleteProjectList; track prj.prjId) {
+                        <ion-item>
+                          <ion-label>
+                            <h3>{{ prj.prjId }}</h3>
+                            <p>{{ prj.description }}</p>
+                          </ion-label>
+                          <ion-button slot="end" fill="clear" color="danger" (click)="confirmDeleteProject(prj)">
+                            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                          </ion-button>
+                        </ion-item>
+                      } @empty {
+                        <ion-item>
+                          <ion-label color="medium">No projects available for deletion</ion-label>
+                        </ion-item>
+                      }
+                    </ion-list>
+                  }
+                }
+                @case ('migrate') {
+                  <ion-list>
+                    <ion-item class="config-section-header">
+                      <ion-label><strong>Target MongoDB Server</strong></ion-label>
+                    </ion-item>
+                    <ion-item>
+                      <ion-input label="Connection String (e.g. mongodb://host:27017)" labelPlacement="stacked"
+                        [(ngModel)]="migrateTargetServer"></ion-input>
+                    </ion-item>
+
+                    <ion-item class="config-section-header">
+                      <ion-label><strong>Options</strong></ion-label>
+                    </ion-item>
+                    <ion-item>
+                      <ion-toggle [(ngModel)]="migrateIncludeRoot">Include Root User</ion-toggle>
+                    </ion-item>
+
+                    <ion-item class="config-section-header">
+                      <ion-label><strong>Select projects to migrate</strong></ion-label>
+                    </ion-item>
+                    @for (prj of migrateProjectList; track prj.prjId) {
+                      @if (prj.mandatory) {
+                        <ion-item>
+                          <ion-label color="danger">
+                            <strong>{{ prj.prjId }}</strong> - {{ prj.description }} <em>(always transferred)</em>
+                          </ion-label>
+                        </ion-item>
+                      } @else {
+                        <ion-item>
+                          <ion-toggle [(ngModel)]="prj.selected">
+                            <ion-label>
+                              <strong>{{ prj.prjId }}</strong> - {{ prj.description }}
+                            </ion-label>
+                          </ion-toggle>
+                        </ion-item>
+                      }
+                    } @empty {
+                      <ion-item>
+                        <ion-label color="medium">No projects available</ion-label>
+                      </ion-item>
+                    }
+                  </ion-list>
+                }
+              }
+            </div>
+          </div>
+        </ion-content>
+        @if (suiteConfigSection === 'setup' || suiteConfigSection === 'migrate') {
+          <ion-footer>
+            <ion-toolbar>
+              <ion-buttons slot="end">
+                <ion-button fill="clear" (click)="suiteConfigModalOpen = false">Cancel</ion-button>
+                @if (suiteConfigSection === 'setup') {
+                  <ion-button fill="solid" color="primary" (click)="saveSuiteConfig()" [disabled]="suiteConfigSaving">
+                    <ion-icon slot="start" name="save-outline"></ion-icon>
+                    {{ suiteConfigSaving ? 'Saving...' : 'Save' }}
+                  </ion-button>
+                }
+                @if (suiteConfigSection === 'migrate') {
+                  <ion-button fill="solid" color="primary" (click)="runMigration()" [disabled]="migrateRunning || !migrateTargetServer">
+                    <ion-icon slot="start" name="swap-horizontal-outline"></ion-icon>
+                    {{ migrateRunning ? 'Migrating...' : 'Migrate' }}
+                  </ion-button>
+                }
+              </ion-buttons>
+            </ion-toolbar>
+          </ion-footer>
+        }
       </ng-template>
     </ion-modal>
 
@@ -419,6 +658,93 @@ import { Subscription } from 'rxjs';
       --padding-end: 4px;
     }
 
+    /* Config button in header */
+    .config-btn {
+      --color: #ffffff;
+      --padding-start: 4px;
+      --padding-end: 4px;
+    }
+
+    /* Suite Config modal */
+    .suite-config-layout {
+      display: flex;
+      height: 100%;
+    }
+
+    .suite-config-nav {
+      width: 180px;
+      min-width: 180px;
+      border-right: 1px solid var(--ion-color-light-shade);
+      background: var(--ion-color-light);
+
+      ion-list {
+        padding: 0;
+        background: transparent;
+      }
+
+      ion-item {
+        --background: transparent;
+        --min-height: 44px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      ion-item.active {
+        --background: var(--ion-color-primary);
+        --color: white;
+        font-weight: 600;
+
+        ion-icon {
+          color: white;
+        }
+      }
+
+      ion-icon {
+        font-size: 18px;
+        margin-right: 8px;
+      }
+    }
+
+    .suite-config-panel {
+      flex: 1;
+      overflow-y: auto;
+
+      ion-list {
+        padding: 0;
+      }
+    }
+
+    .config-section-header {
+      --background: var(--ion-color-light);
+      --min-height: 36px;
+      --padding-top: 8px;
+      --padding-bottom: 4px;
+      margin-top: 8px;
+    }
+
+    .config-section-header:first-child {
+      margin-top: 0;
+    }
+
+    .config-loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 20px;
+    }
+
+    /* Logout button */
+    .logout-btn {
+      --color: rgba(255, 255, 255, 0.9);
+      --border-style: solid;
+      --border-width: 1px;
+      --border-color: rgba(255, 255, 255, 0.35);
+      --border-radius: 6px;
+      font-size: 13px;
+      text-transform: none;
+      letter-spacing: 0.3px;
+    }
+
     /* Connection badge in header */
     .connection-badge {
       display: inline-block;
@@ -471,10 +797,14 @@ export class ShellPage implements OnInit {
   private menuService = inject(MenuService);
   private dynamicRoutesService = inject(DynamicRoutesService);
   private translationService = inject(TranslationService);
+  private configService = inject(ConfigService);
+  private http = inject(HttpClient);
   private router = inject(Router);
   private menuCtrl = inject(MenuController);
+  private toastCtrl = inject(ToastController);
   private gtsDataService = inject(GtsDataService);
   private appInfoService = inject(AppInfoService);
+  private alertCtrl = inject(AlertController);
 
   user = this.authService.getCurrentUser();
   menuItems: MenuItem[] = [];
@@ -490,6 +820,19 @@ export class ShellPage implements OnInit {
   debugDbLog: any = [];
   debugPageRules: any = [];
   actionsDebugActive = false;
+
+  // Suite Config modal
+  suiteConfigModalOpen = false;
+  suiteConfigLoading = false;
+  suiteConfigSaving = false;
+  suiteConfig: any = null;
+  suiteConfigSection: 'setup' | 'delete' | 'migrate' = 'setup';
+  deleteProjectList: ProjectInfo[] = [];
+  deleteProjectLoading = false;
+  migrateTargetServer = 'mongodb://';
+  migrateIncludeRoot = true;
+  migrateProjectList: any[] = [];
+  migrateRunning = false;
 
   // AI Chat
   aiChatVisible = false;
@@ -510,7 +853,12 @@ export class ShellPage implements OnInit {
       closeOutline,
       personCircleOutline,
       bugOutline,
-      bug
+      bug,
+      settingsOutline,
+      saveOutline,
+      trashOutline,
+      swapHorizontalOutline,
+      constructOutline
     });
 
     // Sottoscrivi ai cambiamenti dell'utente
@@ -605,7 +953,7 @@ export class ShellPage implements OnInit {
     }
 
     this.loading = true;
-    const prjId = this.user.prjId;
+    const prjId = this.user.prjId || 'GTSW';
 
     // Passa esplicitamente il prjId dell'utente per evitare che venga usato
     // un progetto diverso salvato in precedenza
@@ -768,9 +1116,219 @@ export class ShellPage implements OnInit {
 
   /**
    * Verifica se l'utente ha un homePath dedicato (accesso limitato a una sola pagina)
+   * Root user ha sempre accesso completo
    */
   hasHomePath(): boolean {
+    if (this.isRootUser()) return false;
     return this.authService.hasHomePath();
+  }
+
+  // ============================================
+  // SUITE CONFIG (root only)
+  // ============================================
+
+  isRootUser(): boolean {
+    return this.user?.email === 'root';
+  }
+
+  selectConfigSection(section: 'setup' | 'delete' | 'migrate') {
+    this.suiteConfigSection = section;
+    if (section === 'delete') {
+      this.loadDeleteProjects();
+    } else if (section === 'migrate') {
+      this.loadMigrateProjects();
+    }
+  }
+
+  private loadDeleteProjects() {
+    this.deleteProjectList = this.menuService.getProjects().filter(p => p.prjId !== 'GTSW');
+  }
+
+  private loadMigrateProjects() {
+    const projects = this.menuService.getProjects().map(p => ({
+      prjId: p.prjId,
+      description: p.description,
+      selected: true,
+      mandatory: p.prjId === 'GTSW'
+    }));
+    projects.sort((a, b) => (a.mandatory === b.mandatory ? 0 : a.mandatory ? -1 : 1));
+    this.migrateProjectList = projects;
+  }
+
+  async runMigration() {
+    const selectedIds = this.migrateProjectList.filter(p => p.selected).map(p => p.prjId);
+    if (selectedIds.length === 0) {
+      const toast = await this.toastCtrl.create({
+        message: 'Select at least one project',
+        duration: 2000,
+        color: 'warning'
+      });
+      await toast.present();
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: 'Confirm Migration',
+      message: `Migrate ${selectedIds.length} project(s) to "${this.migrateTargetServer}"?`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Migrate',
+          handler: () => this.executeMigration(selectedIds)
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  private async executeMigration(projectIds: string[]) {
+    this.migrateRunning = true;
+    try {
+      const res: any = await lastValueFrom(
+        this.http.post(`${environment.apiUrl}/setup/migrateProjects`, {
+          targetMongoServer: this.migrateTargetServer,
+          projectIds,
+          includeRoot: this.migrateIncludeRoot
+        })
+      );
+      if (res?.valid) {
+        const toast = await this.toastCtrl.create({
+          message: res.message || 'Migration completed',
+          duration: 3000,
+          color: 'success'
+        });
+        await toast.present();
+      } else {
+        const toast = await this.toastCtrl.create({
+          message: res?.message || 'Migration failed',
+          duration: 3000,
+          color: 'danger'
+        });
+        await toast.present();
+      }
+    } catch (e: any) {
+      const toast = await this.toastCtrl.create({
+        message: e?.error?.message || 'Migration error',
+        duration: 3000,
+        color: 'danger'
+      });
+      await toast.present();
+    } finally {
+      this.migrateRunning = false;
+    }
+  }
+
+  async confirmDeleteProject(project: ProjectInfo) {
+    const alert = await this.alertCtrl.create({
+      header: 'Delete Project',
+      message: `Are you sure you want to delete project "${project.prjId}"?\nThis action cannot be undone.`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          handler: () => this.deleteProject(project.prjId)
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  private async deleteProject(prjId: string) {
+    this.deleteProjectLoading = true;
+    try {
+      const res: any = await lastValueFrom(
+        this.http.post(`${environment.apiUrl}/setup/deleteProject`, { prjId })
+      );
+      if (res?.valid) {
+        this.deleteProjectList = this.deleteProjectList.filter(p => p.prjId !== prjId);
+        const toast = await this.toastCtrl.create({
+          message: `Project ${prjId} deleted`,
+          duration: 2000,
+          color: 'success'
+        });
+        await toast.present();
+      } else {
+        const toast = await this.toastCtrl.create({
+          message: res?.message || 'Error deleting project',
+          duration: 3000,
+          color: 'danger'
+        });
+        await toast.present();
+      }
+    } catch (e: any) {
+      const toast = await this.toastCtrl.create({
+        message: e?.error?.message || 'Error deleting project',
+        duration: 3000,
+        color: 'danger'
+      });
+      await toast.present();
+    } finally {
+      this.deleteProjectLoading = false;
+    }
+  }
+
+  async openSuiteConfigModal() {
+    this.suiteConfigSection = 'setup';
+    this.suiteConfigLoading = true;
+    this.suiteConfigModalOpen = true;
+    try {
+      const res: any = await lastValueFrom(
+        this.http.post(`${environment.apiUrl}/setup/getSuiteConfig`, {})
+      );
+      if (res?.valid && res.data) {
+        this.suiteConfig = { ...res.data };
+      }
+    } catch (e) {
+      console.error('Error loading suite config:', e);
+      const toast = await this.toastCtrl.create({
+        message: 'Error loading configuration',
+        duration: 3000,
+        color: 'danger'
+      });
+      await toast.present();
+      this.suiteConfigModalOpen = false;
+    } finally {
+      this.suiteConfigLoading = false;
+    }
+  }
+
+  async saveSuiteConfig() {
+    if (!this.suiteConfig) return;
+    this.suiteConfigSaving = true;
+    try {
+      const res: any = await lastValueFrom(
+        this.http.post(`${environment.apiUrl}/setup/updateSuiteConfig`, this.suiteConfig)
+      );
+      if (res?.valid) {
+        // Reload publicConfig in memory
+        await this.configService.load();
+        const toast = await this.toastCtrl.create({
+          message: 'Configuration saved',
+          duration: 2000,
+          color: 'success'
+        });
+        await toast.present();
+        this.suiteConfigModalOpen = false;
+      } else {
+        const toast = await this.toastCtrl.create({
+          message: res?.message || 'Error saving configuration',
+          duration: 3000,
+          color: 'danger'
+        });
+        await toast.present();
+      }
+    } catch (e) {
+      console.error('Error saving suite config:', e);
+      const toast = await this.toastCtrl.create({
+        message: 'Error saving configuration',
+        duration: 3000,
+        color: 'danger'
+      });
+      await toast.present();
+    } finally {
+      this.suiteConfigSaving = false;
+    }
   }
 
   /**

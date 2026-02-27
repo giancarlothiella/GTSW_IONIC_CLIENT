@@ -18,6 +18,7 @@ import {
 } from '@ionic/angular/standalone';
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslationService, Language } from '../../../core/services/translation.service';
+import { ConfigService } from '../../../core/services/config.service';
 import { environment, webInfo } from '../../../../environments/environment';
 
 @Component({
@@ -77,7 +78,7 @@ import { environment, webInfo } from '../../../../environments/environment';
                   <p>{{ getText(503) }}</p>
                 </ion-text>
 
-                @if (environment.TOTP2FAEnabled && totpData) {
+                @if (configService.publicConfig.totpEnabled && totpData) {
                   <!-- Mostra QR code per configurare 2FA -->
                   <div class="totp-section">
                     <ion-text color="primary">
@@ -415,6 +416,7 @@ export class ActivatePage implements OnInit {
 
   private authService = inject(AuthService);
   private translationService = inject(TranslationService);
+  configService = inject(ConfigService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private loadingCtrl = inject(LoadingController);
@@ -508,7 +510,7 @@ export class ActivatePage implements OnInit {
         this.isActivated = true;
 
         // Se il 2FA è abilitato e ci sono dati TOTP nella risposta, salvali
-        if (environment.TOTP2FAEnabled && result.totp2FAQRCode) {
+        if (this.configService.publicConfig.totpEnabled && result.totp2FAQRCode) {
           this.totpData = {
             totp2FAQRCode: result.totp2FAQRCode,
             totp2FAAppCode: result.totp2FAAppCode || webInfo.appCode
