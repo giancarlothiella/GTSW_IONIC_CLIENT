@@ -173,15 +173,13 @@ addIcons({
                 </ion-button>
               }
 
-              @if (fromLanding) {
-                <ion-button
-                  fill="clear"
-                  size="small"
-                  (click)="backToLanding()"
-                  class="back-to-landing-button">
-                  ← {{ getText(51) }}
-                </ion-button>
-              }
+              <ion-button
+                fill="clear"
+                size="small"
+                (click)="goToWebsite()"
+                class="back-to-landing-button">
+                ← {{ webInfo.footerText }}
+              </ion-button>
             </div>
 
             <!-- Separatore -->
@@ -642,16 +640,7 @@ export class LoginPage implements OnInit, ViewWillEnter {
   availableLanguages: Language[] = [];
   currentLanguage: string = environment.languageId;
 
-  // Tracking se arriviamo dalla landing page
-  fromLanding = false;
-
-  constructor() {
-    // Controlla se arriviamo dalla landing page
-    const navigation = this.router.getCurrentNavigation();
-    if (navigation?.extras?.state) {
-      this.fromLanding = navigation.extras.state['fromLanding'] || false;
-    }
-  }
+  constructor() {}
 
   async ngOnInit() {
     // Inizializza il servizio di traduzione
@@ -886,10 +875,10 @@ export class LoginPage implements OnInit, ViewWillEnter {
   }
 
   /**
-   * Torna alla landing page
+   * Apre il sito istituzionale GTSoftware
    */
-  backToLanding() {
-    this.router.navigate(['/landing']);
+  goToWebsite() {
+    window.open(this.webInfo.websiteUrl, '_blank');
   }
 
   /**

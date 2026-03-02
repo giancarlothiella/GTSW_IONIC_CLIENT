@@ -43,7 +43,8 @@ import {
   saveOutline,
   trashOutline,
   swapHorizontalOutline,
-  constructOutline
+  constructOutline,
+  listOutline
 } from 'ionicons/icons';
 import { AuthService } from '../../core/services/auth.service';
 import { MenuService } from '../../core/services/menu.service';
@@ -54,6 +55,7 @@ import { GtsLoaderComponent } from '../../core/gts-open-source/gts-loader/gts-lo
 import { GtsDebugComponent } from '../../core/gts-open-source/gts-debug/gts-debug.component';
 import { GtsActionsDebugComponent } from '../../core/gts-open-source/gts-actions-debug/gts-actions-debug.component';
 import { GtsAiChatComponent, AiChatConfig } from '../../core/gts-open-source/gts-ai-chat/gts-ai-chat.component';
+import { GtsDemoLogComponent } from '../../core/gts-open-source/gts-demo-log/gts-demo-log.component';
 import { GtsDataService } from '../../core/services/gts-data.service';
 import { AppInfoService } from '../../core/services/app-info.service';
 import { ConfigService } from '../../core/services/config.service';
@@ -86,7 +88,8 @@ import { Subscription, lastValueFrom } from 'rxjs';
     GtsLoaderComponent,
     GtsDebugComponent,
     GtsActionsDebugComponent,
-    GtsAiChatComponent
+    GtsAiChatComponent,
+    GtsDemoLogComponent
   ],
   template: `
     <!-- Loader globale -->
@@ -247,6 +250,9 @@ import { Subscription, lastValueFrom } from 'rxjs';
 
             <!-- Debug button (only for developers) -->
             @if (isDeveloper()) {
+              <ion-button (click)="toggleDemoLog()" [color]="demoLogActive ? 'success' : 'medium'" fill="clear" title="Action Log">
+                <ion-icon slot="icon-only" name="list-outline"></ion-icon>
+              </ion-button>
               <ion-button (click)="openDebugModal()" [color]="actionsDebugActive ? 'success' : 'warning'" [class.debug-active]="actionsDebugActive">
                 <ion-icon slot="icon-only" [name]="actionsDebugActive ? 'bug' : 'bug-outline'"></ion-icon>
               </ion-button>
@@ -522,6 +528,11 @@ import { Subscription, lastValueFrom } from 'rxjs';
       [(visible)]="aiChatVisible"
       (messageSent)="onAiChatMessageSent($event)">
     </app-gts-ai-chat>
+
+    <!-- Demo Action Log Panel (developers only) -->
+    @if (demoLogActive) {
+      <app-gts-demo-log (closed)="demoLogActive = false"></app-gts-demo-log>
+    }
   `,
   styles: [`
     /* Contenitore principale */
@@ -834,6 +845,9 @@ export class ShellPage implements OnInit {
   migrateProjectList: any[] = [];
   migrateRunning = false;
 
+  // Demo Action Log
+  demoLogActive = false;
+
   // AI Chat
   aiChatVisible = false;
   aiChatConfig: AiChatConfig = { prjId: '', chatCode: '' };
@@ -858,7 +872,8 @@ export class ShellPage implements OnInit {
       saveOutline,
       trashOutline,
       swapHorizontalOutline,
-      constructOutline
+      constructOutline,
+      listOutline
     });
 
     // Sottoscrivi ai cambiamenti dell'utente
@@ -1381,6 +1396,18 @@ export class ShellPage implements OnInit {
     if (active) {
       // Chiudi il modal quando si attiva il debug
       this.debugModalOpen = false;
+    }
+  }
+
+  // ============================================
+  // DEMO ACTION LOG
+  // ============================================
+
+  toggleDemoLog() {
+    this.demoLogActive = !this.demoLogActive;
+    this.gtsDataService.demoLogActive = this.demoLogActive;
+    if (!this.demoLogActive) {
+      this.gtsDataService.clearDemoLog();
     }
   }
 

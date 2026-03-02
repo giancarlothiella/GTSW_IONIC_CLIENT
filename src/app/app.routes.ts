@@ -21,12 +21,8 @@ function createDynamicRoutes(): Routes {
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'landing',
+    redirectTo: 'login',
     pathMatch: 'full'
-  },
-  {
-    path: 'landing',
-    loadComponent: () => import('./features/landing/landing-page.component').then(m => m.LandingPageComponent)
   },
   {
     path: 'login',

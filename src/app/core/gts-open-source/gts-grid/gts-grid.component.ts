@@ -390,6 +390,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       .subscribe((select) => {
         if (select.dataSetName !== this.metaData?.dataSetName) return;
         if (!select.isSelected) {
+          this.selectedRows = [];
           this.agGrid?.api?.deselectAll();
           this.focusedRowKey = null;
         } else if (select.restoreGrid) {

@@ -29,9 +29,13 @@
       "Bash(node -e:*)",
       "Bash(dir \"c:\\GTSuite\\Server\\GTS\\routes\" /b)",
       "Bash(npx ng build:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\GTSuite\\Client\\GTSoftware\\src"
+    ]
   }
 }

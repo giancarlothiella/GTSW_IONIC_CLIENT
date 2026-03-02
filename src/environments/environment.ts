@@ -29,7 +29,8 @@ export const webInfo = {
   policyURL: '/assets/disclaimers/privacy.html',
   cookiesURL: '/assets/disclaimers/cookies.html',
   footerURL: 'https://www.gtsoftware.ch',
-  footerText: 'GTsoftware web site'
+  footerText: 'GTsoftware web site',
+  websiteUrl: 'http://localhost:4200'
 };
 
 

@@ -245,6 +245,69 @@ export class GtsDataService {
     return this.actionEventListener.asObservable();
   }
 
+  // Demo Action Log - lightweight action log for demo/dev side panel
+  private demoLogListener = new Subject<any>();
+  getDemoLogListener() {
+    return this.demoLogListener.asObservable();
+  }
+  demoLogActive = false;
+  demoLogDelay = 0; // ms delay between action steps (0 = real-time)
+  private demoLogEntries: any[] = [];
+
+  getDemoLogEntries(): any[] {
+    return this.demoLogEntries;
+  }
+
+  clearDemoLog(): void {
+    this.demoLogEntries = [];
+  }
+
+  private emitDemoLog(objectName: string, element: any, elementActive: boolean): void {
+    if (!this.demoLogActive) return;
+    const entry = {
+      time: new Date(),
+      actionType: element.actionType,
+      detail: this.getDemoLogDetail(element),
+      rule: this.formatExecCond(element.execCond),
+      active: elementActive,
+      objectName: objectName
+    };
+    this.demoLogEntries.push(entry);
+    this.demoLogListener.next(entry);
+  }
+
+  private getDemoLogDetail(el: any): string {
+    const t = el.actionType;
+    if (t === 'getData' || t === 'removeData' || t === 'closeDA') return el.dataAdapter || '';
+    if (t === 'clearDS' || t === 'dsRefresh' || t === 'dsRefreshSel' || t === 'dsInsert' ||
+        t === 'dsEdit' || t === 'dsCancel' || t === 'dsPost' || t === 'dsDelete' ||
+        t === 'selectDS' || t === 'unselectDS' || t === 'goToFirstRow' || t === 'goToLastRow' ||
+        t === 'getSelectedKeys') return el.dataSetName || '';
+    if (t === 'execProc') return el.sqlId ? `SQL:${el.sqlId}` : '';
+    if (t === 'setView') return el.viewName || '';
+    if (t === 'setPreviousView') return 'back';
+    if (t === 'getFormData' || t === 'reloadFormData' || t === 'refreshFormLocked' ||
+        t === 'clearFields' || t === 'pkLock' || t === 'pkUnlock' ||
+        t === 'saveFormData' || t === 'getExportedData') return el.clFldGrpId ? `Grp:${el.clFldGrpId}` : '';
+    if (t === 'setField') return `${el.pageFldName}=${el.fieldValue ?? ''}`;
+    if (t === 'gridSetIdle' || t === 'gridSetEdit' || t === 'gridSetInsert' ||
+        t === 'gridAllowDelete' || t === 'gridLockRows' || t === 'gridUnLockRows' ||
+        t === 'setGridSelected' || t === 'gridPostChanges' || t === 'gridRollback') return el.dataSetName || '';
+    if (t === 'showMsg' || t === 'showOKCancel') return el.msgText ? el.msgText.substring(0, 30) : '';
+    if (t === 'setRule') return `${el.condId}=${el.condValue ?? ''}`;
+    if (t === 'setTabsRules') return el.tabsName || '';
+    if (t === 'execCustom') return el.customCode || '';
+    if (t === 'gridSetAIMode' || t === 'formAIAssist') return el.customCode || '';
+    if (t === 'showPDF' || t === 'showPDFRemote') return el.pageFldName || '';
+    if (t === 'hidePDF') return '';
+    return '';
+  }
+
+  private formatExecCond(execCond: any): string {
+    if (!execCond || !Array.isArray(execCond) || execCond.length === 0) return '';
+    return execCond.map((c: any) => `${c.Id}=${c.Value}`).join(', ');
+  }
+
   // AI Chat Listener - per aprire la chat AI da actions (gridSetAIMode, formAIAssist)
   private aiChatListener = new Subject<any>();
   getAiChatListener() {
@@ -904,10 +967,11 @@ export class GtsDataService {
     const page: any = this.metaData.filter((page) => page.prjId === prjId && page.formId == formId)[0];
     const mainAction = page.pageData.actions.filter((action: any) => action.objectName === objectName);
     this.actionCanRun = true;
-    this.sendAppLoaderListener(true);
+    const suppressLoader = this.demoLogActive && this.demoLogDelay > 0;
+    if (!suppressLoader) this.sendAppLoaderListener(true);
 
     if (mainAction[0] === undefined) {
-      this.sendAppLoaderListener(false);
+      if (!suppressLoader) this.sendAppLoaderListener(false);
       return;
     }
 
@@ -1164,6 +1228,14 @@ export class GtsDataService {
           console.log('ACTION END', formId, objectName, element.actionType, this.metaData, this.pageData)
         }
 
+        // Emit demo log entry (lightweight, independent from debug)
+        this.emitDemoLog(objectName, element, elementActive === undefined ? true : elementActive);
+
+        // Slow-motion delay for demo mode
+        if (this.demoLogActive && this.demoLogDelay > 0) {
+          await new Promise(resolve => setTimeout(resolve, this.demoLogDelay));
+        }
+
         let debugCanRun = this.actionCanRun;
         if (element.actionType === 'showOKCancel' && this.actualMessageStatus === 'showOKCancel') {
           debugCanRun = true;
@@ -1188,7 +1260,7 @@ export class GtsDataService {
       }
 
     }
-    if (lastActionType !== 'execCustom') {
+    if (lastActionType !== 'execCustom' && !suppressLoader) {
       this.sendAppLoaderListener(false);
     }
   };
