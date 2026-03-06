@@ -15,6 +15,8 @@ import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-po
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
 import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
 @Component({
   selector: 'app-bilancio',
@@ -30,7 +32,9 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
     GtsFormPopupComponent,
     GtsMessageComponent,
     GtsLoaderComponent,
-    GtsReportsComponent
+    GtsReportsComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent
   ],
   templateUrl: './bilancio.page.html',
   styleUrls: ['./bilancio.page.scss']

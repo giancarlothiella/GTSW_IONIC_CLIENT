@@ -14,6 +14,9 @@ import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-gri
 import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
 import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
+import { GtsTreeComponent } from '../../../core/gts-open-source/gts-tree/gts-tree.component';
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
 @Component({
   selector: 'app-std-table',
@@ -25,9 +28,12 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
     GtsToolbarComponent,
     GtsTabsComponent,
     GtsGridComponent,
+    GtsTreeComponent,
     GtsFormComponent,
     GtsFormPopupComponent,
-    GtsMessageComponent
+    GtsMessageComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent
   ],
   templateUrl: './std-table.page.html',
   styleUrls: ['./std-table.page.scss']

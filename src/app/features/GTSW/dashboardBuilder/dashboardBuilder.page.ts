@@ -12,6 +12,8 @@ import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tab
 import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component';
 import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
 import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
 import { GtsDashboardBuilderComponent } from '../../../core/gts-open-source/gts-dashboard/gts-dashboard-builder.component';
@@ -28,6 +30,8 @@ import { GtsDashboardBuilderComponent } from '../../../core/gts-open-source/gts-
     GtsGridComponent,
     GtsFormComponent,
     GtsFormPopupComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent,
     GtsMessageComponent,
     GtsLoaderComponent,
     GtsDashboardBuilderComponent

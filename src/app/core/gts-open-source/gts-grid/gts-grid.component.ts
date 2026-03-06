@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input, ViewChild, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, ViewChild, inject, ChangeDetectorRef, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonSpinner, AlertController } from '@ionic/angular/standalone';
@@ -15,7 +15,8 @@ import {
   GridApi,
   ModuleRegistry,
   AllCommunityModule,
-  themeQuartz
+  themeQuartz,
+  RowDropZoneParams
 } from 'ag-grid-community';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -55,7 +56,6 @@ ModuleRegistry.registerModules([AllCommunityModule]);
  * Funzionalità future:
  * - Export Excel
  * - Lookup columns
- * - Row dragging
  * - Summary/totals
  */
 @Component({
@@ -72,6 +72,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   private ts = inject(TranslationService);
   private alertController = inject(AlertController);
   private cdr = inject(ChangeDetectorRef);
+  private elementRef = inject(ElementRef);
 
   @Input() prjId: string = '';
   @Input() formId: number = 0;
@@ -84,6 +85,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   gridSelectListenerSubs: Subscription | undefined;
   gridReloadListenerSubs: Subscription | undefined;
   gridRowUpdateListenerSubs: Subscription | undefined;
+  ddRegistrySubs: Subscription | undefined;
 
   // Grid state
   metaData: any = {};
@@ -545,6 +547,12 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     this.gridSelectListenerSubs?.unsubscribe();
     this.gridReloadListenerSubs?.unsubscribe();
     this.gridRowUpdateListenerSubs?.unsubscribe();
+    this.ddRegistrySubs?.unsubscribe();
+
+    // Unregister from DD registry
+    if (this.gridObject?.DDTasksGroup) {
+      this.gtsDataService.unregisterDDGrid(this.gridObject.DDTasksGroup, this.objectName);
+    }
   }
 
   async prepareGridData(): Promise<void> {
@@ -658,6 +666,9 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Enable search panel (Quick Filter)
     this.showSearchPanel = newGridObject.searchPanelFlag || false;
 
+    // Update gridObject BEFORE converting columns (needed for DD rowDrag check)
+    this.gridObject = newGridObject;
+
     // Convert columns to AG Grid format (AFTER setting filter options)
     // Skip on data reloads when the grid already exists to prevent flex from
     // overriding auto-sized column widths (columnDefs rebuild triggers flex re-apply)
@@ -701,9 +712,6 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     const newRowData = sourceData.map((row: any) => ({ ...row }));
 
     // No warning for empty data - it's normal for detail grids before master selection
-
-    // Update gridObject with all data
-    this.gridObject = newGridObject;
 
     // Update initial load limit state from server response
     this.limitApplied = newGridObject.limitApplied || false;
@@ -827,6 +835,14 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         return button;
       }
     });
+
+    // Enable row drag handle on first visible column when DD is configured
+    if (this.gridObject?.DDStatus > 0) {
+      const firstVisible = this.columnDefs.find((col: any) => !col.hide && col.field && col.field !== '__delete__');
+      if (firstVisible) {
+        firstVisible.rowDrag = true;
+      }
+    }
   }
 
   /**
@@ -1112,6 +1128,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
 
       // Check initial filter state
       this.checkActiveFilters();
+
+      // Setup drag & drop if DD metadata is configured
+      if (this.gridObject?.DDStatus > 0 && this.gridObject?.DDTasksGroup) {
+        this.setupDragDrop();
+      }
     }, 100); // Small delay to ensure gridObject is set
   }
 
@@ -1655,6 +1676,108 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         this.formId,
         this.metaData.actionOnDoubleClickedRow
       );
+    }
+  }
+
+  // ============================================
+  // DRAG & DROP (cross-grid)
+  // ============================================
+
+  /**
+   * Setup drag & drop for this grid.
+   * Registers in the DD registry and creates drop zones for other grids in the same DDTasksGroup.
+   */
+  private setupDragDrop(): void {
+    const taskGroup = this.gridObject.DDTasksGroup;
+    const container = this.elementRef.nativeElement.querySelector('.ag-root-wrapper') || this.elementRef.nativeElement;
+
+    // Register this grid in the DD registry
+    const entry = {
+      objectName: this.objectName,
+      prjId: this.prjId,
+      formId: this.formId,
+      gridApi: this.gridApi,
+      container: container,
+      DDStatus: this.gridObject.DDStatus,
+      DDActionTo: this.gridObject.DDActionTo || null,
+      DDActionFrom: this.gridObject.DDActionFrom || null,
+      dataAdapter: this.metaData.dataAdapter,
+      dataSetName: this.metaData.dataSetName
+    };
+    this.gtsDataService.registerDDGrid(taskGroup, entry);
+
+    // Add drop zones for already-registered grids in the same group.
+    // The last grid to register will find all previous grids and create all needed pairs.
+    const existingGrids = this.gtsDataService.getDDGrids(taskGroup);
+    existingGrids.forEach((other: any) => {
+      if (other.objectName !== this.objectName) {
+        this.addDropZonesPair(entry, other);
+      }
+    });
+  }
+
+  /**
+   * Create bidirectional drop zones between this grid and another grid.
+   */
+  private addDropZonesPair(thisEntry: any, otherEntry: any): void {
+    // This grid → other grid (drag from here, drop on other)
+    const dropOnOther: RowDropZoneParams = {
+      getContainer: () => otherEntry.container,
+      onDragEnter: () => otherEntry.container.classList.add('dd-drop-target'),
+      onDragLeave: () => otherEntry.container.classList.remove('dd-drop-target'),
+      onDragStop: (params: any) => {
+        otherEntry.container.classList.remove('dd-drop-target');
+        this.handleDDDrop(params, thisEntry, otherEntry);
+      }
+    };
+    this.gridApi.addRowDropZone(dropOnOther);
+
+    // Other grid → this grid (drag from other, drop here)
+    const dropOnThis: RowDropZoneParams = {
+      getContainer: () => thisEntry.container,
+      onDragEnter: () => thisEntry.container.classList.add('dd-drop-target'),
+      onDragLeave: () => thisEntry.container.classList.remove('dd-drop-target'),
+      onDragStop: (params: any) => {
+        thisEntry.container.classList.remove('dd-drop-target');
+        this.handleDDDrop(params, otherEntry, thisEntry);
+      }
+    };
+    otherEntry.gridApi.addRowDropZone(dropOnThis);
+  }
+
+  /**
+   * Handle a drag & drop between two grids.
+   * Sets selected row on source dataset, then executes DDActionTo (target) and DDActionFrom (source).
+   */
+  private handleDDDrop(params: any, sourceEntry: any, targetEntry: any): void {
+    const draggedData = params.node?.data;
+    if (!draggedData) return;
+
+    // Build selectedKeys from the dragged row
+    const keyFields = this.gtsDataService.getPageMetaData(sourceEntry.prjId, sourceEntry.formId, 'grids', sourceEntry.objectName)?.sqlKeys || [];
+    const selectedKeys = [{} as any];
+    keyFields.forEach((k: any) => {
+      selectedKeys[0][k.keyField] = draggedData[k.keyField];
+    });
+
+    // Set the dragged row as selected on the source dataset
+    this.gtsDataService.setSelectedRows(
+      sourceEntry.prjId,
+      sourceEntry.formId,
+      sourceEntry.dataAdapter,
+      sourceEntry.dataSetName,
+      [draggedData],
+      selectedKeys
+    );
+
+    // Execute DDActionTo on target (e.g. "menuAddRole")
+    if (targetEntry.DDActionTo) {
+      this.gtsDataService.runAction(targetEntry.prjId, targetEntry.formId, targetEntry.DDActionTo);
+    }
+
+    // Execute DDActionFrom on source (e.g. "menuRemoveRole")
+    if (sourceEntry.DDActionFrom) {
+      this.gtsDataService.runAction(sourceEntry.prjId, sourceEntry.formId, sourceEntry.DDActionFrom);
     }
   }
 

@@ -205,13 +205,6 @@ addIcons({
     <ion-footer class="login-footer">
       <ion-toolbar>
         <div class="footer-content">
-          <div class="footer-links">
-            <a [href]="webInfo.termsURL" target="_blank">Termini di servizio</a>
-            <span class="separator">•</span>
-            <a [href]="webInfo.policyURL" target="_blank">Privacy Policy</a>
-            <span class="separator">•</span>
-            <a [href]="webInfo.cookiesURL" target="_blank">Cookies</a>
-          </div>
           <div class="footer-owner">
             <p>© {{ currentYear }} {{ webInfo.appOwner }}</p>
             <a [href]="webInfo.footerURL" target="_blank">{{ webInfo.footerText }}</a>

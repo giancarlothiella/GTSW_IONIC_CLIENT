@@ -20,6 +20,8 @@ import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-po
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
 import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts-open-source/gts-ai-analyzer/gts-ai-analyzer.component';
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
 // PrimeNG
 import { Toast } from 'primeng/toast';
@@ -40,6 +42,8 @@ import { MessageService } from 'primeng/api';
     GtsMessageComponent,
     GtsLoaderComponent,
     GtsAiAnalyzerComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent,
 
     // PrimeNG
     Toast

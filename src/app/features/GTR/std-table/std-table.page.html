@@ -35,7 +35,15 @@
     }
 
     @for (element of metaData.grids; track element.objectName) {
-      @if (element.visible) {
+      @if (element.visible && element.viewType === 'tree') {
+        <app-gts-tree
+          [style]="'grid-area: '+element.gridArea"
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-tree>
+      }
+      @if (element.visible && element.viewType !== 'tree') {
         <app-gts-grid
           [style]="'grid-area: '+element.gridArea"
           [prjId]="prjId"
@@ -46,7 +54,15 @@
     }
 
     @for (element of metaData.forms; track element.objectName) {
-      @if (element.visible && !element.groupShowPopUp) {
+      @if (element.visible && element.groupType === 'RPT' && !element.groupShowPopUp) {
+        <app-gts-html-view
+          [style]="'grid-area: '+element.gridArea"
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-html-view>
+      }
+      @if (element.visible && element.groupType !== 'RPT' && !element.groupShowPopUp) {
         <app-gts-form
           [style]="'grid-area: '+element.gridArea"
           [prjId]="prjId"
@@ -68,4 +84,6 @@
     [prjId]="prjId"
     [formId]="formId"
   ></app-gts-message>
+
+  <app-gts-file-uploader></app-gts-file-uploader>
 </div>

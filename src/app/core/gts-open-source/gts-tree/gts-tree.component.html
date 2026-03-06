@@ -1,0 +1,68 @@
+@if (treeReady && gridObject.visible) {
+  <div class="gts-tree-container">
+
+    <!-- Left panel: Tree -->
+    <div class="gts-tree-panel" [class.gts-tree-panel-full]="!showDetail">
+
+      <!-- Filter -->
+      <div class="gts-tree-filter">
+        <div class="gts-tree-filter-wrap">
+          <input
+            type="text"
+            pInputText
+            [(ngModel)]="filterText"
+            (input)="onFilter()"
+            placeholder="Filter..."
+            class="gts-tree-filter-input"
+          />
+          <i class="pi pi-search gts-tree-filter-icon"></i>
+        </div>
+      </div>
+
+      <!-- Tree -->
+      <div class="gts-tree-scroll">
+        <p-tree
+          [value]="filteredNodes"
+          selectionMode="single"
+          [(selection)]="selectedNode"
+          (onNodeSelect)="onNodeSelect($event)"
+          (onNodeUnselect)="onNodeUnselect($event)"
+          (onNodeDblClick)="onNodeDblClick($event)"
+          [filter]="false"
+          scrollHeight="flex"
+        />
+      </div>
+    </div>
+
+    <!-- Right panel: Detail -->
+    @if (showDetail) {
+      <div class="gts-tree-detail">
+        @if (selectedRowData) {
+          <div class="gts-tree-detail-content">
+            <div class="gts-tree-detail-title">
+              {{ selectedNode?.label }}
+            </div>
+            <div class="gts-tree-detail-fields">
+              @for (col of detailColumns; track col.fieldName) {
+                <div class="gts-tree-detail-row">
+                  <span class="gts-tree-detail-label">{{ getColumnHeader(col) }}</span>
+                  <span class="gts-tree-detail-value">{{ getDetailValue(col) }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="gts-tree-detail-empty">
+            <i class="pi pi-info-circle"></i>
+            <span>Select a node to view details</span>
+          </div>
+        }
+      </div>
+    }
+
+  </div>
+} @else if (!treeReady) {
+  <div class="gts-tree-loading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+}

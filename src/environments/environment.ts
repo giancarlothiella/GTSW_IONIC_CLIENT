@@ -25,9 +25,9 @@ export const webInfo = {
   appCode: 'GTSuiteWeb',
   appOwner: 'GTsoftware di Giancarlo Thiella',
   homeLogo: '/assets/images/GTS.png',
-  termsURL: '/assets/disclaimers/terms.html',
-  policyURL: '/assets/disclaimers/privacy.html',
-  cookiesURL: '/assets/disclaimers/cookies.html',
+  termsURL: 'https://gtsoftware.ch/terms',
+  policyURL: 'https://gtsoftware.ch/privacy',
+  cookiesURL: 'https://gtsoftware.ch/cookies',
   footerURL: 'https://www.gtsoftware.ch',
   footerText: 'GTsoftware web site',
   websiteUrl: 'http://localhost:4200'

@@ -27,6 +27,8 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
 import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts-open-source/gts-ai-analyzer/gts-ai-analyzer.component';
 import { GtsDashboardComponent, DashboardConfig } from '../../../core/gts-open-source/gts-dashboard/gts-dashboard.component';
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
 // PrimeNG
 import { ButtonModule } from 'primeng/button';
@@ -67,6 +69,8 @@ interface ExcelRow {
     GtsLoaderComponent,
     GtsAiAnalyzerComponent,
     GtsDashboardComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent,
 
     // PrimeNG
     ButtonModule,

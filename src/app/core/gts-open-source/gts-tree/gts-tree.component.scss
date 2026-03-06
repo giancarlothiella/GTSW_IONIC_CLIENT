@@ -1,0 +1,163 @@
+.gts-tree-container {
+  display: flex;
+  height: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+
+// Left panel — Tree
+.gts-tree-panel {
+  width: 320px;
+  min-width: 250px;
+  border-right: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  background: #fafbfc;
+
+  &.gts-tree-panel-full {
+    width: 100%;
+    border-right: none;
+  }
+}
+
+.gts-tree-filter {
+  padding: 8px;
+  border-bottom: 1px solid #e8e8e8;
+  background: #f4f5f8;
+}
+
+.gts-tree-filter-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.gts-tree-filter-input {
+  width: 100%;
+  font-size: 13px;
+  padding-right: 30px !important;
+}
+
+.gts-tree-filter-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.gts-tree-scroll {
+  flex: 1;
+  overflow-y: auto;
+
+  ::ng-deep {
+    .p-tree {
+      border: none;
+      border-radius: 0;
+      padding: 4px 0;
+      background: transparent;
+    }
+
+    .p-tree-node-label {
+      font-size: 13px;
+    }
+
+    .p-tree-node-content {
+      padding: 4px 8px;
+      border-radius: 0;
+
+      &.p-tree-node-selected {
+        background: #e3f2fd;
+        color: #1565c0;
+      }
+
+      &:hover:not(.p-tree-node-selected) {
+        background: #f0f0f0;
+      }
+    }
+
+    .p-tree-toggler {
+      width: 24px;
+      height: 24px;
+    }
+  }
+}
+
+// Right panel — Detail
+.gts-tree-detail {
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.gts-tree-detail-content {
+  padding: 16px;
+}
+
+.gts-tree-detail-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #e3f2fd;
+}
+
+.gts-tree-detail-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gts-tree-detail-row {
+  display: flex;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.gts-tree-detail-label {
+  width: 160px;
+  min-width: 160px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.gts-tree-detail-value {
+  flex: 1;
+  font-size: 13px;
+  color: #333;
+  word-break: break-word;
+}
+
+.gts-tree-detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #999;
+  gap: 8px;
+  font-size: 14px;
+
+  i {
+    font-size: 32px;
+    color: #ccc;
+  }
+}
+
+.gts-tree-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+}

@@ -343,7 +343,10 @@ function generateTsComponent(projectCode, pageName, formId, componentPrefix, isD
   let gtsImports = `import { GtsToolbarComponent } from '../../../core/gts-open-source/gts-toolbar/gts-toolbar.component';
 import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tabs.component';
 import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component';
+import { GtsTreeComponent } from '../../../core/gts-open-source/gts-tree/gts-tree.component';
 import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
 import { GtsGridPopupComponent } from '../../../core/gts-open-source/gts-grid-popup/gts-grid-popup.component';
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';`;
@@ -359,7 +362,10 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
   let componentImports = `    GtsToolbarComponent,
     GtsTabsComponent,
     GtsGridComponent,
+    GtsTreeComponent,
     GtsFormComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent,
     GtsFormPopupComponent,
     GtsGridPopupComponent,
     GtsMessageComponent`;
@@ -594,7 +600,15 @@ ${includeReports ? `
     }
 
     @for (element of metaData.grids; track element) {
-      @if (element.visible && !element.showPopUp) {
+      @if (element.visible && element.viewType === 'tree') {
+        <app-gts-tree
+          [style]="'grid-area: '+element.gridArea"
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-tree>
+      }
+      @if (element.visible && element.viewType !== 'tree' && !element.showPopUp) {
         <app-gts-grid
           [style]="'grid-area: '+element.gridArea"
           [prjId]="prjId"
@@ -602,7 +616,7 @@ ${includeReports ? `
           [objectName]="element.objectName"
         ></app-gts-grid>
       }
-      @if (element.visible && element.showPopUp) {
+      @if (element.visible && element.viewType !== 'tree' && element.showPopUp) {
         <app-gts-grid-popup
           [prjId]="prjId"
           [formId]="formId"
@@ -612,7 +626,15 @@ ${includeReports ? `
     }
 
     @for (element of metaData.forms; track element) {
-      @if (element.visible && !element.groupShowPopUp) {
+      @if (element.visible && element.groupType === 'RPT' && !element.groupShowPopUp) {
+        <app-gts-html-view
+          [style]="'grid-area: '+element.gridArea"
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-html-view>
+      }
+      @if (element.visible && element.groupType !== 'RPT' && !element.groupShowPopUp) {
         <app-gts-form
           [style]="'grid-area: '+element.gridArea"
           [prjId]="prjId"
@@ -634,6 +656,8 @@ ${includeReports ? `
     [prjId]="prjId"
     [formId]="formId"
   ></app-gts-message>
+
+  <app-gts-file-uploader></app-gts-file-uploader>
 </div>
 `;
   return template;

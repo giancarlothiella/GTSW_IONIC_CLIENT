@@ -62,6 +62,7 @@ export interface User {
   prjId: string;
   prjConnections: ProjectConnection[];
   homePath?: string;  // Path dedicato per utenti con accesso limitato (es. '/webapp')
+  sandboxSchema?: string;  // Schema sandbox per utenti demo (es. 'sandbox_xxx')
 }
 
 @Injectable({
@@ -342,6 +343,47 @@ export class AuthService {
       const currentLang = this.translationService.getCurrentLanguage();
       if (currentLang.toUpperCase() !== userData.languageId.toUpperCase()) {
         await this.translationService.setLanguage(userData.languageId.toUpperCase());
+      }
+    }
+  }
+
+  /**
+   * Salva dati di autenticazione per demo login (bypass della pagina login)
+   */
+  async saveDemoAuthData(token: string, userData: any): Promise<void> {
+    const tokenToSave = this.USE_LOCAL_ENCRYPTION
+      ? this.encryption.encrypt(token)
+      : token;
+    await this.storage.set(this.tokenKey, tokenToSave);
+
+    await this.storage.set(this.tokenExpiryKey, userData.expireDate);
+
+    const user: User = {
+      name: userData.name,
+      email: userData.email,
+      picture: userData.picture || '/assets/images/profile.jpg',
+      picturePath: userData.picture || '',
+      languageId: userData.languageId,
+      authProfileCode: userData.authProfileCode,
+      isAdmin: this.parseBoolean(userData.webAdmin),
+      isDeveloper: userData.webDevel || false,
+      prjId: userData.prjId,
+      prjConnections: userData.prjConnections || [],
+      homePath: userData.homePath || '',
+      sandboxSchema: userData.sandboxSchema || undefined
+    };
+
+    const userToSave = this.USE_LOCAL_ENCRYPTION
+      ? this.encryption.encryptObject(user)
+      : JSON.stringify(user);
+    await this.storage.set(this.userKey, userToSave);
+
+    this.currentUserSubject.next(user);
+
+    if (user.languageId) {
+      const currentLang = this.translationService.getCurrentLanguage();
+      if (currentLang.toUpperCase() !== user.languageId.toUpperCase()) {
+        await this.translationService.setLanguage(user.languageId.toUpperCase());
       }
     }
   }

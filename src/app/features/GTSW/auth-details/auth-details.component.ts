@@ -637,15 +637,17 @@ export class AuthDetailsComponent implements OnInit, OnDestroy {
 
     // PROJECTS - read from gtsDataService for consistency (includes updated dbConnections)
     const projects = this.gtsDataService.getDataSet(this.prjId, this.formId, dataAdapter, 'qProjects');
+    console.log('[SAVE_ALL] projects from getDataSet:', dataAdapter, 'qProjects', projects);
     if (projects && projects.length > 0) {
       const detailProjects: any[] = [];
       projects.forEach((project: any) => {
         // Ensure dbConnections always have connDefault property
-        const dbConnections = project.dbConnections?.map((conn: any) => ({
+        const rawConns = Array.isArray(project.dbConnections) ? project.dbConnections : [];
+        const dbConnections = rawConns.map((conn: any) => ({
           connCode: conn.connCode,
           dataKey: conn.dataKey,
           connDefault: conn.connDefault ?? false // Default to false if not set
-        })) || [];
+        }));
 
         detailProjects.push({
           prjId: project.prjId,
@@ -655,6 +657,7 @@ export class AuthDetailsComponent implements OnInit, OnDestroy {
         });
       });
 
+      console.log('[SAVE_ALL] detailProjects to save:', detailProjects);
       this.gtsDataService.setFieldsValue(this.prjId, this.formId, [{ pageFieldName: 'saveProjectsArray', value: detailProjects }]);
     }
   }

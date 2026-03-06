@@ -47,6 +47,9 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component'; // Ionic version ✨
 // import { GtsPdfComponent } from '../../../core/gts/gts-pdf/gts-pdf.component'; // Old location
 import { GtsPdfComponent } from '../../../core/gts-open-source/gts-pdf/gts-pdf.component'; // Open-source location ✨
+import { GtsTreeComponent } from '../../../core/gts-open-source/gts-tree/gts-tree.component'; // Tree view ✨
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
 @Component({
   selector: 'app-web-app',
@@ -80,7 +83,10 @@ import { GtsPdfComponent } from '../../../core/gts-open-source/gts-pdf/gts-pdf.c
     GtsFormPopupComponent,
     GtsReportsComponent,
     GtsMessageComponent,
-    GtsPdfComponent
+    GtsPdfComponent,
+    GtsTreeComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent
   ],
   templateUrl: './web-app.page.html',
   styleUrls: ['./web-app.page.scss']

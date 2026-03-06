@@ -367,14 +367,6 @@ interface RegisterFormData {
                 </ion-text>
               }
 
-              <!-- Policy Info -->
-              <div class="policy-info">
-                {{ getText(122) }}
-                <a [href]="webInfo.termsURL" target="_blank">{{ getText(123) }}</a>
-                {{ getText(126) }}
-                <a [href]="webInfo.policyURL" target="_blank">{{ getText(124) }}</a>
-              </div>
-
               <!-- Bottone Registrazione -->
               <div class="button-container">
                 <ion-button
@@ -430,13 +422,6 @@ interface RegisterFormData {
     <ion-footer class="register-footer">
       <ion-toolbar>
         <div class="footer-content">
-          <div class="footer-links">
-            <a [href]="webInfo.termsURL" target="_blank">{{ getText(123) }}</a>
-            <span class="separator">•</span>
-            <a [href]="webInfo.policyURL" target="_blank">{{ getText(124) }}</a>
-            <span class="separator">•</span>
-            <a [href]="webInfo.cookiesURL" target="_blank">Cookies</a>
-          </div>
           <div class="footer-owner">
             <p>© {{ currentYear }} {{ webInfo.appOwner }}</p>
             <a [href]="webInfo.footerURL" target="_blank">{{ webInfo.footerText }}</a>

@@ -58,7 +58,16 @@
     }
 
     @for (element of metaData.forms; track element.objectName) {
-      @if (!element.groupShowPopUp) {
+      @if (element.groupType === 'RPT' && !element.groupShowPopUp) {
+        <app-gts-html-view
+          [style]="'grid-area: '+element.gridArea"
+          [style.display]="element.visible ? '' : 'none'"
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-html-view>
+      }
+      @if (element.groupType !== 'RPT' && !element.groupShowPopUp) {
         <app-gts-form
           [style]="'grid-area: '+element.gridArea"
           [style.display]="element.visible ? '' : 'none'"
@@ -81,6 +90,8 @@
     [prjId]="prjId"
     [formId]="formId"
   ></app-gts-message>
+
+  <app-gts-file-uploader></app-gts-file-uploader>
 
   <!-- AI Analyzer Component -->
   <app-gts-ai-analyzer

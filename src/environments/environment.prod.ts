@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://www.gtsoftware.ch/api',
-  localUrl: 'https://www.gtsoftware.ch',
+  apiUrl: 'https://gtsuite.it/api',
+  localUrl: 'https://gtsuite.it',
   
   // apiUrl: 'http://192.168.75.130/api',
   // localUrl: 'http://192.168.75.130',
@@ -22,10 +22,10 @@ export const webInfo = {
   appCode: 'GTSuiteWeb',
   appOwner: 'GTsoftware di Giancarlo Thiella',
   homeLogo: '/assets/images/GTS.png',
-  termsURL: '/assets/disclaimers/terms.html',
-  policyURL: '/assets/disclaimers/privacy.html',
-  cookiesURL: '/assets/disclaimers/cookies.html',
-  footerURL: 'https://www.gtsoftware.ch',
+  termsURL: 'https://gtsoftware.ch/terms',
+  policyURL: 'https://gtsoftware.ch/privacy',
+  cookiesURL: 'https://gtsoftware.ch/cookies',
+  footerURL: 'https://gtsoftware.ch',
   footerText: 'GTsoftware web site',
-  websiteUrl: 'https://www.gtsoftware.ch'
+  websiteUrl: 'https://gtsoftware.ch'
 };

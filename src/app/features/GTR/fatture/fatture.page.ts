@@ -26,6 +26,8 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
 // import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component'; // DevExtreme version
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component'; // Ionic version ✨
 import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts-open-source/gts-ai-analyzer/gts-ai-analyzer.component';
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
 @Component({
   selector: 'app-fatture',
@@ -42,7 +44,9 @@ import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts-open
     GtsFormPopupComponent,
     GtsReportsComponent,
     GtsMessageComponent,
-    GtsAiAnalyzerComponent
+    GtsAiAnalyzerComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent
   ],
   templateUrl: './fatture.page.html',
   styleUrls: ['./fatture.page.scss']

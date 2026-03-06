@@ -64,6 +64,10 @@ export const routes: Routes = [
     canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/reset-2fa/reset-2fa.page').then(m => m.Reset2FAPage)
   },
+  {
+    path: 'demo-login',
+    loadComponent: () => import('./features/auth/demo-login/demo-login.page').then(m => m.DemoLoginPage)
+  },
   // Shell layout con menu laterale (parent per tutte le route protette)
   {
     path: '',

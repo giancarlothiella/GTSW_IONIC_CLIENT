@@ -37,6 +37,8 @@ import { AiReportsService } from '../../core/services/ai-reports.service';
 import { TranslationService } from '../../core/services/translation.service';
 import { AuthService, ProjectConnection } from '../../core/services/auth.service';
 import { MenuService } from '../../core/services/menu.service';
+import { GtsDataService } from '../../core/services/gts-data.service';
+import { environment } from '../../../environments/environment';
 
 // ============================================
 // INTERFACES
@@ -685,6 +687,10 @@ export class AiTemplateBuilderComponent implements OnInit {
   public ts = inject(TranslationService);
   private authService = inject(AuthService);
   private menuService = inject(MenuService);
+  private gtsDataService = inject(GtsDataService);
+
+  // Dataset selection for mock data
+  availableSelections: { prjId: string; formId: number; dataAdapter: string; dataSetName: string; selectedRows: any[] }[] = [];
 
   /**
    * Helper method for translations - shorthand for ts.getText()
@@ -1505,6 +1511,28 @@ export class AiTemplateBuilderComponent implements OnInit {
   }
 
   /**
+   * Scansiona pageData per datasets con selectedRows e mostra lista
+   */
+  refreshAvailableSelections(): void {
+    this.availableSelections = this.gtsDataService.getAllDatasetsWithSelectedRows();
+  }
+
+  /**
+   * Carica selectedRows da un dataset come mock data
+   */
+  loadFromDatasetSelection(selection: { prjId: string; dataSetName: string; selectedRows: any[] }): void {
+    const mockData = { main: selection.selectedRows };
+    const jsonString = JSON.stringify(mockData, null, 2);
+
+    this.uploadedMockJson = jsonString;
+    this.mockDataFileName = `${selection.prjId} / ${selection.dataSetName} (${selection.selectedRows.length} rows)`;
+    this.parsedMockData = this.normalizeMockData(mockData);
+    this.oracleData = this.parsedMockData;
+
+    this.showSuccess(`Caricati ${selection.selectedRows.length} record da ${selection.dataSetName}`);
+  }
+
+  /**
    * Analizza mock data e genera template + regole
    */
   analyzeFromMockData(): void {
@@ -1861,11 +1889,20 @@ export class AiTemplateBuilderComponent implements OnInit {
       mockData: mockData
     };
 
+    // Server-side preview: use only if template does NOT use {{#each main}}
+    // (server aggregation strategy:"first" flattens main[] to main{}, breaking #each)
+    const usesEachMain = /\{\{#each\s+main\s*\}\}/i.test(this.templateHtml);
+    if (usesEachMain) {
+      // Local preview already handles {{#each main}} correctly, skip server
+      return;
+    }
+
     this.aiReportsService.previewTemplate(payload).subscribe({
       next: (result) => {
         if (result.html && result.html.trim()) {
-          this.previewHtml = result.html;
-          // Aggiorna safePreviewHtml per l'iframe (bypassa sanitizzazione Angular)
+          // Fix relative /api/ URLs for dev server preview
+          const sBase = environment.apiUrl.replace('/api', '');
+          this.previewHtml = result.html.replace(/src="\/api\//g, `src="${sBase}/api/`);
           this.safePreviewHtml = this.sanitizer.bypassSecurityTrustHtml(this.previewHtml);
         }
       },
@@ -1899,12 +1936,35 @@ export class AiTemplateBuilderComponent implements OnInit {
         styleBlocks.push(styleMatch[0]);
       }
 
-      // Sostituisce {{main.campo}} con valori da main
+      // Gestisci {{#each main}}...{{/each}} blocks
       if (mockData.main) {
-        const mainRecord = Array.isArray(mockData.main) ? mockData.main[0] : mockData.main;
+        const mainRecords = Array.isArray(mockData.main) ? mockData.main : [mockData.main];
+        const eachMainRegex = /\{\{#each\s+main\s*\}\}([\s\S]*?)\{\{\/each\}\}/gi;
+        html = html.replace(eachMainRegex, (_match: string, innerTemplate: string) => {
+          if (mainRecords.length === 0) return '';
+          return mainRecords.map((record: Record<string, unknown>) => {
+            let row = innerTemplate;
+            for (const [key, value] of Object.entries(record)) {
+              const fieldRegex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi');
+              row = row.replace(fieldRegex, String(value ?? ''));
+            }
+            // Clean Handlebars helpers like {{formatDate X}}, {{formatCurrency X}} — show raw value
+            row = row.replace(/\{\{\s*formatDate\s+(\S+?)\s*\}\}/gi, (_m: string, field: string) => {
+              const val = record[field] || record[field.toUpperCase()] || record[field.toLowerCase()];
+              return val != null ? String(val) : '';
+            });
+            row = row.replace(/\{\{\s*formatCurrency\s+(\S+?)\s*\}\}/gi, (_m: string, field: string) => {
+              const val = record[field] || record[field.toUpperCase()] || record[field.toLowerCase()];
+              return val != null ? String(val) : '';
+            });
+            return row;
+          }).join('\n');
+        });
+
+        // Fallback: sostituisce {{main.campo}} con valori da main[0] (template senza #each)
+        const mainRecord = mainRecords[0];
         if (mainRecord) {
           for (const [key, value] of Object.entries(mainRecord as Record<string, unknown>)) {
-            // Pattern: {{main.FIELD}} o {{FIELD}} - MA NON dentro <style>
             const regexWithMain = new RegExp(`\\{\\{\\s*main\\.${key}\\s*\\}\\}`, 'gi');
             const regexDirect = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi');
             html = html.replace(regexWithMain, String(value ?? ''));
@@ -1962,6 +2022,10 @@ export class AiTemplateBuilderComponent implements OnInit {
       // Questo preserva il CSS generato da Claude AI
       const isCompleteDocument = html.trim().toLowerCase().startsWith('<!doctype') ||
                                   html.trim().toLowerCase().startsWith('<html');
+
+      // Fix relative /api/ URLs for dev server preview (iframe resolves to localhost:8100, not the API server)
+      const serverBase = environment.apiUrl.replace('/api', '');
+      html = html.replace(/src="\/api\//g, `src="${serverBase}/api/`);
 
       if (isCompleteDocument) {
         this.previewHtml = html;

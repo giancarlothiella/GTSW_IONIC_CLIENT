@@ -897,3 +897,11 @@
     border-right: 1px solid #ddd !important;
   }
 }
+
+// Drag & Drop cross-grid target highlight
+:host ::ng-deep .dd-drop-target {
+  outline: 2px dashed var(--ion-color-primary, #3880ff);
+  outline-offset: -2px;
+  background-color: rgba(56, 128, 255, 0.05);
+  transition: outline 0.15s ease, background-color 0.15s ease;
+}

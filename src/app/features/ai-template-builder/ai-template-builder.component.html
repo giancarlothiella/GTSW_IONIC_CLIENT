@@ -445,101 +445,116 @@
                    style="width: 300px;">
           </div>
 
-          <div class="field" style="margin-top: 20px;">
-            <label>{{t(1085, 'Seleziona File JSON')}}:</label>
+          <!-- 3-column layout: Upload | AI Info | JSON Example -->
+          <div class="mock-upload-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 20px;">
 
-            <!-- Area Upload JSON (quando non c'è file) -->
-            @if (!uploadedMockJson) {
-              <div class="json-upload-area"
-                   [class.drag-over]="isDraggingJson"
-                   (dragover)="onDragOver($event, 'json')"
-                   (dragleave)="onDragLeave($event, 'json')"
-                   (drop)="onDrop($event, 'json')">
-                <div class="drop-zone-content">
-                  <i class="pi pi-cloud-upload drop-icon"></i>
-                  <p class="drop-text">{{t(1101, 'Trascina qui il JSON')}}</p>
-                  <p class="drop-divider">{{t(1102, 'oppure')}}</p>
-                  <p-fileUpload
-                    mode="basic"
-                    accept="application/json"
-                    [maxFileSize]="5000000"
-                    [auto]="true"
-                    [chooseLabel]="t(1103, 'Scegli JSON')"
-                    chooseIcon="pi pi-upload"
-                    (onSelect)="onMockJsonFileSelected($event)">
-                  </p-fileUpload>
-                  <p class="upload-hint">
-                    <i class="pi pi-info-circle"></i>
-                    {{t(1104, 'Formati accettati: JSON (max 5MB)')}}
-                  </p>
+            <!-- Column 1: Upload / Loaded file -->
+            <div>
+              @if (!uploadedMockJson) {
+                <div class="json-upload-area"
+                     [class.drag-over]="isDraggingJson"
+                     (dragover)="onDragOver($event, 'json')"
+                     (dragleave)="onDragLeave($event, 'json')"
+                     (drop)="onDrop($event, 'json')"
+                     style="min-height: auto;">
+                  <div class="drop-zone-content">
+                    <i class="pi pi-cloud-upload drop-icon"></i>
+                    <p class="drop-text">{{t(1101, 'Trascina qui il JSON')}}</p>
+                    <p class="drop-divider">{{t(1102, 'oppure')}}</p>
+                    <p-fileUpload
+                      mode="basic"
+                      accept="application/json"
+                      [maxFileSize]="5000000"
+                      [auto]="true"
+                      [chooseLabel]="t(1103, 'Scegli JSON')"
+                      chooseIcon="pi pi-upload"
+                      (onSelect)="onMockJsonFileSelected($event)">
+                    </p-fileUpload>
+                  </div>
                 </div>
-              </div>
-            }
 
-            <!-- JSON Caricato (con bottone rimuovi) -->
-            @if (uploadedMockJson) {
-              <div class="uploaded-file-card json">
-                <div class="file-icon">
-                  <i class="pi pi-file"></i>
-                </div>
-                <div class="file-info">
-                  <span class="file-name">{{mockDataFileName}}</span>
-                  <span class="file-size">{{t(1105, 'JSON valido')}}</span>
-                </div>
                 <button pButton
                         type="button"
-                        icon="pi pi-times"
-                        [label]="t(1106, 'Rimuovi')"
-                        class="p-button-danger p-button-outlined p-button-sm"
-                        (click)="removeMockJson()"></button>
-              </div>
-            }
-          </div>
-
-          <!-- Data Summary (se JSON caricato) -->
-          @if (parsedMockData) {
-            <div class="data-summary">
-              <h4><i class="pi pi-database"></i> {{t(1107, 'Riepilogo Dati Mock')}}</h4>
-              <div class="summary-stats">
-                <div class="stat-card">
-                  <div class="stat-value">{{totalRecords}}</div>
-                  <div class="stat-label">{{t(1088, 'Record Totali')}}</div>
-                </div>
-                <div class="stat-card">
-                  <div class="stat-value">{{mainRecordsCount}}</div>
-                  <div class="stat-label">{{t(1089, 'MAIN')}}</div>
-                </div>
-                @for (sr of parsedMockData.subreports | keyvalue; track sr.key) {
-                  <div class="stat-card">
-                    <div class="stat-value">{{sr.value.length}}</div>
-                    <div class="stat-label">{{sr.key}}</div>
+                        icon="pi pi-database"
+                        [label]="t(1137, 'Load from Selection')"
+                        class="p-button-info"
+                        style="width: 100%; margin-top: 10px;"
+                        (click)="refreshAvailableSelections()"></button>
+                @if (availableSelections.length > 0) {
+                  <div style="margin-top: 8px;">
+                    @for (sel of availableSelections; track sel.dataSetName) {
+                      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f8f9fa; border-radius: 6px; margin-bottom: 4px; cursor: pointer; border: 1px solid #dee2e6; font-size: 13px;"
+                           (click)="loadFromDatasetSelection(sel)">
+                        <i class="pi pi-table" style="color: #007bff; font-size: 12px;"></i>
+                        <span style="flex: 1; font-weight: 500;">{{sel.dataSetName}}</span>
+                        <span style="font-size: 11px; color: #6c757d;">{{sel.selectedRows.length}} rows</span>
+                      </div>
+                    }
                   </div>
                 }
+              }
+
+              @if (uploadedMockJson) {
+                <div class="uploaded-file-card json">
+                  <div class="file-icon">
+                    <i class="pi pi-file"></i>
+                  </div>
+                  <div class="file-info">
+                    <span class="file-name">{{mockDataFileName}}</span>
+                    <span class="file-size">{{t(1105, 'JSON valido')}}</span>
+                  </div>
+                  <button pButton
+                          type="button"
+                          icon="pi pi-times"
+                          [label]="t(1106, 'Rimuovi')"
+                          class="p-button-danger p-button-outlined p-button-sm"
+                          (click)="removeMockJson()"></button>
+                </div>
+                @if (parsedMockData) {
+                  <div class="data-summary" style="margin-top: 10px;">
+                    <h4 style="font-size: 14px;"><i class="pi pi-database"></i> {{t(1107, 'Riepilogo Dati Mock')}}</h4>
+                    <div class="summary-stats">
+                      <div class="stat-card">
+                        <div class="stat-value">{{totalRecords}}</div>
+                        <div class="stat-label">{{t(1088, 'Record Totali')}}</div>
+                      </div>
+                      <div class="stat-card">
+                        <div class="stat-value">{{mainRecordsCount}}</div>
+                        <div class="stat-label">{{t(1089, 'MAIN')}}</div>
+                      </div>
+                      @for (sr of parsedMockData.subreports | keyvalue; track sr.key) {
+                        <div class="stat-card">
+                          <div class="stat-value">{{sr.value.length}}</div>
+                          <div class="stat-label">{{sr.key}}</div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+
+            <!-- Column 2: What AI will do -->
+            <div class="info-box" style="margin-top: 0; height: fit-content;">
+              <h5><i class="pi pi-sparkles"></i> {{t(1108, "Cosa farà l'AI")}}:</h5>
+              <ul>
+                <li><strong>{{t(1109, 'Analisi Struttura')}}</strong> - {{t(1110, 'Esamina campi e tipi di dati')}}</li>
+                <li><strong>{{t(1111, 'Template HTML')}}</strong> - {{t(1112, 'Genera layout report professionale')}}</li>
+                <li><strong>{{t(1113, 'Aggregation Rules')}}</strong> - {{t(1114, 'Suggerisce raggruppamenti e totali')}}</li>
+                <li><strong>{{t(1115, 'Preview')}}</strong> - {{t(1116, 'Mostra anteprima con i tuoi dati')}}</li>
+              </ul>
+              <p class="time-estimate">
+                <i class="pi pi-clock"></i> {{t(1117, 'Tempo stimato: 10-30 secondi')}}
+              </p>
+            </div>
+
+            <!-- Column 3: JSON example (only when no file loaded) -->
+            @if (!uploadedMockJson) {
+              <div class="json-example-box" style="margin-top: 0; height: fit-content;">
+                <h5><i class="pi pi-code"></i> {{t(1118, 'Struttura JSON richiesta')}}:</h5>
+                <pre class="json-example-code" style="max-height: 250px; overflow: auto; font-size: 12px;">{{ jsonExampleText }}</pre>
               </div>
-            </div>
-          }
-
-          <!-- Info Box (cosa farà l'AI) -->
-          <div class="info-box" style="margin-top: 20px;">
-            <h5><i class="pi pi-sparkles"></i> {{t(1108, "Cosa farà l'AI")}}:</h5>
-            <ul>
-              <li><strong>{{t(1109, 'Analisi Struttura')}}</strong> - {{t(1110, 'Esamina campi e tipi di dati')}}</li>
-              <li><strong>{{t(1111, 'Template HTML')}}</strong> - {{t(1112, 'Genera layout report professionale')}}</li>
-              <li><strong>{{t(1113, 'Aggregation Rules')}}</strong> - {{t(1114, 'Suggerisce raggruppamenti e totali')}}</li>
-              <li><strong>{{t(1115, 'Preview')}}</strong> - {{t(1116, 'Mostra anteprima con i tuoi dati')}}</li>
-            </ul>
-            <p class="time-estimate">
-              <i class="pi pi-clock"></i> {{t(1117, 'Tempo stimato: 10-30 secondi')}}
-            </p>
-          </div>
-
-          <!-- Esempio struttura JSON (collassato quando c'è già un file) -->
-          @if (!uploadedMockJson) {
-            <div class="json-example-box" style="margin-top: 20px;">
-              <h5><i class="pi pi-code"></i> {{t(1118, 'Struttura JSON richiesta')}}:</h5>
-              <pre class="json-example-code">{{ jsonExampleText }}</pre>
-            </div>
-          }
+            }</div>
 
           <!-- User Instructions for AI -->
           <div class="user-instructions-section">

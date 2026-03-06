@@ -222,6 +222,7 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
   selectedFile: File | null = null;
   uploadProgress: number = 0;
   errorMessage: string = '';
+  autoName: boolean = false;
 
   fileLoaderListenerSubs: Subscription | undefined;
 
@@ -233,6 +234,13 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
         if (status.fileUploadVisible) {
           // Reset state when opening
           this.resetUploader();
+          // Accept config overrides from listener
+          if (status.fileUploadPath !== undefined) this.fileUploadPath = status.fileUploadPath;
+          if (status.fileUploadName !== undefined) this.fileUploadName = status.fileUploadName;
+          if (status.allowedExtensions !== undefined) this.allowedExtensions = status.allowedExtensions;
+          if (status.maxFileSize !== undefined) this.maxFileSize = status.maxFileSize;
+          if (status.uploaderTitle !== undefined) this.uploaderTitle = status.uploaderTitle;
+          this.autoName = status.autoName === true;
         }
       });
   }
@@ -291,12 +299,19 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
       }, 100);
 
       // Get file extension
-      const fileExtension = this.selectedFile.name.split('.').pop() || '';
+      const fileExtension = (this.selectedFile.name.split('.').pop() || '').toLowerCase();
 
-      // Build fileName with extension
-      let finalFileName = this.fileUploadName || this.selectedFile.name;
-      if (this.fileUploadName && !this.fileUploadName.includes('.')) {
-        finalFileName = `${this.fileUploadName}.${fileExtension}`;
+      // Build fileName
+      let finalFileName: string;
+      if (this.autoName) {
+        const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+        const prefix = imageExts.includes(fileExtension) ? 'image' : 'doc';
+        finalFileName = `${Date.now()}_${prefix}.${fileExtension}`;
+      } else {
+        finalFileName = this.fileUploadName || this.selectedFile.name;
+        if (this.fileUploadName && !this.fileUploadName.includes('.')) {
+          finalFileName = `${this.fileUploadName}.${fileExtension}`;
+        }
       }
 
       // Call the upload service with base64 data
@@ -313,13 +328,16 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
       clearInterval(progressInterval);
       this.uploadProgress = 100;
 
-      if (result && result.success) {
+      if (result && (result.success || result.valid)) {
         // Success - close modal after a short delay and notify with result
+        const uploadedName = this.fileUploadPath
+          ? `${this.fileUploadPath}/${finalFileName}`
+          : finalFileName;
         setTimeout(() => {
           this.gtsDataService.sendFileLoaderListener({
             fileUploadVisible: false,
             result: true,
-            fileUploadedName: result.fileName || this.selectedFile?.name
+            fileUploadedName: uploadedName
           });
           this.resetUploader();
         }, 500);

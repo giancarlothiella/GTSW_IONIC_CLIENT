@@ -236,9 +236,11 @@ import { Subscription, lastValueFrom } from 'rxjs';
                   <span class="flag-emoji">{{ getCurrentLanguageFlag() }}</span>
                 }
               </div>
-              <ion-button fill="clear" (click)="navigateToProfile()" class="profile-btn" title="{{ getText(600) }}">
-                <ion-icon slot="icon-only" name="person-circle-outline"></ion-icon>
-              </ion-button>
+              @if (!isDemoUser()) {
+                <ion-button fill="clear" (click)="navigateToProfile()" class="profile-btn" title="{{ getText(600) }}">
+                  <ion-icon slot="icon-only" name="person-circle-outline"></ion-icon>
+                </ion-button>
+              }
             </div>
 
             <!-- Suite Config button (only for root) -->
@@ -1144,6 +1146,10 @@ export class ShellPage implements OnInit {
 
   isRootUser(): boolean {
     return this.user?.email === 'root';
+  }
+
+  isDemoUser(): boolean {
+    return !!this.user?.sandboxSchema;
   }
 
   selectConfigSection(section: 'setup' | 'delete' | 'migrate') {

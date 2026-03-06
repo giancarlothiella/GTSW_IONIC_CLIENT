@@ -110,17 +110,14 @@ export class GtsDataService {
       if (currentUser && currentUser.prjId === prjId) {
         // L'utente è sul progetto richiesto
         if (currentUser.prjConnections && currentUser.prjConnections.length > 0) {
-          // Il progetto ha connessioni, usa quelle
+          // Il progetto ha connessioni multiple, usa quelle
           const defaultConn = currentUser.prjConnections.find(conn => conn.connDefault);
           if (defaultConn) {
             return defaultConn.connCode;
           }
-          // Se nessuna connessione è marcata come default, usa la prima
           return currentUser.prjConnections[0].connCode;
-        } else {
-          // Il progetto non ha connessioni specifiche, ritorna stringa vuota
-          return '';
         }
+        // Progetto con connessione singola → fallthrough al default
       }
 
       // Se il prjId è diverso dal progetto corrente dell'utente,
@@ -300,6 +297,10 @@ export class GtsDataService {
     if (t === 'gridSetAIMode' || t === 'formAIAssist') return el.customCode || '';
     if (t === 'showPDF' || t === 'showPDFRemote') return el.pageFldName || '';
     if (t === 'hidePDF') return '';
+    if (t === 'lockToolbar' || t === 'unlockToolbar') return el.toolbarName || '';
+    if (t === 'showFormTemplSel' || t === 'showFormTemplAll') return `${el.dataSetName || ''} → Grp:${el.clFldGrpId || ''}`;
+    if (t === 'deleteFile' || t === 'deleteFileNoPath') return el.pageFldName || '';
+    if (t === 'uploadFile' || t === 'uploadFileNoPath') return `${el.customCode || ''} → ${el.pageFldName || ''}`;
     return '';
   }
 
@@ -315,6 +316,12 @@ export class GtsDataService {
   }
   sendAiChatRequest(config: any) {
     this.aiChatListener.next(config);
+  }
+
+  // HTML View Listener - per aggiornare i componenti gts-html-view (form tipo RPT)
+  private htmlViewListener = new Subject<any>();
+  getHtmlViewListener() {
+    return this.htmlViewListener.asObservable();
   }
 
   // Database Error Listener - per mostrare errori da operazioni database (POST, execProc, etc.)
@@ -362,6 +369,47 @@ export class GtsDataService {
   }
   clearCurrentAiChatContext() {
     this.currentAiChatContext = null;
+  }
+
+  // Drag & Drop Grid Registry — grids register by DDTasksGroup so they can find each other
+  private ddRegistry = new Map<string, any[]>();
+  private ddRegistryListener = new Subject<{ taskGroup: string, action: 'register' | 'unregister', objectName: string }>();
+
+  getDDRegistryListener() {
+    return this.ddRegistryListener.asObservable();
+  }
+
+  registerDDGrid(taskGroup: string, entry: any) {
+    if (!this.ddRegistry.has(taskGroup)) {
+      this.ddRegistry.set(taskGroup, []);
+    }
+    const grids = this.ddRegistry.get(taskGroup)!;
+    // Avoid duplicate registration
+    const existing = grids.findIndex((g: any) => g.objectName === entry.objectName);
+    if (existing >= 0) {
+      grids[existing] = entry;
+    } else {
+      grids.push(entry);
+    }
+    this.ddRegistryListener.next({ taskGroup, action: 'register', objectName: entry.objectName });
+  }
+
+  unregisterDDGrid(taskGroup: string, objectName: string) {
+    const grids = this.ddRegistry.get(taskGroup);
+    if (grids) {
+      const idx = grids.findIndex((g: any) => g.objectName === objectName);
+      if (idx >= 0) {
+        grids.splice(idx, 1);
+      }
+      if (grids.length === 0) {
+        this.ddRegistry.delete(taskGroup);
+      }
+    }
+    this.ddRegistryListener.next({ taskGroup, action: 'unregister', objectName });
+  }
+
+  getDDGrids(taskGroup: string): any[] {
+    return this.ddRegistry.get(taskGroup) || [];
   }
 
   /**
@@ -749,6 +797,26 @@ export class GtsDataService {
     return this.pageData.filter((page) => page.prjId === prjId );
   }
 
+  getAllDatasetsWithSelectedRows(): { prjId: string; formId: number; dataAdapter: string; dataSetName: string; selectedRows: any[] }[] {
+    const result: any[] = [];
+    for (const page of this.pageData) {
+      if (page.data) {
+        for (const ds of page.data) {
+          if (ds.selectedRows && ds.selectedRows.length > 0) {
+            result.push({
+              prjId: page.prjId,
+              formId: page.formId,
+              dataAdapter: page.dataAdapter,
+              dataSetName: ds.dataSetName,
+              selectedRows: ds.selectedRows
+            });
+          }
+        }
+      }
+    }
+    return result;
+  }
+
   getPrjAllPageRules(prjId: string) {
     return this.pageRules.filter((page) => page.prjId === prjId );
   }
@@ -805,6 +873,12 @@ export class GtsDataService {
         return null;
       }
     }
+  }
+
+  getFormMetaDataByGroupId(prjId: string, formId: number, groupId: number): any {
+    const page = this.metaData.find((p: any) => p.prjId === prjId && p.formId === formId);
+    if (!page?.pageData?.forms) return null;
+    return page.pageData.forms.find((f: any) => f.groupId === groupId) || null;
   }
 
   /**
@@ -1221,6 +1295,34 @@ export class GtsDataService {
             this.pdfVisible = false;
             this.pdfFileData = '';
             this.actionCanRun = true;
+          } else if (element.actionType === 'lockToolbar') {
+            this.setToolbarLock(prjId, formId, element.toolbarName, true);
+            this.actionCanRun = true;
+          } else if (element.actionType === 'unlockToolbar') {
+            this.setToolbarLock(prjId, formId, element.toolbarName, false);
+            this.actionCanRun = true;
+
+          } else if (element.actionType === 'deleteFile') {
+            this.actionCanRun = await this.handleDeleteFile(prjId, formId, element);
+
+          } else if (element.actionType === 'deleteFileNoPath') {
+            this.actionCanRun = await this.handleDeleteFile(prjId, formId, element, true);
+
+          } else if (element.actionType === 'uploadFile') {
+            this.actionCanRun = await this.handleUploadFile(prjId, formId, element);
+
+          } else if (element.actionType === 'uploadFileNoPath') {
+            this.actionCanRun = await this.handleUploadFile(prjId, formId, element, true);
+
+          } else if (element.actionType === 'showFormTemplSel') {
+            this.actionCanRun = await this.compileFormTemplate(
+              prjId, formId, element.clFldGrpId, element.dataSetName, true
+            );
+
+          } else if (element.actionType === 'showFormTemplAll') {
+            this.actionCanRun = await this.compileFormTemplate(
+              prjId, formId, element.clFldGrpId, element.dataSetName, false
+            );
           }
 
           lastActionType = element.actionType;
@@ -1692,8 +1794,9 @@ export class GtsDataService {
       dataSet.status = 'idle';
     }
 
-    // After successful INSERT, refresh the row from DB to get DEFAULT values
-    if (valid && status === 'insert') {
+    // After successful INSERT or EDIT, refresh the selected row from DB
+    // INSERT: gets DEFAULT values; EDIT: syncs all fields (including those set outside the form, e.g. uploadFile)
+    if (valid && (status === 'insert' || status === 'edit')) {
       await this.dataSetRefresh(prjId, formId, action.dataSetName, false);
     }
 
@@ -2329,6 +2432,136 @@ export class GtsDataService {
 
 
 
+  // Lock/Unlock Toolbar — disables or re-enables all items
+  setToolbarLock(prjId: string, formId: number, toolbarName: string, lock: boolean) {
+    const toolbar = this.getPageMetaData(prjId, formId, 'toolbars', toolbarName);
+    if (!toolbar) return;
+
+    toolbar.locked = lock;
+
+    if (lock) {
+      // Disable all items immediately
+      toolbar.itemsList.forEach((item: any) => {
+        item.disabled = true;
+      });
+    } else {
+      // Unlock: re-run setView to recalculate disabled from rules
+      this.setView(prjId, formId, this.actualView, false);
+    }
+  }
+
+  async handleDeleteFile(prjId: string, formId: number, element: any, filenameOnly: boolean = false): Promise<boolean> {
+    // pageFldName = pageField containing the file path/name to delete
+    // customCode = pageField whose value = server directory path (used when filenameOnly)
+    const targetField = element.pageFldName || '';
+    let filePath = targetField ? (this.getPageFieldValue(prjId, formId, targetField) || '') : '';
+
+    // If empty, nothing to delete — skip silently
+    if (!filePath) return true;
+
+    // filenameOnly: reconstruct full path from customCode (pageField with dir path) + filename
+    if (filenameOnly && element.customCode) {
+      const dirPath = this.getPageFieldValue(prjId, formId, element.customCode) || '';
+      if (dirPath) {
+        filePath = dirPath + '/' + filePath;
+      }
+    }
+
+    try {
+      const result: any = await this.execMethod('file', 'deletefile', { fileName: filePath });
+      if (result?.valid) {
+        // Clear the pageField value
+        this.setPageFieldValue(prjId, formId, targetField, '');
+        this.formRepListener.next({ prjId, formId });
+      }
+      return true;
+    } catch (e) {
+      // File may not exist on disk — continue anyway
+      return true;
+    }
+  }
+
+  async handleUploadFile(prjId: string, formId: number, element: any, filenameOnly: boolean = false): Promise<boolean> {
+    // customCode = pageField name whose value = server upload path
+    // pageFldName = pageField to store the resulting path/filename
+    const uploadPath = element.customCode
+      ? (this.getPageFieldValue(prjId, formId, element.customCode) || '')
+      : '';
+    const targetField = element.pageFldName || '';
+
+    // Default extensions: images + common docs
+    const defaultExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.xlsx', '.xls', '.doc', '.docx'];
+
+    // Hide global loader before opening the dialog (action chain is awaiting)
+    this.sendAppLoaderListener(false);
+
+    // Open file uploader with config and wait for completion
+    return new Promise<boolean>((resolve) => {
+      const sub = this.getFileLoaderListener().subscribe((status: any) => {
+        if (!status.fileUploadVisible && status.result === true && status.fileUploadedName) {
+          sub.unsubscribe();
+          if (targetField) {
+            // filenameOnly: save only the filename (no path) in the pageField
+            const fieldValue = filenameOnly
+              ? status.fileUploadedName.split('/').pop()
+              : status.fileUploadedName;
+            this.setPageFieldValue(prjId, formId, targetField, fieldValue);
+            this.formRepListener.next({ prjId, formId });
+          }
+          resolve(true);
+        } else if (!status.fileUploadVisible && !status.result) {
+          // User cancelled
+          sub.unsubscribe();
+          resolve(false);
+        }
+      });
+
+      this.sendFileLoaderListener({
+        fileUploadVisible: true,
+        fileUploadPath: uploadPath,
+        autoName: true,
+        allowedExtensions: defaultExtensions,
+        maxFileSize: 5000000,
+        uploaderTitle: 'Upload File'
+      });
+    });
+  }
+
+  async compileFormTemplate(
+    prjId: string, formId: number,
+    clFldGrpId: number, dataSetName: string,
+    useSelected: boolean
+  ): Promise<boolean> {
+    // Find the RPT form to get reportCode from wizName
+    const form = this.getFormMetaDataByGroupId(prjId, formId, clFldGrpId);
+    if (!form || !form.wizName) return false;
+
+    // Get data from dataset
+    const adapter = this.getDataSetAdapter(prjId, formId, dataSetName);
+    if (!adapter) return false;
+    const dataSet = adapter.data?.find((ds: any) => ds.dataSetName === dataSetName);
+    if (!dataSet) return false;
+
+    const rows = useSelected ? (dataSet.selectedRows || []) : (dataSet.rows || []);
+    if (rows.length === 0) return false;
+
+    // Call server to compile template
+    const connCode = this.getConnCode(prjId);
+    const result: any = await this.execMethod('data', 'compileHtmlTemplate', {
+      prjId, connCode, reportCode: form.wizName,
+      data: { main: rows }
+    });
+
+    if (result?.valid && result.html) {
+      // Fix /api/ URLs to point to the actual server (not Ionic dev server)
+      const serverBase = environment.apiUrl.replace('/api', '');
+      const html = result.html.replace(/src="\/api\//g, `src="${serverBase}/api/`);
+      this.htmlViewListener.next({ groupId: clFldGrpId, html });
+      return true;
+    }
+    return false;
+  }
+
   // Set Page Rule
   setPageRule(prjId: string, formId: number, condId: number, condValue: number) {
     this.pageRules.filter((rule) => rule.prjId === prjId && rule.formId === formId && rule.condId === condId)[0].condValue = condValue;
@@ -2437,26 +2670,32 @@ export class GtsDataService {
     }
     
     if (action.sqlType === 'MongoDB') {
-      
+
       if (action.doc !== undefined && action.doc !== null && action.doc.length > 0) {
         action.doc.forEach((param: any) => {
           if (param.PAGE_FIELD_NAME !== undefined && param.PAGE_FIELD_NAME !== '' && param.PAGE_FIELD_NAME !== null) {
-            // Get page field value 
+            // Get page field value
+            let found = false;
             this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
             .pageData
             .pageFields
             .forEach((field: any) => {
               if (field.pageFieldName === param.PAGE_FIELD_NAME) {
+                found = true;
+                console.log('[buildParams] MongoDB doc field:', param.COLL_FIELD_NAME, '← pageField:', param.PAGE_FIELD_NAME, 'dataType:', field.dataType, 'value:', field.value);
                 if (field.dataType === 'Object') {
                   // Convert Object to JSON only if field.value data type is a string
                   if (field.value !== undefined && field.value !== null && field.value !== '') {
                     params[param.COLL_FIELD_NAME] = typeof field.value === 'string' ? JSON.parse(field.value) : field.value;
                   }
                 } else {
-                  params[param.COLL_FIELD_NAME] = field.value;   
-                }             
+                  params[param.COLL_FIELD_NAME] = field.value;
+                }
               }
             });
+            if (!found) {
+              console.warn('[buildParams] MongoDB doc field NOT FOUND in pageFields:', param.PAGE_FIELD_NAME);
+            }
           }
         });
       }
@@ -2649,6 +2888,9 @@ export class GtsDataService {
       }
 
       data.data.forEach((dataSet: any) => {
+        if (!Array.isArray(dataSet.rows)) {
+          dataSet.rows = [];
+        }
         dataSet.status = 'idle';
 
         // Convert numeric strings to numbers using Oracle metaData
@@ -3014,7 +3256,8 @@ export class GtsDataService {
           const itemKey = `toolbarItem:${item.objectName}`;
           const itemDesired = desiredStateMap.get(itemKey);
           const itemNewVisible = itemDesired?.visible || false;
-          const itemNewDisabled = itemDesired?.disabled || false;
+          // If toolbar is locked, all items stay disabled regardless of rules
+          const itemNewDisabled = toolbar.locked ? true : (itemDesired?.disabled || false);
 
           if (item.visible !== itemNewVisible) {
             item.visible = itemNewVisible;

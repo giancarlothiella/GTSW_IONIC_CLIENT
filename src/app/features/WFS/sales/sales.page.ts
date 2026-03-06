@@ -17,6 +17,8 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
 import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';
 import { GtsPdfComponent } from '../../../core/gts-open-source/gts-pdf/gts-pdf.component';
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
 @Component({
   selector: 'app-sales',
@@ -34,7 +36,9 @@ import { GtsPdfComponent } from '../../../core/gts-open-source/gts-pdf/gts-pdf.c
     GtsMessageComponent,
     GtsLoaderComponent,
     GtsReportsComponent,
-    GtsPdfComponent
+    GtsPdfComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent
   ],
   templateUrl: './sales.page.html',
   styleUrls: ['./sales.page.scss']

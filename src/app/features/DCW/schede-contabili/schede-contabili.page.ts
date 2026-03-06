@@ -23,6 +23,8 @@ import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-po
 import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';
 // import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component'; // DevExtreme version
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component'; // Ionic version ✨
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
 @Component({
   selector: 'app-schede-contabili',
@@ -38,7 +40,9 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
     GtsFormComponent,
     GtsFormPopupComponent,
     GtsReportsComponent,
-    GtsMessageComponent
+    GtsMessageComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent
   ],
   templateUrl: './schede-contabili.page.html',
   styleUrls: ['./schede-contabili.page.scss']

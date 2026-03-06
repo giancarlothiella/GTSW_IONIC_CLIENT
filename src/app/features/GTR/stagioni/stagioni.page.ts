@@ -14,6 +14,8 @@ import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-gri
 import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
 import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
 @Component({
   selector: 'app-stagioni',
@@ -27,7 +29,9 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
     GtsGridComponent,
     GtsFormComponent,
     GtsFormPopupComponent,
-    GtsMessageComponent
+    GtsMessageComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent
   ],
   templateUrl: './stagioni.page.html',
   styleUrls: ['./stagioni.page.scss']
