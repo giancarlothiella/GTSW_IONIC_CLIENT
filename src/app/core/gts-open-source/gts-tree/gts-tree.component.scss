@@ -10,15 +10,27 @@
 // Left panel — Tree
 .gts-tree-panel {
   width: 320px;
-  min-width: 250px;
-  border-right: 1px solid #ddd;
+  min-width: 150px;
+  border-right: none;
   display: flex;
   flex-direction: column;
   background: #fafbfc;
 
   &.gts-tree-panel-full {
     width: 100%;
-    border-right: none;
+  }
+}
+
+// Vertical splitter
+.gts-tree-splitter {
+  width: 5px;
+  cursor: col-resize;
+  background: #e0e0e0;
+  flex-shrink: 0;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #3b82f6;
   }
 }
 
@@ -52,6 +64,7 @@
 .gts-tree-scroll {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
 
   ::ng-deep {
     .p-tree {
@@ -63,6 +76,9 @@
 
     .p-tree-node-label {
       font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .p-tree-node-content {
@@ -138,6 +154,11 @@
   color: #333;
   word-break: break-word;
 }
+
+.gts-tree-detail-row-multiline .gts-tree-detail-value {
+  white-space: pre-line;
+}
+
 
 .gts-tree-detail-empty {
   display: flex;

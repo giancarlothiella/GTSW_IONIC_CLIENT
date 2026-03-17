@@ -53,8 +53,17 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
   selectedRowData: any = null;
   detailColumns: any[] = [];
 
+  // Columns with showInTree flag
+  iconColumns: any[] = [];
+
   // Flag to prevent action execution during programmatic selection
   isRestoringSelection: boolean = false;
+
+  // Flag to lock row selection (gridLockRows/gridUnLockRows actions)
+  rowsLocked: boolean = false;
+
+  // Splitter
+  treePanelWidth: number = 320;
 
   constructor() {}
 
@@ -71,8 +80,13 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
           // Handle editing mode flags (same protocol as gts-grid)
           if (dataArray.length > 1) {
             const allowFlags = dataArray[1].split(':');
-            if (['Edit', 'Insert', 'Delete', 'Lock', 'Select'].includes(allowFlags[0])) {
-              return; // Tree doesn't support inline editing yet
+            if (allowFlags[0] === 'Lock') {
+              this.rowsLocked = allowFlags[1] === 'true';
+              this.cdr.detectChanges();
+              return;
+            }
+            if (['Edit', 'Insert', 'Delete', 'Select'].includes(allowFlags[0])) {
+              return; // Tree doesn't support inline editing
             }
           }
           // Full reload
@@ -87,12 +101,31 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
       .getGridSelectListener()
       .subscribe((data: any) => {
         if (data?.dataSetName === this.metaData?.dataSetName) {
-          if (data.action === 'unselect') {
+          if (!data.isSelected) {
+            // Unselect
             this.isRestoringSelection = true;
             this.selectedNode = null;
             this.selectedRowData = null;
             this.isRestoringSelection = false;
             this.cdr.detectChanges();
+          } else if (this.treeIdField) {
+            // Select — find and select the node matching selectedKeys
+            const ds = this.gtsDataService.getDataSetAdapter(this.prjId, this.formId, this.metaData.dataSetName);
+            if (ds?.data) {
+              const dsData = ds.data.find((d: any) => d.dataSetName === this.metaData.dataSetName);
+              if (dsData?.selectedKeys?.length > 0) {
+                const keyField = Object.keys(dsData.selectedKeys[0])[0];
+                const keyValue = dsData.selectedKeys[0][keyField];
+                const found = this.findNodeById(this.filteredNodes, keyValue);
+                if (found) {
+                  this.isRestoringSelection = true;
+                  this.selectedNode = found;
+                  this.selectedRowData = found.data;
+                  this.isRestoringSelection = false;
+                  this.cdr.detectChanges();
+                }
+              }
+            }
           }
         }
       });
@@ -147,6 +180,15 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
     // Get detail columns from metadata
     this.detailColumns = (this.metaData.columns || []).filter((col: any) => col.visible);
 
+    // Get columns to show in tree nodes
+    this.iconColumns = (this.metaData.columns || []).filter((col: any) => col.showInTree).map((col: any) => ({
+      fieldName: col.dataField || col.fieldName,
+      images: col.images || [],
+      showLabel: col.colType === 'Images/Strings List',
+      isImage: col.images && col.images.length > 0,
+      caption: col.caption || col.text || col.dataField || col.fieldName
+    }));
+
     // Get rows from gridObject.dataSet
     const rows = gridObject.dataSet || [];
 
@@ -154,6 +196,36 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
     this.treeNodes = this.buildTree(rows);
     this.filteredNodes = [...this.treeNodes];
     this.treeReady = true;
+
+    // Restore or clear selection after reload
+    if (this.selectedRowData && this.treeIdField) {
+      const selectedId = this.selectedRowData[this.treeIdField];
+      const found = this.findNodeById(this.filteredNodes, selectedId);
+      if (found) {
+        this.isRestoringSelection = true;
+        this.selectedNode = found;
+        this.selectedRowData = found.data;
+        this.isRestoringSelection = false;
+      } else {
+        // Record no longer exists (deleted) — clear detail
+        this.selectedNode = null;
+        this.selectedRowData = null;
+      }
+    }
+  }
+
+  /**
+   * Find a tree node by its ID field value (recursive)
+   */
+  private findNodeById(nodes: TreeNode[], id: any): TreeNode | null {
+    for (const node of nodes) {
+      if (node.data && node.data[this.treeIdField] === id) return node;
+      if (node.children) {
+        const found = this.findNodeById(node.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
   }
 
   /**
@@ -208,12 +280,43 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
       ? this.treeLabelFields.map(f => row[f] || '').join(' ')
       : row[this.treeIdField] || '';
 
+    // Get icon class from first image-type showInTree column
+    let nodeIcon: string | undefined;
+    let extraText = '';
+    for (const ic of this.iconColumns) {
+      if (ic.isImage && ic.images.length > 0) {
+        const value = row[ic.fieldName];
+        if (value !== null && value !== undefined) {
+          const image = ic.images.find((img: any) => String(img.imgValue) === String(value));
+          if (image) {
+            nodeIcon = `gts-tree-icon-${image.stdImageId}`;
+          }
+        }
+      } else if (!ic.isImage) {
+        // Text column — append to label
+        const value = row[ic.fieldName];
+        if (value !== null && value !== undefined && value !== '') {
+          // Format dates
+          if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+            const d = new Date(value);
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            extraText += ` [${dd}/${mm}/${yyyy}]`;
+          } else {
+            extraText += ` [${value}]`;
+          }
+        }
+      }
+    }
+
     return {
-      label: label.trim(),
+      label: label.trim() + extraText,
       data: row,
       expanded: true,
       children: [],
-      leaf: false
+      leaf: false,
+      icon: nodeIcon
     };
   }
 
@@ -237,6 +340,21 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
    */
   onNodeSelect(event: any): void {
     if (this.isRestoringSelection) return;
+
+    // Block selection when rows are locked
+    if (this.rowsLocked) {
+      // Restore previous selection
+      if (this.selectedRowData && this.treeIdField) {
+        const prevId = this.selectedRowData[this.treeIdField];
+        const prevNode = this.findNodeById(this.filteredNodes, prevId);
+        if (prevNode) {
+          this.isRestoringSelection = true;
+          this.selectedNode = prevNode;
+          this.isRestoringSelection = false;
+        }
+      }
+      return;
+    }
 
     const node = event.node;
     if (!node?.data) return;
@@ -262,6 +380,32 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
         );
       }
     }
+  }
+
+  /**
+   * Handle splitter drag to resize tree panel
+   */
+  onSplitterMouseDown(event: MouseEvent): void {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = this.treePanelWidth;
+
+    const onMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - startX;
+      this.treePanelWidth = Math.max(150, startWidth + delta);
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   }
 
   /**
@@ -351,6 +495,44 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
       }
     }
 
+    return String(value);
+  }
+
+  /**
+   * Get icon image source for a tree node based on column images mapping
+   */
+  getNodeIcon(node: any, ic: any): string {
+    if (!node?.data || !ic.isImage) return '';
+    const value = node.data[ic.fieldName];
+    if (value === null || value === undefined) return '';
+    const image = ic.images.find((img: any) => String(img.imgValue) === String(value));
+    if (image) {
+      return `/assets/icons/stdImage_${image.stdImageId}.png`;
+    }
+    return '';
+  }
+
+  /**
+   * Get icon label text for Images/Strings List columns
+   */
+  getNodeIconLabel(node: any, ic: any): string {
+    if (!node?.data) return '';
+    const value = node.data[ic.fieldName];
+    if (value === null || value === undefined) return '';
+    if (ic.isImage) {
+      const image = ic.images.find((img: any) => String(img.imgValue) === String(value));
+      return image?.imgText || '';
+    }
+    return String(value);
+  }
+
+  /**
+   * Get text value for non-image showInTree columns
+   */
+  getNodeText(node: any, ic: any): string {
+    if (!node?.data) return '';
+    const value = node.data[ic.fieldName];
+    if (value === null || value === undefined) return '';
     return String(value);
   }
 

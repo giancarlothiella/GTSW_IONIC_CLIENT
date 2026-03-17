@@ -1,7 +1,7 @@
 // src/app/core/services/auth.service.ts
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap, catchError, throwError, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, Observable, switchMap, from, catchError, throwError, firstValueFrom } from 'rxjs';
 import { Storage } from '@ionic/storage-angular';
 import { environment } from '../../../environments/environment';
 import { EncryptionService } from './encryption.service';
@@ -63,6 +63,7 @@ export interface User {
   prjConnections: ProjectConnection[];
   homePath?: string;  // Path dedicato per utenti con accesso limitato (es. '/webapp')
   sandboxSchema?: string;  // Schema sandbox per utenti demo (es. 'sandbox_xxx')
+  demoLabel?: string;  // Demo user level label (User/Admin/Developer)
 }
 
 @Injectable({
@@ -103,7 +104,7 @@ export class AuthService {
       `${environment.apiUrl}/user/login`,
       credentials
     ).pipe(
-      tap(async (response) => {
+      switchMap(async (response) => {
         if (response.valid && response.data) {
           // NON salvare i dati se 2FA è abilitato - verranno salvati dopo la verifica TOTP
           if (!response.totp2FAenabled) {
@@ -112,6 +113,7 @@ export class AuthService {
         } else {
           throw new Error(response.message || 'Login failed');
         }
+        return response;
       }),
       catchError(error => {
         console.error('Login error:', error);
@@ -370,7 +372,8 @@ export class AuthService {
       prjId: userData.prjId,
       prjConnections: userData.prjConnections || [],
       homePath: userData.homePath || '',
-      sandboxSchema: userData.sandboxSchema || undefined
+      sandboxSchema: userData.sandboxSchema || undefined,
+      demoLabel: userData.demoLabel || undefined
     };
 
     const userToSave = this.USE_LOCAL_ENCRYPTION

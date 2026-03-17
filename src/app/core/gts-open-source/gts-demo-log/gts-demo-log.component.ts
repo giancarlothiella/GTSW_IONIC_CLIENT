@@ -62,7 +62,7 @@ addIcons({ closeOutline, trashOutline });
     .demo-log-panel {
       position: fixed;
       right: 0;
-      top: 56px;
+      top: 0;
       bottom: 0;
       width: 340px;
       background: #1e1e2e;

@@ -169,13 +169,13 @@
         </thead>
         <tbody>
           @for (field of originalDataFields; track field.fieldName) {
-            <tr [class.pk-row]="field.isPK" [class.hidden-field]="!field.isInGrid">
+            <tr [class.pk-row]="field.isPK" [class.hidden-field]="!field.visible">
               <td class="field-name">
                 {{ field.fieldName }}
                 @if (field.isPK) {
                   <span class="pk-badge">PK</span>
                 }
-                @if (!field.isInGrid) {
+                @if (!field.visible) {
                   <span class="hidden-badge">hidden</span>
                 }
               </td>

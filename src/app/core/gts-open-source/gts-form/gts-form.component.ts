@@ -109,16 +109,17 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     this.changeDetector.detectChanges();
-    // Auto-focus first non-disabled field
-    for (let i = 0; i < this.formData.length; i++) {
-      if (!this.formData[i].disabled && !this.formData[i].readOnly) {
-        this.focusComponent = this.formData[i].component;
-        if (this.focusComponent?.nativeElement) {
-          setTimeout(() => this.focusComponent.nativeElement.focus(), 100);
+    // Auto-focus first editable input field
+    setTimeout(() => {
+      const formEl = document.querySelector(`[data-form="${this.objectName}"]`) ||
+                     document.querySelector('app-gts-form');
+      if (formEl) {
+        const firstInput = formEl.querySelector('input:not([disabled]):not([readonly])') as HTMLElement;
+        if (firstInput) {
+          firstInput.focus();
         }
-        break;
       }
-    }
+    }, 200);
   }
 
   //========= ON INIT =================
@@ -166,9 +167,14 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe(() => {
         this.formReady = true;
         this.changeDetector.detectChanges();
-        if (this.focusComponent?.nativeElement) {
-          this.focusComponent.nativeElement.focus();
-        }
+        setTimeout(() => {
+          const formEl = document.querySelector(`[data-form="${this.objectName}"]`) ||
+                         document.querySelector('app-gts-form');
+          if (formEl) {
+            const firstInput = formEl.querySelector('input:not([disabled]):not([readonly])') as HTMLElement;
+            if (firstInput) firstInput.focus();
+          }
+        }, 200);
       });
 
     // Form Reply Listener
@@ -249,6 +255,10 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
               }
               formField.updateFromLookUp = true;
               formField.value = field.fieldValue;
+              // Apply numeric mask after value update
+              if (formField.dataType === 'N' && formField.mask && formField.value !== undefined && formField.value !== null && formField.value !== '') {
+                formField.value = this.formatNumberWithMask(formField.value, formField.mask);
+              }
             });
         });
       });
@@ -286,8 +296,12 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
   //========= FORM EVENTS =================
   async toolbarSubmitEvent(event: any) {
+    this.gtsDataService.perfLog(`form.submit START validation (${this.formData.length} fields)`);
+    this.gtsDataService.sendAppLoaderListener(true);
     const valid = await this.formValidation();
+    this.gtsDataService.perfLog(`form.submit END validation valid=${valid}`);
     if (!valid) {
+      this.gtsDataService.sendAppLoaderListener(false);
       // Force UI update to show all validation messages
       this.changeDetector.detectChanges();
       return;
@@ -295,7 +309,9 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     this.formData.forEach((field: any) => {
       // Convert value format depending if dataType is N or D
       if (field.dataType === 'N' && field.value !== undefined && field.value !== null && field.value !== '') {
-        field.value = Number(field.value);
+        // Remove thousand separators before converting to number
+        const raw = typeof field.value === 'string' ? field.value.replace(/,/g, '') : field.value;
+        field.value = Number(raw);
       }
 
       this.gtsDataService.setFormFieldValue(this.prjId, this.formId, this.objectName, field.objectName, field.value);
@@ -453,6 +469,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         valueChecked: this.metaData.fields[i].valueChecked,
         valueUnChecked: this.metaData.fields[i].valueUnchecked,
         sqlCaption: this.metaData.fields[i].sqlCaption,
+        mask: this.metaData.fields[i].fieldMask,
         visible: true,
         validationMessage: ''
       };
@@ -521,6 +538,11 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         if (typeof field.value === 'string') {
           field.value = new Date(field.value);
         }
+      }
+
+      // Apply numeric mask formatting on load
+      if (field.dataType === 'N' && field.mask && field.value !== undefined && field.value !== null && field.value !== '') {
+        field.value = this.formatNumberWithMask(field.value, field.mask);
       }
 
       // Apply PK field styling for TextBox, TextArea and DateBox if field is PK
@@ -690,6 +712,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onFieldInput(event: any, element: any) {
     const field = this.formData.filter(f => f.objectName === element.objectName)[0];
+    field.dirty = true;
     field.validated = false;
     field.updateFromLookUp = false;
   }
@@ -711,6 +734,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Only validate if value actually changed
     if (currentValue !== previousValue) {
+      field.dirty = true;
       field.validated = false;
       valid = await this.fieldValidation(field);
 
@@ -779,7 +803,8 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     // Convert to value to number if dataType is N
     if (field.dataType === 'N') {
       if (value !== undefined && value !== null && value !== '') {
-        value = parseFloat(value);
+        // Remove thousand separators before parsing
+        value = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : Number(value);
         if (!isNaN(value)) {
           field.value = value;
         }
@@ -821,7 +846,8 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
       // Skip also if field allows empty and value is empty
       const valueIsEmpty = value === undefined || value === null || value === '';
       if (valid && field.sqlId !== undefined && field.sqlId !== null && field.sqlId !== '' && !field.updateFromLookUp && field.editorType === 'LookUpBox' && !field.editorTypeML && !(field.allowEmpty && valueIsEmpty)) {
-        const responseData: any = await this.gtsDataService.getExportedData(this.prjId, this.formId, field.groupId, field.sqlQueryField, value, field.objectName);
+        this.gtsDataService.perfLog(`form.validate LookUp ${field.objectName} → server call`);
+        const responseData: any = await this.gtsDataService.getExportedData(this.prjId, this.formId, field.groupId, field.sqlQueryField, value, field.objectName, this.formData);
         if (responseData.valid && responseData.data && responseData.data.length > 0 && responseData.data[0].rows && responseData.data[0].rows.length > 0) {
           this.metaData
             .fields
@@ -977,11 +1003,76 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  async onDropDownChanged(field: any, event: any) {
+    field.dirty = true;
+    field.validated = false;
+    const valid = await this.fieldValidation(field);
+    if (valid) {
+      field.validated = true;
+    }
+  }
+
+  focusDateInput(inputId: string) {
+    const input = document.getElementById(inputId) as HTMLInputElement;
+    if (input) {
+      input.focus();
+    }
+  }
+
+  onNumericKeyPress(event: KeyboardEvent) {
+    const allowed = '0123456789.,-';
+    if (!allowed.includes(event.key)) {
+      event.preventDefault();
+    }
+  }
+
   async onFieldFocusOut(field: any) {
     let valid: boolean = true;
-    if (this.formReady && !field.readOnly && (field.forceCheck || !field.validated)) {
+    // Skip blur validation if field was never modified by the user (avoid premature errors)
+    if (this.formReady && !field.readOnly && field.dirty && (field.forceCheck || !field.validated)) {
       valid = await this.fieldValidation(field);
     }
+    // Apply numeric mask formatting on blur
+    if (valid && field.dataType === 'N' && field.mask && field.value !== undefined && field.value !== null && field.value !== '') {
+      field.value = this.formatNumberWithMask(field.value, field.mask);
+    }
+    this.changeDetector.detectChanges();
     return valid;
+  }
+
+  /**
+   * Format a numeric value according to a mask pattern (e.g. "#,###.00")
+   * Supports thousand separators and decimal places
+   */
+  formatNumberWithMask(value: any, mask: string): string {
+    const num = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : Number(value);
+    if (isNaN(num)) return value;
+
+    // Determine decimal places from mask
+    const dotIndex = mask.lastIndexOf('.');
+    const decimals = dotIndex >= 0 ? mask.length - dotIndex - 1 : 0;
+    const useThousands = mask.includes(',');
+
+    // Format with fixed decimals
+    const parts = num.toFixed(decimals).split('.');
+
+    // Add thousand separators
+    if (useThousands) {
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+
+    return parts.join('.');
+  }
+
+  /**
+   * Parse a formatted numeric string back to a plain number
+   * Removes thousand separators before parsing
+   */
+  parseFormattedNumber(value: any): number {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      return parseFloat(value.replace(/,/g, ''));
+    }
+    return NaN;
   }
 }

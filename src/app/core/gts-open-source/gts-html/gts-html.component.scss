@@ -133,7 +133,15 @@
     min-height: 44px;
     max-height: 44px;
     padding: 0;
-    width: fit-content;
+    width: fit-content !important;
+    max-width: fit-content;
+    justify-content: flex-start;
+    overflow: hidden;
+
+    &::part(container) {
+      overflow: hidden;
+      height: 44px;
+    }
 
     ion-segment-button {
       --color: rgba(0, 0, 139, 0.6);

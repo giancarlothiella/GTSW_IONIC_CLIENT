@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -20,28 +21,36 @@ import { AuthService } from '../../../core/services/auth.service';
     </ion-content>
   `
 })
-export class DemoLoginPage implements OnInit {
+export class DemoLoginPage implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private authService = inject(AuthService);
+  private queryParamsSub: Subscription | undefined;
 
   error = '';
 
-  async ngOnInit() {
-    const token = this.route.snapshot.queryParams['token'];
-    const data = this.route.snapshot.queryParams['data'];
+  ngOnInit() {
+    // Use observable queryParams to handle tab reuse (same tab, new login params)
+    this.queryParamsSub = this.route.queryParams.subscribe(async (params) => {
+      const token = params['token'];
+      const data = params['data'];
 
-    if (token && data) {
-      try {
-        const userData = JSON.parse(atob(data));
-        await this.authService.saveDemoAuthData(token, userData);
-        this.router.navigate(['/home']);
-      } catch (err) {
-        this.error = 'Invalid demo login data';
-        console.error('Demo login error:', err);
+      if (token && data) {
+        try {
+          const userData = JSON.parse(atob(data));
+          await this.authService.saveDemoAuthData(token, userData);
+          this.router.navigate(['/home']);
+        } catch (err) {
+          this.error = 'Invalid demo login data';
+          console.error('Demo login error:', err);
+        }
+      } else {
+        this.router.navigate(['/login']);
       }
-    } else {
-      this.router.navigate(['/login']);
-    }
+    });
+  }
+
+  ngOnDestroy() {
+    this.queryParamsSub?.unsubscribe();
   }
 }

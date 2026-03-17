@@ -244,6 +244,7 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
       .getAppLoaderListener()
       .subscribe((loading) => {
         this.loading = loading;
+        this.cd.detectChanges();
       });
 
     // View Listener

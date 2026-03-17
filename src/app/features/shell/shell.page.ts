@@ -44,7 +44,9 @@ import {
   trashOutline,
   swapHorizontalOutline,
   constructOutline,
-  listOutline
+  listOutline,
+  personOutline,
+  shieldCheckmarkOutline
 } from 'ionicons/icons';
 import { AuthService } from '../../core/services/auth.service';
 import { MenuService } from '../../core/services/menu.service';
@@ -210,7 +212,7 @@ import { Subscription, lastValueFrom } from 'rxjs';
     </ion-menu>
 
     <!-- Contenuto principale con router outlet -->
-    <div id="main-content">
+    <div id="main-content" [class.demo-log-open]="demoLogActive">
       <ion-header>
         <ion-toolbar color="primary">
           <ion-buttons slot="start">
@@ -240,6 +242,11 @@ import { Subscription, lastValueFrom } from 'rxjs';
                 <ion-button fill="clear" (click)="navigateToProfile()" class="profile-btn" title="{{ getText(600) }}">
                   <ion-icon slot="icon-only" name="person-circle-outline"></ion-icon>
                 </ion-button>
+              } @else {
+                <div class="demo-level-badge" [title]="'Logged as: ' + getDemoLabel()">
+                  <ion-icon [name]="getDemoIcon()"></ion-icon>
+                  <span>{{ getDemoLabel() }}</span>
+                </div>
               }
             </div>
 
@@ -353,73 +360,96 @@ import { Subscription, lastValueFrom } from 'rxjs';
                       <ion-spinner></ion-spinner>
                     </div>
                   } @else if (suiteConfig) {
-                    <ion-list>
-                      <ion-item class="config-section-header">
-                        <ion-label><strong>General</strong></ion-label>
-                      </ion-item>
-                      <ion-item>
-                        <ion-input label="App Title" labelPlacement="stacked" [(ngModel)]="suiteConfig.appTitle"></ion-input>
-                      </ion-item>
-                      <ion-item>
-                        <ion-input label="Admin Email" labelPlacement="stacked" type="email" [(ngModel)]="suiteConfig.appAdminEmail"></ion-input>
-                      </ion-item>
-                      <ion-item>
-                        <ion-input label="Sales Contact Email" labelPlacement="stacked" type="email" [(ngModel)]="suiteConfig.salesContactEmail"></ion-input>
-                      </ion-item>
+                    <div class="config-columns">
+                      <!-- Left column (3/4) - fields with text inputs -->
+                      <div class="config-col-left">
+                        <div class="config-section-header">
+                          <strong>General</strong>
+                        </div>
+                        <ion-item>
+                          <ion-input label="App Title" labelPlacement="stacked" [(ngModel)]="suiteConfig.appTitle"></ion-input>
+                        </ion-item>
+                        <ion-item>
+                          <ion-input label="Admin Email" labelPlacement="stacked" type="email" [(ngModel)]="suiteConfig.appAdminEmail"></ion-input>
+                        </ion-item>
+                        <ion-item>
+                          <ion-input label="Sales Contact Email" labelPlacement="stacked" type="email" [(ngModel)]="suiteConfig.salesContactEmail"></ion-input>
+                        </ion-item>
 
-                      <ion-item class="config-section-header">
-                        <ion-label><strong>Authentication</strong></ion-label>
-                      </ion-item>
-                      <ion-item>
-                        <ion-toggle [(ngModel)]="suiteConfig.signWithGoogle">Sign with Google</ion-toggle>
-                      </ion-item>
-                      <ion-item>
-                        <ion-toggle [(ngModel)]="suiteConfig.signWithMicrosoft">Sign with Microsoft</ion-toggle>
-                      </ion-item>
+                        <div class="config-section-header">
+                          <strong>AI - Claude (Anthropic)</strong>
+                        </div>
+                        <ion-item>
+                          <ion-label position="stacked" class="config-label">API Key</ion-label>
+                          <textarea rows="2" class="config-textarea" [(ngModel)]="suiteConfig.anthropicApiKey" placeholder="sk-ant-api03-..."></textarea>
+                        </ion-item>
+                        <ion-item>
+                          <ion-input label="Model" labelPlacement="stacked" [(ngModel)]="suiteConfig.anthropicModel" placeholder="claude-sonnet-4-20250514"></ion-input>
+                        </ion-item>
+                        <ion-item>
+                          <ion-input label="Vision Model" labelPlacement="stacked" [(ngModel)]="suiteConfig.anthropicModelVision" placeholder="claude-sonnet-4-20250514"></ion-input>
+                        </ion-item>
+                        <ion-item>
+                          <ion-input label="Fast Model" labelPlacement="stacked" [(ngModel)]="suiteConfig.anthropicModelFast" placeholder="claude-sonnet-4-20250514"></ion-input>
+                        </ion-item>
+                      </div>
 
-                      <ion-item class="config-section-header">
-                        <ion-label><strong>Two-Factor Authentication</strong></ion-label>
-                      </ion-item>
-                      <ion-item>
-                        <ion-toggle [(ngModel)]="suiteConfig.totpEnabled">TOTP Enabled</ion-toggle>
-                      </ion-item>
-                      <ion-item>
-                        <ion-input label="TOTP Issuer" labelPlacement="stacked" [(ngModel)]="suiteConfig.totpIssuer"></ion-input>
-                      </ion-item>
-                      <ion-item>
-                        <ion-input label="Max Error Count" labelPlacement="stacked" type="number" [(ngModel)]="suiteConfig.totpMaxErrorCount"></ion-input>
-                      </ion-item>
+                      <!-- Right column (1/4) - toggles and short fields -->
+                      <div class="config-col-right">
+                        <div class="config-section-header">
+                          <strong>Authentication</strong>
+                        </div>
+                        <ion-item>
+                          <ion-toggle [(ngModel)]="suiteConfig.signWithGoogle">Sign with Google</ion-toggle>
+                        </ion-item>
+                        <ion-item>
+                          <ion-toggle [(ngModel)]="suiteConfig.signWithMicrosoft">Sign with Microsoft</ion-toggle>
+                        </ion-item>
 
-                      <ion-item class="config-section-header">
-                        <ion-label><strong>Security</strong></ion-label>
-                      </ion-item>
-                      <ion-item>
-                        <ion-toggle [(ngModel)]="suiteConfig.jwtUniqueValidation">JWT Unique Validation</ion-toggle>
-                      </ion-item>
+                        <div class="config-section-header">
+                          <strong>Two-Factor Authentication</strong>
+                        </div>
+                        <ion-item>
+                          <ion-toggle [(ngModel)]="suiteConfig.totpEnabled">TOTP Enabled</ion-toggle>
+                        </ion-item>
+                        <ion-item>
+                          <ion-input label="TOTP Issuer" labelPlacement="stacked" [(ngModel)]="suiteConfig.totpIssuer"></ion-input>
+                        </ion-item>
+                        <ion-item>
+                          <ion-input label="Max Error Count" labelPlacement="stacked" type="number" [(ngModel)]="suiteConfig.totpMaxErrorCount"></ion-input>
+                        </ion-item>
 
-                      <ion-item class="config-section-header">
-                        <ion-label><strong>Logging</strong></ion-label>
-                      </ion-item>
-                      <ion-item>
-                        <ion-toggle [(ngModel)]="suiteConfig.activateLog">Activate Log</ion-toggle>
-                      </ion-item>
-                      <ion-item>
-                        <ion-toggle [(ngModel)]="suiteConfig.dbLogs">DB Logs</ion-toggle>
-                      </ion-item>
-                      <ion-item>
-                        <ion-toggle [(ngModel)]="suiteConfig.authLogs">Auth Logs</ion-toggle>
-                      </ion-item>
-                      <ion-item>
-                        <ion-toggle [(ngModel)]="suiteConfig.errorLogs">Error Logs</ion-toggle>
-                      </ion-item>
+                        <div class="config-section-header">
+                          <strong>Security</strong>
+                        </div>
+                        <ion-item>
+                          <ion-toggle [(ngModel)]="suiteConfig.jwtUniqueValidation">JWT Unique Validation</ion-toggle>
+                        </ion-item>
 
-                      <ion-item class="config-section-header">
-                        <ion-label><strong>Scheduler</strong></ion-label>
-                      </ion-item>
-                      <ion-item>
-                        <ion-toggle [(ngModel)]="suiteConfig.activateCron">Activate Cron</ion-toggle>
-                      </ion-item>
-                    </ion-list>
+                        <div class="config-section-header">
+                          <strong>Logging</strong>
+                        </div>
+                        <ion-item>
+                          <ion-toggle [(ngModel)]="suiteConfig.activateLog">Activate Log</ion-toggle>
+                        </ion-item>
+                        <ion-item>
+                          <ion-toggle [(ngModel)]="suiteConfig.dbLogs">DB Logs</ion-toggle>
+                        </ion-item>
+                        <ion-item>
+                          <ion-toggle [(ngModel)]="suiteConfig.authLogs">Auth Logs</ion-toggle>
+                        </ion-item>
+                        <ion-item>
+                          <ion-toggle [(ngModel)]="suiteConfig.errorLogs">Error Logs</ion-toggle>
+                        </ion-item>
+
+                        <div class="config-section-header">
+                          <strong>Scheduler</strong>
+                        </div>
+                        <ion-item>
+                          <ion-toggle [(ngModel)]="suiteConfig.activateCron">Activate Cron</ion-toggle>
+                        </ion-item>
+                      </div>
+                    </div>
                   }
                 }
                 @case ('delete') {
@@ -546,6 +576,11 @@ import { Subscription, lastValueFrom } from 'rxjs';
       bottom: 0;
       display: flex;
       flex-direction: column;
+      transition: right 0.3s ease;
+    }
+
+    #main-content.demo-log-open {
+      right: 340px;
     }
 
     #main-content ion-content {
@@ -671,6 +706,22 @@ import { Subscription, lastValueFrom } from 'rxjs';
       --padding-end: 4px;
     }
 
+    .demo-level-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: default;
+      ion-icon {
+        font-size: 1rem;
+      }
+    }
+
     /* Config button in header */
     .config-btn {
       --color: #ffffff;
@@ -721,22 +772,54 @@ import { Subscription, lastValueFrom } from 'rxjs';
     .suite-config-panel {
       flex: 1;
       overflow-y: auto;
+    }
 
-      ion-list {
-        padding: 0;
-      }
+    .config-columns {
+      display: flex;
+      height: 100%;
+    }
+
+    .config-col-left {
+      flex: 3;
+      border-right: 1px solid var(--ion-color-light-shade);
+      overflow-y: auto;
+    }
+
+    .config-col-right {
+      flex: 1;
+      min-width: 260px;
+      overflow-y: auto;
     }
 
     .config-section-header {
-      --background: var(--ion-color-light);
-      --min-height: 36px;
-      --padding-top: 8px;
-      --padding-bottom: 4px;
-      margin-top: 8px;
+      background: var(--ion-color-light);
+      padding: 10px 16px 6px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--ion-color-light-shade);
     }
 
-    .config-section-header:first-child {
-      margin-top: 0;
+    .config-columns ion-item {
+      --padding-start: 16px;
+      --padding-end: 16px;
+    }
+
+    .config-textarea {
+      width: 100%;
+      padding: 8px;
+      margin: 4px 0 8px;
+      border: 1px solid var(--ion-color-light-shade);
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+      resize: vertical;
+      background: var(--ion-background-color);
+      color: var(--ion-text-color);
+    }
+
+    .config-label {
+      font-size: 12px !important;
+      color: var(--ion-color-medium) !important;
+      margin-bottom: 4px;
     }
 
     .config-loading {
@@ -875,7 +958,9 @@ export class ShellPage implements OnInit {
       trashOutline,
       swapHorizontalOutline,
       constructOutline,
-      listOutline
+      listOutline,
+      personOutline,
+      shieldCheckmarkOutline
     });
 
     // Sottoscrivi ai cambiamenti dell'utente
@@ -1150,6 +1235,17 @@ export class ShellPage implements OnInit {
 
   isDemoUser(): boolean {
     return !!this.user?.sandboxSchema;
+  }
+
+  getDemoLabel(): string {
+    return this.user?.demoLabel || 'User';
+  }
+
+  getDemoIcon(): string {
+    const label = this.user?.demoLabel;
+    if (label === 'Developer') return 'construct-outline';
+    if (label === 'Admin') return 'settings-outline';
+    return 'person-outline';
   }
 
   selectConfigSection(section: 'setup' | 'delete' | 'migrate') {

@@ -18,6 +18,8 @@ export interface ProjectInfo {
   homeImage: string;
   dbConnections?: DbConnection[];
   customServerUrl?: string;
+  locked?: boolean;
+  lockedMessage?: string;
 }
 
 export interface DbConnection {

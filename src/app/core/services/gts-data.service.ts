@@ -249,6 +249,19 @@ export class GtsDataService {
   }
   demoLogActive = false;
   demoLogDelay = 0; // ms delay between action steps (0 = real-time)
+
+  // Performance timing - reset at toolbar click, used across runAction calls
+  private _perfT0 = 0;
+  perfTimingActive = false; // enable in dev console: gtsDataService.perfTimingActive = true
+
+  perfReset(): void {
+    this._perfT0 = performance.now();
+  }
+
+  perfLog(label: string): void {
+    if (!this.perfTimingActive) return;
+    console.log(`[perf] ${label} +${(performance.now() - this._perfT0).toFixed(1)}ms`);
+  }
   private demoLogEntries: any[] = [];
 
   getDemoLogEntries(): any[] {
@@ -1038,11 +1051,16 @@ export class GtsDataService {
   runActionInDebug: boolean = false;
 
   async runAction(prjId: string, formId: number, objectName: string, iStart: number = 0, debugLevel: number = 0) {
+    this.perfLog(`runAction START ${objectName}`);
     const page: any = this.metaData.filter((page) => page.prjId === prjId && page.formId == formId)[0];
     const mainAction = page.pageData.actions.filter((action: any) => action.objectName === objectName);
     this.actionCanRun = true;
     const suppressLoader = this.demoLogActive && this.demoLogDelay > 0;
-    if (!suppressLoader) this.sendAppLoaderListener(true);
+    if (!suppressLoader) {
+      this.sendAppLoaderListener(true);
+      this.perfLog(`runAction LOADER ON ${objectName}`);
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    }
 
     if (mainAction[0] === undefined) {
       if (!suppressLoader) this.sendAppLoaderListener(false);
@@ -1072,8 +1090,9 @@ export class GtsDataService {
       for (let i = iLoop; i < runTo; i++) {
         debugIndex = i;
         const element = mainAction[0].actions[i];
-        const elementActive = this.checkPageRule(prjId, formId, element.execCond);      
-        if (elementActive) {        
+        this.perfLog(`[${i}] ${element.actionType}`);
+        const elementActive = this.checkPageRule(prjId, formId, element.execCond);
+        if (elementActive) {
           if (element.actionType === 'getData') {   
             const params = this.buildParamsArray(prjId, formId, element);
             this.actionCanRun = await this.getData(prjId, formId, element.dataAdapter, params);          
@@ -1593,6 +1612,16 @@ export class GtsDataService {
         // realign page rules
         this.setPageDataSetRule(prjId, formId, dataAdapter, dataSetName);
 
+        valid = true;
+      } else if (responseData.valid && responseData.data[0].rows.length === 0 && all) {
+        // Valid response but no rows (e.g. last record deleted) — clear grid data
+        let allRows = this.pageData.filter((data: any) => data.prjId === prjId && data.formId === formId && data.dataAdapter === dataAdapter)[0]
+        .data
+        .filter((dataSet: any) => dataSet.dataSetName === dataSetName)[0]
+        .rows;
+        allRows.splice(0, allRows.length);
+
+        this.gridReloadListener.next(dataSetName);
         valid = true;
       } else {
         valid = false;
@@ -2171,7 +2200,7 @@ export class GtsDataService {
   }
 
   // Get data from Server from field SQL
-  async getExportedData(prjId: string, formId: number, clFldGrpId: number, fieldName: string, fieldValue: string = '*', fieldCaller: string = '*') {
+  async getExportedData(prjId: string, formId: number, clFldGrpId: number, fieldName: string, fieldValue: string = '*', fieldCaller: string = '*', formData: any[] | null = null) {
     let valid: boolean = false;
 
     let responseData: any = {
@@ -2208,31 +2237,38 @@ export class GtsDataService {
             let value: any;
 
             if (fieldParam.paramObjectName) {
-              // Check if ObjectParamName is a Form Field
-              const paramIsFormFields = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
-              .pageData
-              .forms
-              .filter((form: any) => form.groupId === clFldGrpId)[0]
-              .fields
-              .filter((metaField: any) => metaField.objectName === fieldParam.paramObjectName).length === 1;
+              // 1. Try formData runtime first (has the latest user-entered values)
+              if (formData) {
+                const formField = formData.find((f: any) => f.objectName === fieldParam.paramObjectName);
+                if (formField) {
+                  value = formField.value;
+                }
+              }
 
-              if (paramIsFormFields) {
-                value = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+              // 2. If not found in formData, check metaData form fields
+              if (value === undefined || value === null) {
+                const metaFormField = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
                 .pageData
                 .forms
                 .filter((form: any) => form.groupId === clFldGrpId)[0]
                 .fields
-                .filter((metaField: any) => metaField.objectName === fieldParam.paramObjectName)[0]
-                .value;
-              } else {
+                .find((metaField: any) => metaField.objectName === fieldParam.paramObjectName);
+
+                if (metaFormField) {
+                  value = metaFormField.value;
+                }
+              }
+
+              // 3. Fallback to pageFields
+              if (value === undefined || value === null) {
                 const pageField = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
                 .pageData
                 .pageFields
-                .filter((pageField: any) => pageField.pageFieldName === fieldParam.paramObjectName)[0];
+                .find((pf: any) => pf.pageFieldName === fieldParam.paramObjectName);
                 if (pageField) {
                   value = pageField.value;
                 } else {
-                  console.warn(`getExportedData: pageField '${fieldParam.paramObjectName}' not found`);
+                  console.warn(`getExportedData: param '${fieldParam.paramObjectName}' not found in formData, metaData fields, or pageFields`);
                   value = null;
                 }
               }
@@ -2497,7 +2533,15 @@ export class GtsDataService {
 
     // Open file uploader with config and wait for completion
     return new Promise<boolean>((resolve) => {
+      let dialogOpened = false;
       const sub = this.getFileLoaderListener().subscribe((status: any) => {
+        // Track when dialog actually opens; ignore events before that
+        if (status.fileUploadVisible) {
+          dialogOpened = true;
+          return;
+        }
+        if (!dialogOpened) return;
+
         if (!status.fileUploadVisible && status.result === true && status.fileUploadedName) {
           sub.unsubscribe();
           if (targetField) {
@@ -2682,7 +2726,6 @@ export class GtsDataService {
             .forEach((field: any) => {
               if (field.pageFieldName === param.PAGE_FIELD_NAME) {
                 found = true;
-                console.log('[buildParams] MongoDB doc field:', param.COLL_FIELD_NAME, '← pageField:', param.PAGE_FIELD_NAME, 'dataType:', field.dataType, 'value:', field.value);
                 if (field.dataType === 'Object') {
                   // Convert Object to JSON only if field.value data type is a string
                   if (field.value !== undefined && field.value !== null && field.value !== '') {

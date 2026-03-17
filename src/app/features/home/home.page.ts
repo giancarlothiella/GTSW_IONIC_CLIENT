@@ -13,7 +13,8 @@ import {
   IonRow,
   IonCol,
   IonSpinner,
-  IonButton
+  IonButton,
+  AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -83,13 +84,16 @@ import { ProjectInfo } from '../../core/models/menu.model';
                     <ion-card
                       class="admin-project-card"
                       [class.selected-project]="project.prjId === user?.prjId"
+                      [class.locked-project]="project.locked"
                       button="true"
                       (click)="onProjectClick(project)">
                       <!-- Project Image -->
                       @if (project.homeImage) {
                         <div class="project-image-container admin-image-container">
                           <img [src]="project.homeImage" [alt]="project.description" class="project-image">
-                          @if (project.prjId === user?.prjId) {
+                          @if (project.locked) {
+                            <ion-badge color="danger" class="active-badge">Locked</ion-badge>
+                          } @else if (project.prjId === user?.prjId) {
                             <ion-badge color="success" class="active-badge">{{ getText(1301) }}</ion-badge>
                           }
                         </div>
@@ -143,13 +147,16 @@ import { ProjectInfo } from '../../core/models/menu.model';
                 <ion-col size="12" sizeSm="6" sizeMd="4" sizeLg="3">
                   <ion-card
                     [class.selected-project]="project.prjId === user?.prjId"
+                    [class.locked-project]="project.locked"
                     button="true"
                     (click)="onProjectClick(project)">
                     <!-- Project Image -->
                     @if (project.homeImage) {
                       <div class="project-image-container">
                         <img [src]="project.homeImage" [alt]="project.description" class="project-image">
-                        @if (project.prjId === user?.prjId) {
+                        @if (project.locked) {
+                          <ion-badge color="danger" class="active-badge">Locked</ion-badge>
+                        } @else if (project.prjId === user?.prjId) {
                           <ion-badge color="success" class="active-badge">{{ getText(1301) }}</ion-badge>
                         }
                       </div>
@@ -381,6 +388,17 @@ import { ProjectInfo } from '../../core/models/menu.model';
       transform: translateY(-4px);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     }
+
+    .locked-project {
+      opacity: 0.6;
+      border: 2px solid var(--ion-color-danger);
+    }
+
+    .locked-project:hover {
+      transform: none;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
   `]
 })
 export class HomePage implements OnInit, ViewWillEnter {
@@ -388,6 +406,7 @@ export class HomePage implements OnInit, ViewWillEnter {
   private menuService = inject(MenuService);
   private gtsDataService = inject(GtsDataService);
   private translationService = inject(TranslationService);
+  private alertController = inject(AlertController);
 
   user = this.authService.getCurrentUser();
   projects: ProjectInfo[] = [];
@@ -474,7 +493,18 @@ export class HomePage implements OnInit, ViewWillEnter {
   /**
    * Click su tile progetto
    */
-  onProjectClick(project: ProjectInfo) {
+  async onProjectClick(project: ProjectInfo) {
+    // Se il progetto è bloccato, mostra messaggio
+    if (project.locked) {
+      const alert = await this.alertController.create({
+        header: 'Progetto bloccato',
+        message: project.lockedMessage || 'Questo progetto è attualmente bloccato.',
+        buttons: ['OK']
+      });
+      await alert.present();
+      return;
+    }
+
     // Se il progetto è già attivo, non fare nulla
     if (project.prjId === this.user?.prjId) return;
 

@@ -72,7 +72,7 @@
 // Form Fields
 .form001Field {
   width: 100%;
-  background-color: rgb(234, 235, 247);
+  background-color: #ffffff;
   font-weight: normal;
   margin-bottom: 2px;
 
@@ -82,7 +82,17 @@
   .p-datepicker {
     width: 100% !important;
     max-width: 100% !important;
+    background-color: #ffffff;
+  }
+
+  // Readonly fields get distinct background
+  &:has(input[readonly]),
+  &:has(input:disabled) {
     background-color: rgb(234, 235, 247);
+
+    input {
+      background-color: rgb(234, 235, 247) !important;
+    }
   }
 
   p-floatLabel {
@@ -132,6 +142,7 @@
     background-color: rgb(187, 214, 240);
     color: rgb(23, 36, 155);
     font-weight: 500;
+    border-color: rgb(120, 160, 200) !important;
   }
 
   p-floatLabel {
@@ -297,15 +308,20 @@
 
   // Select (Dropdown)
   .p-select {
+    height: 30px;
     min-height: 30px;
     font-size: 12px;
     border: 1px solid #ced4da;
     border-radius: 2px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
 
     .p-select-label {
-      padding: 4px 6px;
+      padding: 0 6px;
       font-size: 12px;
       font-weight: 500;
+      line-height: 28px;
 
       &.p-placeholder {
         color: #6c757d;
@@ -317,45 +333,19 @@
       border-color: #00008b;
     }
 
-    &.p-focus {
+    &.p-focus,
+    &:focus-within {
       border-color: #00008b;
       box-shadow: 0 0 0 0.1rem rgba(0, 0, 139, 0.15);
     }
   }
 
   // DatePicker (Calendar)
-  // PrimeNG sets inline position:relative on p-datepicker, creating a stacking context
-  // that hides the floatLabel. Override to static so the label stays visible.
   .p-datepicker {
-    position: static !important;
-
-    .p-datepicker-input-icon-container {
-      width: 30px;
-      position: relative;
-      z-index: 10;
-
-      button {
-        width: 30px;
-        height: 30px;
-        padding: 0;
-        position: relative;
-        z-index: 10;
-
-        .p-icon {
-          font-size: 11px;
-        }
-      }
-    }
-
     .p-inputtext {
       padding: 10px 6px 2px 6px;
       height: 30px;
-    }
-
-    &:not(.p-disabled):hover {
-      .p-inputtext {
-        border-color: #00008b;
-      }
+      font-size: 12px;
     }
   }
 
@@ -451,7 +441,7 @@
     &:has(.p-inputwrapper-focus) label,
     &:has(.p-inputwrapper-filled) label,
     &:has(.p-datepicker) label {
-      top: 0px;
+      top: 2px;
       left: 5px;
       font-size: 9px;
       color: #00008b;
@@ -471,6 +461,14 @@
       padding-bottom: 0px !important;
     }
 
+    // Adjust dropdown label padding when filled
+    &:has(.p-inputwrapper-filled) .p-select-label,
+    &:has(.p-inputwrapper-focus) .p-select-label {
+      padding-top: 10px !important;
+      padding-bottom: 0px !important;
+      line-height: normal;
+    }
+
     // Label for readonly/disabled fields
     &:has(input:disabled) label,
     &:has(input[readonly]) label {
@@ -481,7 +479,7 @@
   // Static label mode - label always small at top, even when field is empty
   .label-mode-static .p-floatlabel {
     label {
-      top: 0px;
+      top: 2px;
       left: 5px;
       font-size: 9px;
       color: #00008b;

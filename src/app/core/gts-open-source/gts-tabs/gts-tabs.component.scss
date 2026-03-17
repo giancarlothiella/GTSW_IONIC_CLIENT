@@ -12,7 +12,9 @@
     max-height: 44px;
     margin: 0;
     padding: 0;
-    width: fit-content;
+    width: fit-content !important;
+    max-width: fit-content;
+    justify-content: flex-start;
     overflow: visible !important;
 
     // Nasconde i controlli di scroll

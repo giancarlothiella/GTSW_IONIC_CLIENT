@@ -105,9 +105,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     filter: true,
     resizable: true,
     floatingFilter: false,
-    minWidth: 100,
-    maxWidth: 500,
-    flex: 1
+    minWidth: 60
   };
 
   // Grid options
@@ -372,7 +370,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
             if (this.gridApi && !this.gridApi.isDestroyed()) {
               if (!hadDataBefore && this.rowData && this.rowData.length > 0) {
                 // First data load - auto-size to content
-                this.gridApi.autoSizeAllColumns(false);
+                this.autoSizeAndFit(this.gridApi);
                 // Update initial state so Reset Columns uses content-based widths
                 this.initialColumnState = this.gridApi.getColumnState();
               } else if (this.savedColumnState) {
@@ -583,9 +581,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       filter: true,
       resizable: true,
       floatingFilter: false,
-      minWidth: 100,
-      maxWidth: 500,
-      flex: 1
+      minWidth: 60
     };
     this.headerFilterVisible = false;
 
@@ -743,9 +739,10 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Calculate summary row (pinned bottom) if any columns have summaryType
     this.calculateSummaryRow();
 
-    // Don't send loader notification here - causes ExpressionChangedAfterItHasBeenCheckedError
-    // Let the parent component handle loader state
-    // this.gtsDataService.sendAppLoaderListener(false);
+    // Force change detection — gridReady may have changed inside an async RxJS callback
+    // which Angular's zone may not detect automatically
+    // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError during initial load
+    setTimeout(() => this.cdr.detectChanges());
   }
 
   convertColumnsToAGGrid(columns: any[]): void {
@@ -915,13 +912,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       colDef.filter = col.allowFiltering !== false;
     }
 
-    // Se la colonna ha una larghezza specifica, usala come minWidth; altrimenti usa flex
+    // Column width: use metadata width as minWidth, autoSizeAllColumns handles the rest
     if (col.width) {
       colDef.minWidth = col.width;
-      colDef.flex = 1;
     } else {
-      colDef.flex = 1; // Espande proporzionalmente
-      colDef.maxWidth = 400; // Max width ragionevole
+      colDef.minWidth = 60;
     }
 
     // Normalize column type (supports both dataType and colType properties, case-insensitive)
@@ -1098,8 +1093,8 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       // Go to first page to ensure rows are displayed
       params.api.paginationGoToFirstPage();
 
-      // Auto-size all columns to fit their content (best fit) on first load
-      params.api.autoSizeAllColumns(false); // false = don't skip header
+      // Auto-size all columns to fit their content, then fill remaining space
+      this.autoSizeAndFit(params.api);
 
       // Save initial column state for reset functionality (only on first load)
       if (!this.initialColumnState) {
@@ -2637,7 +2632,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         // Auto-size columns after loading new data (especially important if grid was empty)
         setTimeout(() => {
           if (this.gridApi && !this.gridApi.isDestroyed()) {
-            this.gridApi.autoSizeAllColumns(false);
+            this.autoSizeAndFit(this.gridApi);
             // Update initial column state so Reset Columns works correctly
             this.initialColumnState = this.gridApi.getColumnState();
           }
@@ -2831,6 +2826,20 @@ export class GtsGridComponent implements OnInit, OnDestroy {
   /**
    * Reset columns to original state (as displayed on first load after autoSize)
    */
+  /** Auto-size columns to content, then expand to fill grid if there's extra space */
+  private autoSizeAndFit(api: GridApi): void {
+    api.autoSizeAllColumns(false);
+    const allColumns = api.getColumns();
+    if (allColumns && allColumns.length <= 10) {
+      const totalColWidth = allColumns.reduce((sum: number, col: any) => sum + col.getActualWidth(), 0);
+      const gridBody = (api as any).gridBodyCtrl?.eBodyViewport;
+      const gridWidth = gridBody?.clientWidth || 0;
+      if (gridWidth > 0 && totalColWidth < gridWidth) {
+        api.sizeColumnsToFit();
+      }
+    }
+  }
+
   resetColumns(): void {
     if (!this.gridApi || this.gridApi.isDestroyed()) return;
 
@@ -2842,7 +2851,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       });
     } else {
       // Fallback: auto-size columns if no initial state saved
-      this.gridApi.autoSizeAllColumns(false);
+      this.autoSizeAndFit(this.gridApi);
     }
   }
 
@@ -2890,41 +2899,66 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Get selected row data
     const selectedRow = this.selectedRows.length > 0 ? this.selectedRows[0] : null;
 
-    // Build a map of grid columns for quick lookup (fieldName -> column metadata)
+    // Build ordered list of visible grid columns from AG Grid columnDefs (preserves display order)
+    // Also build a map for quick lookup
+    const orderedFields: string[] = [];
     const columnMap = new Map<string, any>();
-    if (this.metaData?.data?.columns) {
-      this.metaData.data.columns.forEach((col: any) => {
-        const fieldName = col.dataField || col.fieldName;
-        columnMap.set(fieldName, col);
+    const extractFromDefs = (defs: any[]) => {
+      defs.forEach((def: any) => {
+        if (def.children && Array.isArray(def.children)) {
+          extractFromDefs(def.children);
+        } else if (def.field) {
+          orderedFields.push(def.field);
+          columnMap.set(def.field, def);
+        }
       });
+    };
+    extractFromDefs(this.columnDefs);
+
+    // Also check server metadata for columns not in columnDefs (e.g. visible:false columns)
+    const extractFromMeta = (cols: any[]) => {
+      cols.forEach((col: any) => {
+        if (col.columns && Array.isArray(col.columns)) {
+          extractFromMeta(col.columns);
+        } else {
+          const fieldName = col.dataField || col.fieldName;
+          if (fieldName && !columnMap.has(fieldName)) {
+            columnMap.set(fieldName, col);
+          }
+        }
+      });
+    };
+    if (this.metaData?.data?.columns) {
+      extractFromMeta(this.metaData.data.columns);
     }
 
-    // Get ALL fields from the selected row (not just grid columns)
+    // Get ALL fields from the selected row
     if (selectedRow) {
-      // Get all keys from the row data
       const allFields = Object.keys(selectedRow);
+      const orderIndex = new Map(orderedFields.map((f, i) => [f, i]));
 
       this.originalDataFields = allFields.map((fieldName: string) => {
-        // Check if this field has column metadata
         const colMeta = columnMap.get(fieldName);
+        const isVisible = orderIndex.has(fieldName);
 
         return {
           fieldName: fieldName,
-          caption: colMeta ? (colMeta.caption || colMeta.text || fieldName) : fieldName,
+          caption: colMeta ? (colMeta.headerName || colMeta.caption || colMeta.text || fieldName) : fieldName,
           dataType: colMeta ? (colMeta.colType || colMeta.dataType || 'String') : this.inferDataType(selectedRow[fieldName]),
           value: selectedRow[fieldName],
-          visible: colMeta ? (colMeta.visible !== false) : true,
+          visible: isVisible,
           isPK: colMeta?.isPK || false,
-          isInGrid: !!colMeta  // Flag to show if field is displayed in grid
+          isInGrid: !!colMeta
         };
       });
 
-      // Sort: PK fields first, then grid columns, then other fields
+      // Sort: visible columns in grid display order, then hidden alphabetically
       this.originalDataFields.sort((a, b) => {
-        if (a.isPK && !b.isPK) return -1;
-        if (!a.isPK && b.isPK) return 1;
-        if (a.isInGrid && !b.isInGrid) return -1;
-        if (!a.isInGrid && b.isInGrid) return 1;
+        if (a.visible && !b.visible) return -1;
+        if (!a.visible && b.visible) return 1;
+        if (a.visible && b.visible) {
+          return (orderIndex.get(a.fieldName) ?? 999) - (orderIndex.get(b.fieldName) ?? 999);
+        }
         return a.fieldName.localeCompare(b.fieldName);
       });
     }

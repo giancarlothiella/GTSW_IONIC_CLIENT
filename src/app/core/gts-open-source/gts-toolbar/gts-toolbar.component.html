@@ -116,8 +116,8 @@
               interface="popover"
             >
               @for (option of item.items; track $index) {
-                <ion-select-option [value]="option[item.field]">
-                  {{ option[item.field] }}
+                <ion-select-option [value]="option.value ?? option[item.field]">
+                  {{ option.label ?? option[item.field] }}
                 </ion-select-option>
               }
             </ion-select>
@@ -172,8 +172,8 @@
               interface="popover"
             >
               @for (option of item.items; track $index) {
-                <ion-select-option [value]="option[item.field]">
-                  {{ option[item.field] }}
+                <ion-select-option [value]="option.value ?? option[item.field]">
+                  {{ option.label ?? option[item.field] }}
                 </ion-select-option>
               }
             </ion-select>

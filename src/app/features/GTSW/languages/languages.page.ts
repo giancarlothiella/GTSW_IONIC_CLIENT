@@ -18,7 +18,6 @@ import { Button } from 'primeng/button';
 import { InputText } from 'primeng/inputtext';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import { Checkbox } from 'primeng/checkbox';
 
 // Import GTS Components - Open Source Versions
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
@@ -53,8 +52,7 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
     Textarea,
     Button,
     InputText,
-    Toast,
-    Checkbox
+    Toast
   ],
   providers: [MessageService],
   template: `
@@ -157,7 +155,6 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
                   <th style="width: 50px">Icon</th>
                   <th style="width: 80px">Id</th>
                   <th>Language</th>
-                  <th style="width: 80px">Selected</th>
                 </tr>
               </ng-template>
               <ng-template pTemplate="body" let-lang>
@@ -165,7 +162,6 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
                   <td><img [src]="lang.flag" style="height: 20px" /></td>
                   <td>{{ lang.languageId }}</td>
                   <td>{{ lang.description }}</td>
-                  <td style="text-align: center"><p-checkbox [ngModel]="lang.selected" [binary]="true" [disabled]="true"></p-checkbox></td>
                 </tr>
               </ng-template>
             </p-table>
@@ -295,16 +291,23 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
               [disabled]="aiTranslating"
               class="mr-2"
             ></p-button>
-            <p-button
-              label="Save"
-              severity="success"
-              (onClick)="onSaveTextMLData()"
-            ></p-button>
           }
+          <p-button
+            label="Download Excel"
+            icon="pi pi-file-excel"
+            severity="info"
+            (onClick)="onDownloadMLExcel()"
+            class="mr-2"
+          ></p-button>
+          <p-button
+            label="Save"
+            severity="success"
+            (onClick)="onSaveTextMLData()"
+          ></p-button>
         </ng-template>
       </p-dialog>
 
-      <p-toast></p-toast>
+      <p-toast position="bottom-center"></p-toast>
     </ng-container>
   `,
   styles: [`
@@ -476,14 +479,16 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
           this.dataLanguages = this.gtsDataService.getDataSet(this.prjId, this.formId, 'daLang', 'qLang');
           this.languages = [];
 
-          this.dataLanguages.forEach((language: any) => {
-            this.languages.push({
-              flag: '/assets/icons/stdImage_' + language.stdImageId + '.png',
-              languageId: language.languageId,
-              description: language.description,
-              selected: language.active
+          this.dataLanguages
+            .filter((row: any) => row.active)
+            .forEach((language: any) => {
+              this.languages.push({
+                flag: '/assets/icons/stdImage_' + language.stdImageId + '.png',
+                languageId: language.languageId,
+                description: language.description,
+                selected: language.active
+              });
             });
-          });
 
           this.languageTabs = [];
           this.dataLanguages
@@ -501,12 +506,15 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
             .filter((element: any) => element.dataAdapter === 'daLang')[0]
             .data[1]
             .rows;
-          this.customData[0].value = qProjects[0].prjId;
           this.customData[0].items = qProjects;
 
-          this.toolbarSelectedValue = qProjects[0].prjId;
+          // Keep current selection if already set, otherwise use first project
+          if (!this.toolbarSelectedValue) {
+            this.toolbarSelectedValue = qProjects[0].prjId;
+            this.customData[0].value = qProjects[0].prjId;
+          }
 
-          this.mlTextData = await this.gtsDataService.execMethod('data', 'getSavedMLText', { prjId: qProjects[0].prjId });
+          this.mlTextData = await this.gtsDataService.execMethod('data', 'getSavedMLText', { prjId: this.toolbarSelectedValue });
           this.prepareTexts(this.languageTabs[this.languageIndex].id);
           this.textExportFileName = 'mlTextExport_' + qProjects[0].prjId + '_' + this.languageTabs[this.languageIndex].id;
 
@@ -547,48 +555,6 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
           exportTexts = exportTexts.filter((text: any) => {
             return Object.keys(text).length < this.mlTextData.data.length + 1;
           });
-
-          const workbook = new Workbook();
-          const worksheet = workbook.addWorksheet('Main sheet');
-          const fileName = this.textExportFileName + '.xlsx';
-
-          // Add Project Id
-          worksheet.addRow(['Project', this.toolbarSelectedValue]);
-          worksheet.getCell(1, 2).font = { bold: true, size: 16 };
-
-          // Add header row
-          const headerRow = ['Txt Id', ...this.mlTextData.data.map((language: any) => language.languageId)];
-          worksheet.addRow(headerRow);
-
-          // Format header
-          headerRow.forEach((cell: any, index: number) => {
-            worksheet.getCell(2, index + 1).font = { bold: true };
-            worksheet.getCell(2, index + 1).fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'D3D3D3' }
-            };
-          });
-
-          // Set column widths
-          worksheet.columns.forEach((column: any) => {
-            if (column._number === 1) {
-              column.width = 10;
-            } else {
-              column.width = 200;
-            }
-          });
-
-          // Add data rows
-          exportTexts.forEach((text: any) => {
-            const row = [text.txtId, ...this.mlTextData.data.map((language: any) => text[language.languageId] || '')];
-            worksheet.addRow(row);
-          });
-
-          workbook.xlsx.writeBuffer()
-            .then((buffer: BlobPart) => {
-              saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
-            });
 
           this.textMLDataString = JSON.stringify(exportTexts, null, 2);
           this.jsonMLVisible = true;
@@ -631,35 +597,35 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
         }
 
         //===== END CUSTOM CODE =====
+      });
 
-        // Toolbar Events Listener
-        this.toolbarListenerSubs = this.gtsDataService
-          .getToolbarEventListener()
-          .subscribe(async (data) => {
-            //===== START CUSTOM_TOOLBAR_EVENT_CODE =====
+    // Toolbar Events Listener
+    this.toolbarListenerSubs = this.gtsDataService
+      .getToolbarEventListener()
+      .subscribe(async (data) => {
+        //===== START CUSTOM_TOOLBAR_EVENT_CODE =====
 
-            if (data !== undefined && this.toolbarEventData !== data) {
-              this.toolbarEventData = data;
-              this.toolbarSelectedValue = data.selectedValue;
-              this.customData[0].value = this.toolbarSelectedValue;
+        if (data !== undefined && this.toolbarEventData !== data) {
+          this.toolbarEventData = data;
+          this.toolbarSelectedValue = data.selectedValue;
+          this.customData[0].value = this.toolbarSelectedValue;
 
-              const prjDescription = this.pageData
-                .filter((element: any) => element.dataAdapter === 'daLang')[0].data
-                .filter((dataSet: any) => dataSet.dataSetName === 'qProjects')[0].rows
-                .filter((row: any) => row.prjId === this.toolbarSelectedValue)[0].description;
+          const prjDescription = this.pageData
+            .filter((element: any) => element.dataAdapter === 'daLang')[0].data
+            .filter((dataSet: any) => dataSet.dataSetName === 'qProjects')[0].rows
+            .filter((row: any) => row.prjId === this.toolbarSelectedValue)[0].description;
 
-              this.metaData.pageFields.filter((field: any) => field.pageFieldName === 'gtsFldqProjects_prjId')[0].value = this.toolbarSelectedValue;
-              this.metaData.pageFields.filter((field: any) => field.pageFieldName === 'gtsFldqProjects_description')[0].value = prjDescription;
-              this.customData[0].value = this.toolbarSelectedValue;
-              this.gtsDataService.refreshActualView(this.prjId, this.formId);
+          this.metaData.pageFields.filter((field: any) => field.pageFieldName === 'gtsFldqProjects_prjId')[0].value = this.toolbarSelectedValue;
+          this.metaData.pageFields.filter((field: any) => field.pageFieldName === 'gtsFldqProjects_description')[0].value = prjDescription;
+          this.customData[0].value = this.toolbarSelectedValue;
+          this.gtsDataService.refreshActualView(this.prjId, this.formId);
 
-              this.mlTextData = await this.gtsDataService.execMethod('data', 'getSavedMLText', { prjId: this.toolbarSelectedValue });
-              this.prepareTexts(this.languageTabs[this.languageIndex].id);
-              this.textExportFileName = 'mlTextExport_' + this.toolbarSelectedValue + '_' + this.languageTabs[this.languageIndex].id;
-            }
+          this.mlTextData = await this.gtsDataService.execMethod('data', 'getSavedMLText', { prjId: this.toolbarSelectedValue });
+          this.prepareTexts(this.languageTabs[this.languageIndex].id);
+          this.textExportFileName = 'mlTextExport_' + this.toolbarSelectedValue + '_' + this.languageTabs[this.languageIndex].id;
+        }
 
-            //===== END CUSTOM_TOOLBAR_EVENT_CODE =====
-          });
+        //===== END CUSTOM_TOOLBAR_EVENT_CODE =====
       });
 
     // Run Page
@@ -734,6 +700,51 @@ export class GTSW_LanguagesComponent implements OnInit, OnDestroy {
 
   onCancelTextMLData() {
     this.jsonMLVisible = false;
+  }
+
+  onDownloadMLExcel() {
+    const exportTexts = JSON.parse(this.textMLDataString);
+    const workbook = new Workbook();
+    const worksheet = workbook.addWorksheet('Main sheet');
+    const fileName = this.textExportFileName + '.xlsx';
+
+    // Add Project Id
+    worksheet.addRow(['Project', this.toolbarSelectedValue]);
+    worksheet.getCell(1, 2).font = { bold: true, size: 16 };
+
+    // Add header row
+    const headerRow = ['Txt Id', ...this.mlTextData.data.map((language: any) => language.languageId)];
+    worksheet.addRow(headerRow);
+
+    // Format header
+    headerRow.forEach((_cell: any, index: number) => {
+      worksheet.getCell(2, index + 1).font = { bold: true };
+      worksheet.getCell(2, index + 1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'D3D3D3' }
+      };
+    });
+
+    // Set column widths
+    worksheet.columns.forEach((column: any) => {
+      if (column._number === 1) {
+        column.width = 10;
+      } else {
+        column.width = 200;
+      }
+    });
+
+    // Add data rows
+    exportTexts.forEach((text: any) => {
+      const row = [text.txtId, ...this.mlTextData.data.map((language: any) => text[language.languageId] || '')];
+      worksheet.addRow(row);
+    });
+
+    workbook.xlsx.writeBuffer()
+      .then((buffer: BlobPart) => {
+        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+      });
   }
 
   onLanguageTabChange(index: string | number | undefined) {

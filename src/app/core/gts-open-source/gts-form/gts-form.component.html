@@ -61,12 +61,14 @@
                   [(ngModel)]="element.value"
                   [disabled]="element.disabled"
                   [readonly]="element.readOnly"
+                  [tabindex]="(element.readOnly || element.disabled) ? -1 : 0"
                   [type]="element.mode || 'text'"
                   [style]="(element.forceUpperCase ? 'text-transform: uppercase; ' : '') + (element.dataType === 'N' ? 'text-align: right;' : '')"
                   (input)="onFieldInput($event, element)"
                   (ngModelChange)="onFieldDataChanged(element, $event)"
                   (blur)="onFieldFocusOut(element)"
                   (keydown)="onFieldKeyDown($event, element)"
+                  (keypress)="element.dataType === 'N' ? onNumericKeyPress($event) : null"
                   #inputElement
                 />
                 <label [for]="objectName + '_' + element.fieldId">{{ element.label }}</label>
@@ -87,6 +89,7 @@
                   [(ngModel)]="element.value"
                   [disabled]="element.disabled"
                   readonly
+                  tabindex="-1"
                   [style]="element.dataType === 'N' ? 'text-align: right;' : ''"
                   #inputElement
                 />
@@ -124,7 +127,7 @@
                   [disabled]="element.disabled || element.readOnly"
                   (ngModelChange)="onFieldDataChanged(element, $event)"
                   [showIcon]="!(element.disabled || element.readOnly)"
-                  [showOnFocus]="false"
+                  [showOnFocus]="true"
                   [keepInvalid]="true"
                   (onInput)="onDateInput($event, element)"
                   class="gts-date-field">
@@ -147,6 +150,7 @@
                   [(ngModel)]="element.value"
                   [disabled]="element.disabled"
                   [readonly]="element.readOnly"
+                  [tabindex]="(element.readOnly || element.disabled) ? -1 : 0"
                   [rows]="element.areaHeight ? element.areaHeight / 20 : 5"
                   (input)="onFieldInput($event, element)"
                   (ngModelChange)="onFieldDataChanged(element, $event)"
@@ -173,8 +177,7 @@
                   optionValue="code"
                   [disabled]="element.disabled"
                   [readonly]="element.readOnly"
-                  (ngModelChange)="onFieldDataChanged(element, $event)"
-                  (onBlur)="onFieldFocusOut(element)"
+                  (onChange)="onDropDownChanged(element, $event)"
                   [style]="{'width': '100%'}">
                 </p-select>
                 <label [for]="objectName + '_' + element.fieldId">{{ element.label }}</label>
@@ -195,6 +198,7 @@
                   [(ngModel)]="element.value"
                   [disabled]="element.disabled"
                   [readonly]="element.readOnly"
+                  [tabindex]="(element.readOnly || element.disabled) ? -1 : 0"
                   [style]="(element.forceUpperCase ? 'text-transform: uppercase; ' : '') + (element.dataType === 'N' ? 'text-align: right;' : '')"
                   (input)="onFieldInput($event, element)"
                   (ngModelChange)="onFieldDataChanged(element, $event)"

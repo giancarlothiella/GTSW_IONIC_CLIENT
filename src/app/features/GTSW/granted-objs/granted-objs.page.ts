@@ -1,5 +1,5 @@
 // src/app/features/GTSW/granted-objs/granted-objs.page.ts
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
@@ -119,6 +119,7 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
 export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
   // Services
   private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
   public gtsDataService = inject(GtsDataService);
 
   // Page params
@@ -161,13 +162,17 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
     this.appViewListenerSubs = this.gtsDataService
       .getAppViewListener()
       .subscribe((actualView) => {
-        this.actualView = actualView;
-        this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
-        this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all');
-        if (this.metaData.views.filter((view: any) => view.viewName === actualView) !== undefined &&
-            this.metaData.views.filter((view: any) => view.viewName === actualView).length > 0) {
-          this.viewStyle = this.metaData.views.filter((view: any) => view.viewName === actualView)[0].viewStyle;
-        }
+        // Use setTimeout to avoid NG0100 — action chain may still be in a check cycle
+        setTimeout(() => {
+          this.actualView = actualView;
+          this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
+          this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all');
+          if (this.metaData.views.filter((view: any) => view.viewName === actualView) !== undefined &&
+              this.metaData.views.filter((view: any) => view.viewName === actualView).length > 0) {
+            this.viewStyle = this.metaData.views.filter((view: any) => view.viewName === actualView)[0].viewStyle;
+          }
+          this.cdr.detectChanges();
+        });
       });
 
     // Form Req Listener
@@ -231,40 +236,43 @@ export class GTSW_GrantedObjsComponent implements OnInit, OnDestroy {
       .subscribe(async (event) => {
         //===== START CUSTOM CODE =====
         if (event.customCode === 'setCtxProject') {
-          this.toolbarSelectedValue = this.pageData
-            .filter((element: any) => element.dataAdapter === 'daProjects')[0]
-            .data[0]
-            .rows[0].prjId;
+          // Use setTimeout to avoid NG0100 — setView (previous action) already triggered
+          // change detection, and modifying state here would cause ExpressionChangedAfterItHasBeenCheckedError
+          setTimeout(() => {
+            this.toolbarSelectedValue = this.pageData
+              .filter((element: any) => element.dataAdapter === 'daProjects')[0]
+              .data[0]
+              .rows[0].prjId;
 
-          this.metaData.pageFields
-            .filter((field: any) => field.pageFieldName === 'gtsFldqProjects_prjId')[0].value = this.toolbarSelectedValue;
+            this.metaData.pageFields
+              .filter((field: any) => field.pageFieldName === 'gtsFldqProjects_prjId')[0].value = this.toolbarSelectedValue;
 
-          const qProjects = this.pageData
-            .filter((element: any) => element.dataAdapter === 'daProjects')[0]
-            .data[0]
-            .rows;
-          this.customData[0].value = this.toolbarSelectedValue;
-          this.customData[0].items = qProjects;
+            const qProjects = this.pageData
+              .filter((element: any) => element.dataAdapter === 'daProjects')[0]
+              .data[0]
+              .rows;
+            this.customData[0].value = this.toolbarSelectedValue;
+            this.customData[0].items = qProjects;
 
-          this.metaData.pageFields.filter((field: any) => field.pageFieldName === 'gtsFldqProjects_prjId')[0].value = this.toolbarSelectedValue;
-          this.filterProject('gtsGridMenu', this.toolbarSelectedValue, 'qMenu');
-          this.filterProject('gtsGridObjects', this.toolbarSelectedValue, 'qObjects');
+            this.metaData.pageFields.filter((field: any) => field.pageFieldName === 'gtsFldqProjects_prjId')[0].value = this.toolbarSelectedValue;
+            this.filterProject('gtsGridMenu', this.toolbarSelectedValue, 'qMenu');
+            this.filterProject('gtsGridObjects', this.toolbarSelectedValue, 'qObjects');
 
-          let allRoles = this.pageData
-            .filter((adapter: any) => adapter.dataAdapter === 'daPrjData')[0]
-            .data
-            .filter((ds: any) => ds.dataSetName === 'qAllRoles')[0]
-            .rows;
+            let allRoles = this.pageData
+              .filter((adapter: any) => adapter.dataAdapter === 'daPrjData')[0]
+              .data
+              .filter((ds: any) => ds.dataSetName === 'qAllRoles')[0]
+              .rows;
 
-          if (allRoles !== undefined && allRoles.length > 0) {
-            allRoles = allRoles.map((role: any) => {
-              return { role: role.role, roleDescr: role.roleDescr, DDStatus: 1 }; // Default status for drag and drop
-            });
-          }
+            if (allRoles !== undefined && allRoles.length > 0) {
+              allRoles = allRoles.map((role: any) => {
+                return { role: role.role, roleDescr: role.roleDescr, DDStatus: 1 }; // Default status for drag and drop
+              });
+            }
 
-          this.gtsDataService.setPageDataSet(this.prjId, this.formId, 'daPrjData', 'qAllRoles', allRoles);
-
-          console.log('Custom Data after setCtxProject:', this.customData);
+            this.gtsDataService.setPageDataSet(this.prjId, this.formId, 'daPrjData', 'qAllRoles', allRoles);
+            this.cdr.detectChanges();
+          });
         }
 
         if (event.customCode ==='setCtxProject2') {

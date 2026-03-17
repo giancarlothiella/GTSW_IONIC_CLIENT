@@ -2,7 +2,7 @@
   <div class="gts-tree-container">
 
     <!-- Left panel: Tree -->
-    <div class="gts-tree-panel" [class.gts-tree-panel-full]="!showDetail">
+    <div class="gts-tree-panel" [class.gts-tree-panel-full]="!showDetail" [style.width.px]="treePanelWidth">
 
       <!-- Filter -->
       <div class="gts-tree-filter">
@@ -34,6 +34,11 @@
       </div>
     </div>
 
+    <!-- Splitter -->
+    @if (showDetail) {
+      <div class="gts-tree-splitter" (mousedown)="onSplitterMouseDown($event)"></div>
+    }
+
     <!-- Right panel: Detail -->
     @if (showDetail) {
       <div class="gts-tree-detail">
@@ -44,7 +49,7 @@
             </div>
             <div class="gts-tree-detail-fields">
               @for (col of detailColumns; track col.fieldName) {
-                <div class="gts-tree-detail-row">
+                <div class="gts-tree-detail-row" [class.gts-tree-detail-row-multiline]="col.colType === 'Memo'">
                   <span class="gts-tree-detail-label">{{ getColumnHeader(col) }}</span>
                   <span class="gts-tree-detail-value">{{ getDetailValue(col) }}</span>
                 </div>

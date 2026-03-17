@@ -33,6 +33,7 @@ import { ProgressBar } from 'primeng/progressbar';
       [dismissableMask]="true"
       [style]="{ width: '500px' }"
       [closable]="true"
+      [focusOnShow]="false"
       (onHide)="closeModal()"
     >
       @if (loading) {
@@ -263,6 +264,7 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
       const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
       if (!this.allowedExtensions.includes(fileExtension)) {
         this.errorMessage = `File type not allowed. Allowed types: ${this.allowedExtensions.join(', ')}`;
+        input.value = '';
         return;
       }
     }
@@ -271,10 +273,13 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
     if (this.maxFileSize > 0 && file.size > this.maxFileSize) {
       const maxSizeMB = (this.maxFileSize / (1024 * 1024)).toFixed(2);
       this.errorMessage = `File size exceeds maximum allowed size of ${maxSizeMB} MB`;
+      input.value = '';
       return;
     }
 
     this.selectedFile = file;
+    // Reset input so the same file can be re-selected next time
+    input.value = '';
   }
 
   async uploadFile(): Promise<void> {

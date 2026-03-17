@@ -133,6 +133,8 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
   }
 
   buttonClick(objectName: string, actionName: string, submitBehavior: boolean): void {
+    this.gtsDataService.perfReset();
+    this.gtsDataService.perfLog(`toolbar.buttonClick ${actionName} submit=${submitBehavior}`);
     if (submitBehavior) {
       const formEvent: any = {
         prjId: this.prjId,
@@ -404,11 +406,23 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
     const rawOptions = pageField?.fieldOptions;
     if (rawOptions) {
       try {
-        fieldOptions = typeof rawOptions === 'string'
-          ? JSON.parse(rawOptions)
-          : rawOptions;
+        if (fieldType === 'dropdown' && typeof rawOptions === 'string' && rawOptions.includes(';')) {
+          // Format: "defaultValue;item1,item2,item3"
+          const [defaultVal, itemsStr] = rawOptions.split(';');
+          const items = itemsStr.split(',').map((s: string) => s.trim());
+          fieldOptions = items.map((item: string) => ({ value: item, label: item }));
+          // Set default value if not already set
+          if (!value && defaultVal) {
+            value = defaultVal.trim();
+            this.gtsDataService.setPageFieldValue(this.prjId, this.formId, item.pageFieldName, value);
+          }
+        } else {
+          fieldOptions = typeof rawOptions === 'string'
+            ? JSON.parse(rawOptions)
+            : rawOptions;
+        }
       } catch (e) {
-        console.warn(`[toolbar] Invalid fieldOptions JSON for ${item.objectName}:`, e);
+        console.warn(`[toolbar] Invalid fieldOptions for ${item.objectName}:`, e);
       }
     }
 
@@ -426,6 +440,22 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       if (selectedOption?.label) {
         displayValue = selectedOption.label;
       }
+    }
+
+    // Dropdown pageField: return as dropdown type
+    if (fieldType === 'dropdown' && fieldOptions.length > 0) {
+      return {
+        type: 'dropdown',
+        objectName: item.objectName,
+        label: label,
+        value: value || '',
+        items: fieldOptions,
+        visible: item.visible,
+        location: item.location,
+        field: pageField?.dbFieldName || item.pageFieldName,
+        pageFieldName: item.pageFieldName,
+        actionName: item.actionName || ''
+      };
     }
 
     // Hide non-checkbox fields when value is empty
@@ -495,6 +525,25 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
           location: item.location
         };
       }
+    }
+
+    // 3. PageField with fieldOptions (DropDown type)
+    if (pageField.fieldOptions && Array.isArray(pageField.fieldOptions) && pageField.fieldOptions.length > 0) {
+      const currentValue = pageField.value || this.gtsDataService.getPageFieldValue(this.prjId, this.formId, item.pageFieldName);
+      return {
+        type: 'dropdown',
+        objectName: item.objectName,
+        label: label,
+        value: currentValue || pageField.fieldOptions[0].value,
+        items: pageField.fieldOptions,
+        field: null,
+        pageFieldName: item.pageFieldName,
+        actionName: item.actionName || '',
+        dataSetName: '',
+        visible: item.visible,
+        disabled: item.disabled,
+        location: item.location
+      };
     }
 
     return null;

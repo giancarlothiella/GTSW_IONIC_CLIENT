@@ -34,6 +34,32 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       return next(authReq);
     }),
     catchError(async error => {
+      // 403 con locked: progetto bloccato — mostra messaggio senza logout
+      if (error.status === 403 && error.error?.locked && !isShowingAuthAlert) {
+        isShowingAuthAlert = true;
+
+        const alert = await alertController.create({
+          header: 'Progetto bloccato',
+          message: error.error.message || 'Questo progetto è attualmente bloccato.',
+          buttons: [{
+            text: 'OK',
+            handler: () => {
+              const loader = document.getElementById('gts-global-loader');
+              if (loader) loader.remove();
+              isShowingAuthAlert = false;
+            }
+          }],
+          backdropDismiss: false,
+          cssClass: 'auth-alert-top'
+        });
+        await alert.present();
+
+        const alertEl = document.querySelector('ion-alert.auth-alert-top');
+        if (alertEl && alertEl.parentElement !== document.body) {
+          document.body.appendChild(alertEl);
+        }
+      }
+
       // Se ricevi 401 Unauthorized, mostra messaggio e fai logout (una sola volta)
       if (error.status === 401 && !isShowingAuthAlert) {
         isShowingAuthAlert = true;
@@ -44,7 +70,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           buttons: [{
             text: 'OK',
             handler: () => {
-              // Rimuovi il loader globale
               const loader = document.getElementById('gts-global-loader');
               if (loader) {
                 loader.remove();
@@ -59,8 +84,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         });
         await alert.present();
 
-        // Sposta l'alert nel body per uscire dallo stacking context di ion-app
-        // (stessa tecnica usata per gts-body-alert e db-error-alert)
         const alertEl = document.querySelector('ion-alert.auth-alert-top');
         if (alertEl && alertEl.parentElement !== document.body) {
           document.body.appendChild(alertEl);

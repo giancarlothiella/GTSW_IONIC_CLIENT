@@ -1116,17 +1116,29 @@ p-datepicker .p-datepicker-next {
 /* ============================================
    GTS DatePicker - Always on top of dialogs
    ============================================ */
-.p-datepicker,
+/* Datepicker panel */
 .p-datepicker-panel {
   z-index: 299999 !important;
 }
 
-/* Fix datepicker panel visibility inside dialogs */
-.p-datepicker-panel {
-  opacity: 1 !important;
-  visibility: visible !important;
-  transform: none !important;
-  position: absolute !important;
+/* Tree node icons — generated from stdImage assets */
+[class^="gts-tree-icon-"],
+[class*=" gts-tree-icon-"] {
+  display: inline-block !important;
+  width: 18px !important;
+  height: 18px !important;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  image-rendering: -webkit-optimize-contrast;
+  vertical-align: middle;
+}
+
+/* Generate common stdImage icon classes */
+@for $i from 1 through 200 {
+  .gts-tree-icon-#{$i} {
+    background-image: url('/assets/icons/stdImage_#{$i}.png');
+  }
 }
 
 /* ============================================

@@ -61,7 +61,7 @@
     <!-- Editor Panel -->
     <div class="editor-panel">
       <!-- Language Tabs -->
-      <ion-segment [value]="languageTabs[languageIndex]?.id" (ionChange)="onLanguageTabChange($event)">
+      <ion-segment [value]="languageTabs[languageIndex]?.id" (ionChange)="onLanguageTabChange($event)" [scrollable]="true">
         @for (tab of languageTabs; track tab.id) {
           <ion-segment-button [value]="tab.id">
             <img [src]="tab.icon" alt="" class="lang-flag" />
