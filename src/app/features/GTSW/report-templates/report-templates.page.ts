@@ -263,6 +263,8 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
         reportCode: row.reportCode,
         reportName: row.reportName,
         sqlId: row.sqlId,
+        serverJson: row.serverJson || null,
+        linksJson: row.linksJson || null,
       };
       console.log('[SHOW_AI_BUILDER] Report object:', report);
 
@@ -273,32 +275,37 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
 
       if (reportData && reportData.valid) {
         console.log('[SHOW_AI_BUILDER] Report data is valid, calling mappers...');
-        // Usa helper per mappare i dati
-        const oracleData = mapOracleDataForTemplateBuilder(reportData);
-        const oracleMetadata = mapOracleMetadataForTemplateBuilder(reportData);
         const sessionData = extractSessionData(row);
-
-        console.log('[SHOW_AI_BUILDER] Final mapped data:');
-        console.log('[SHOW_AI_BUILDER] - sessionData:', sessionData);
-        console.log('[SHOW_AI_BUILDER] - oracleData:', oracleData);
-        console.log('[SHOW_AI_BUILDER] - oracleMetadata:', oracleMetadata);
+        const reportPdf = reportData.reportPdf || null;
 
         this.gtsDataService.sendAppLoaderListener(false);
 
-        // Naviga alla pagina Template Builder
-        // Estrai il PDF dalla risposta (se presente)
-        const reportPdf = reportData.reportPdf || null;
-        console.log('[SHOW_AI_BUILDER] reportPdf available:', !!reportPdf, reportPdf ? `(${reportPdf.length} chars)` : '');
-
-        console.log('[SHOW_AI_BUILDER] Navigating to /GTSW/templateBuilder with state...');
-        this.router.navigate(['/GTSW/templateBuilder'], {
-          state: {
-            sessionData: sessionData,
-            oracleData: oracleData,
-            oracleMetadata: oracleMetadata,
-            fastReportPdf: reportPdf
-          }
-        });
+        // Check if serverJson format (new) or Oracle format (legacy)
+        if (report.serverJson && reportData.procResult && !reportData.procResult.outBinds) {
+          // ServerJson format — pass data directly with linksJson
+          console.log('[SHOW_AI_BUILDER] ServerJson format detected');
+          this.router.navigate(['/GTSW/templateBuilder'], {
+            state: {
+              sessionData: sessionData,
+              serverJsonData: reportData.procResult,
+              linksJson: report.linksJson,
+              fastReportPdf: reportPdf
+            }
+          });
+        } else {
+          // Legacy Oracle format
+          const oracleData = mapOracleDataForTemplateBuilder(reportData);
+          const oracleMetadata = mapOracleMetadataForTemplateBuilder(reportData);
+          console.log('[SHOW_AI_BUILDER] Oracle format, mapped data');
+          this.router.navigate(['/GTSW/templateBuilder'], {
+            state: {
+              sessionData: sessionData,
+              oracleData: oracleData,
+              oracleMetadata: oracleMetadata,
+              fastReportPdf: reportPdf
+            }
+          });
+        }
       } else {
         console.log('[SHOW_AI_BUILDER] Report data invalid or null:', reportData);
         this.gtsDataService.sendAppLoaderListener(false);

@@ -13,16 +13,15 @@ import { GtsTabsComponent } from '../../../core/gts-open-source/gts-tabs/gts-tab
 import { GtsGridComponent } from '../../../core/gts-open-source/gts-grid/gts-grid.component';
 import { GtsTreeComponent } from '../../../core/gts-open-source/gts-tree/gts-tree.component';
 import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-form.component';
+import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
+import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
 import { GtsGridPopupComponent } from '../../../core/gts-open-source/gts-grid-popup/gts-grid-popup.component';
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
-import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
-import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
-import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';
 
 @Component({
-  selector: 'app-employees',
+  selector: 'app-std-table',
   standalone: true,
   imports: [
     CommonModule,
@@ -33,21 +32,20 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
     GtsGridComponent,
     GtsTreeComponent,
     GtsFormComponent,
+    GtsHtmlViewComponent,
+    GtsFileUploaderComponent,
     GtsFormPopupComponent,
     GtsGridPopupComponent,
     GtsMessageComponent,
-    GtsLoaderComponent,
-    GtsHtmlViewComponent,
-    GtsFileUploaderComponent,
-    GtsReportsComponent
+    GtsLoaderComponent
   ],
-  templateUrl: './employees.page.html',
-  styleUrls: ['./employees.page.scss']
+  templateUrl: './std-table.page.html',
+  styleUrls: ['./std-table.page.scss']
 })
-export class HRDEMO_EmployeesComponent implements OnInit, OnDestroy {
+export class HRDEMO_StdTableComponent implements OnInit, OnDestroy {
   //========= PAGE PARAMS =================
   prjId: string = 'HRDEMO';
-  formId: number = 1;
+  formId: number = -1;
 
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
@@ -135,8 +133,18 @@ export class HRDEMO_EmployeesComponent implements OnInit, OnDestroy {
 
       //===== END CUSTOM TOOLBAR EVENT CODE =====
     });
-    
-    this.gtsDataService.runPage(this.prjId, this.formId);     
+
+    // Get formId from query params and run page
+    this.route.queryParams.subscribe(params => {
+      this.formId = params['formId'] ? parseInt(params['formId']) : -1;
+
+      // Run Page after getting formId
+      if (this.formId !== -1) {
+        this.gtsDataService.runPage(this.prjId, this.formId);
+      } else {
+        console.error('Invalid formId:', this.formId);
+      }
+    });
   }
 
   ngOnDestroy(): void {

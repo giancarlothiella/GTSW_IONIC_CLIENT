@@ -49,6 +49,7 @@ export const COMPONENT_REGISTRY: { [key: string]: () => Promise<any> } = {
 
 // HRDEMO Components
   'HRDEMO/employees': () => import('../../features/HRDEMO/employees/employees.page').then(m => m.HRDEMO_EmployeesComponent),
+  'HRDEMO/stdTable': () => import('../../features/HRDEMO/std-table/std-table.page').then(m => m.HRDEMO_StdTableComponent),
   // Altri progetti qui...
 };
 

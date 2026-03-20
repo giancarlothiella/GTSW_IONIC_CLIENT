@@ -314,7 +314,13 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         field.value = Number(raw);
       }
 
-      this.gtsDataService.setFormFieldValue(this.prjId, this.formId, this.objectName, field.objectName, field.value);
+      // Convert checkbox boolean back to checked/unchecked value
+      let submitValue = field.value;
+      if (field.editorType === 'CheckBox' && field.valueChecked !== null && field.valueChecked !== undefined) {
+        submitValue = field.value ? field.valueChecked : field.valueUnChecked;
+      }
+
+      this.gtsDataService.setFormFieldValue(this.prjId, this.formId, this.objectName, field.objectName, submitValue);
     });
     this.gtsDataService.runAction(this.prjId, this.formId, event.actionName);
   }
@@ -826,12 +832,22 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         valid = false;
       }
 
-      // Validate Range
-      if (valid && field.fieldRangeLow !== undefined && field.fieldRangeLow !== null && field.fieldRangeLow !== '' && value < field.fieldRangeLow) {
+      // Validate Range (supports @FIELD:pageFieldName and @TODAY for dynamic range)
+      let rangeLow = field.fieldRangeLow;
+      let rangeHigh = field.fieldRangeHigh;
+      if (typeof rangeLow === 'string') {
+        if (rangeLow.startsWith('@FIELD:')) rangeLow = this.resolveFieldValue(rangeLow.substring(7));
+        else if (rangeLow === '@TODAY') rangeLow = new Date();
+      }
+      if (typeof rangeHigh === 'string') {
+        if (rangeHigh.startsWith('@FIELD:')) rangeHigh = this.resolveFieldValue(rangeHigh.substring(7));
+        else if (rangeHigh === '@TODAY') rangeHigh = new Date();
+      }
+      if (valid && rangeLow !== undefined && rangeLow !== null && rangeLow !== '' && value < rangeLow) {
         field.validationMessage = 'Field value is lower than allowed';
         valid = false;
       }
-      if (field.fieldRangeHigh !== undefined && field.fieldRangeHigh !== null && field.fieldRangeHigh !== '' && value > field.fieldRangeHigh) {
+      if (valid && rangeHigh !== undefined && rangeHigh !== null && rangeHigh !== '' && value > rangeHigh) {
         field.validationMessage = 'Field value is higher than allowed';
         valid = false;
       }
@@ -1017,6 +1033,14 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     if (input) {
       input.focus();
     }
+  }
+
+  private resolveFieldValue(fieldName: string): any {
+    // Try form fields first
+    const formField = this.formData.find((f: any) => f.objectName === fieldName);
+    if (formField) return formField.value;
+    // Fallback to pageFields
+    return this.gtsDataService.getPageFieldValue(this.prjId, this.formId, fieldName);
   }
 
   onNumericKeyPress(event: KeyboardEvent) {

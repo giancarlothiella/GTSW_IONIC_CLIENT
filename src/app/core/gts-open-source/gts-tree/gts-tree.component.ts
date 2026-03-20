@@ -28,6 +28,7 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
 
   // Subscriptions
   gridReloadListenerSubs: Subscription | undefined;
+  gridRowUpdateListenerSubs: Subscription | undefined;
   gridSelectListenerSubs: Subscription | undefined;
   appViewListenerSubs: Subscription | undefined;
 
@@ -90,6 +91,18 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
             }
           }
           // Full reload
+          this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
+          await this.prepareTreeData();
+          this.cdr.detectChanges();
+        }
+      });
+
+    // Grid row update listener — handles dsRefreshSel (single row update)
+    this.gridRowUpdateListenerSubs = this.gtsDataService
+      .getGridRowUpdateListener()
+      .subscribe(async (data: any) => {
+        if (data?.dataSetName === this.metaData?.dataSetName) {
+          // Rebuild tree with updated data
           this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
           await this.prepareTreeData();
           this.cdr.detectChanges();
@@ -159,6 +172,7 @@ export class GtsTreeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.gridReloadListenerSubs?.unsubscribe();
+    this.gridRowUpdateListenerSubs?.unsubscribe();
     this.gridSelectListenerSubs?.unsubscribe();
     this.appViewListenerSubs?.unsubscribe();
   }

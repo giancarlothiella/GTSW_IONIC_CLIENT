@@ -23,17 +23,6 @@
       }
     }
 
-    @for (element of metaData.reportsGroups; track element) {
-      @if (element.visible) {
-        <app-gts-reports
-          [style]="'grid-area: '+element.gridArea"
-          [prjId]="prjId"
-          [formId]="formId"
-          [fieldGrpId]="element.fieldGrpId"
-        ></app-gts-reports>
-      }
-    }
-
     @for (element of metaData.toolbars; track element) {
       @if (element.visible && element.objectName != 'mainToolbar' && !element.toolbarFlagSubmit) {
         <app-gts-toolbar

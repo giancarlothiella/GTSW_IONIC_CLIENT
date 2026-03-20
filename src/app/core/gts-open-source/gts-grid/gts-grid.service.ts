@@ -149,9 +149,9 @@ export class GtsGridService {
         column.dataType = 'integer';
       }
 
-      if (col.columnType === 'X') {
-        column.cellTemplate="cellTemplate";
-        column.images = col.images; // Copy images metadata to column for AG Grid cellRenderer
+      if (col.columnType === 'X' || col.columnType === 'L') {
+        column.cellTemplate = col.columnType === 'L' ? 'cellTemplateWithLabel' : 'cellTemplate';
+        column.images = col.images;
 
         fieldWithImageList.push({
           fieldName: col.fieldName,

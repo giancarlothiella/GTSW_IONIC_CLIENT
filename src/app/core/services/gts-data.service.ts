@@ -298,7 +298,7 @@ export class GtsDataService {
     if (t === 'setPreviousView') return 'back';
     if (t === 'getFormData' || t === 'reloadFormData' || t === 'refreshFormLocked' ||
         t === 'clearFields' || t === 'pkLock' || t === 'pkUnlock' ||
-        t === 'saveFormData' || t === 'getExportedData') return el.clFldGrpId ? `Grp:${el.clFldGrpId}` : '';
+        t === 'saveFormData' || t === 'getExportedData' || t === 'getGroupData') return el.clFldGrpId ? `Grp:${el.clFldGrpId}` : '';
     if (t === 'setField') return `${el.pageFldName}=${el.fieldValue ?? ''}`;
     if (t === 'gridSetIdle' || t === 'gridSetEdit' || t === 'gridSetInsert' ||
         t === 'gridAllowDelete' || t === 'gridLockRows' || t === 'gridUnLockRows' ||
@@ -1107,7 +1107,7 @@ export class GtsDataService {
           } else if (element.actionType === 'goToLastRow') {
             this.setDataSetSelected(prjId, formId, element.dataSetName, true, false, true, true);
           } else if (element.actionType === 'selectDS') {
-            this.setDataSetSelected(prjId, formId, element.dataSetName, true);
+            this.setDataSetSelected(prjId, formId, element.dataSetName, true, false, false, true);
           } else if (element.actionType === 'unselectDS') {
             this.setDataSetSelected(prjId, formId, element.dataSetName, false);
           } else if (element.actionType === 'clearDS') {
@@ -1154,6 +1154,8 @@ export class GtsDataService {
             this.setPageRule(prjId, formId, element.condId, element.condValue);
           } else if (element.actionType === 'setTabsRules') {
             this.setTabsRules(prjId, formId, element.tabsName, element.tabsRules);
+          } else if (element.actionType === 'getGroupData') {
+            this.getGroupData(prjId, formId, element.clFldGrpId);
           } else if (element.actionType === 'getFormData') {
             this.getFormData(prjId, formId, element.clFldGrpId);
           } else if (element.actionType === 'reloadFormData') {
@@ -1855,6 +1857,26 @@ export class GtsDataService {
   
   // ========== FORM DATA ENTRY ACTIONS ==================================================================
 
+  // Load pageFields values from the selected row of the dataset linked to the field group
+  getGroupData(prjId: string, formId: number, clFldGrpId: number) {
+    const page = this.metaData.filter((p: any) => p.prjId === prjId && p.formId === formId)[0];
+    if (!page) return;
+
+    // Find pageFields belonging to this group that have a dataSetName and dbFieldName
+    const groupFields = page.pageData.pageFields.filter((pf: any) => pf.fieldGrpId === clFldGrpId && pf.dataSetName && pf.dbFieldName);
+
+    groupFields.forEach((pf: any) => {
+      // Find the dataset and get selectedRows
+      const adapter = this.getDataSetAdapter(prjId, formId, pf.dataSetName);
+      if (adapter?.data) {
+        const ds = adapter.data.find((d: any) => d.dataSetName === pf.dataSetName);
+        if (ds?.selectedRows?.length > 0) {
+          pf.value = ds.selectedRows[0][pf.dbFieldName] ?? null;
+        }
+      }
+    });
+  }
+
   // save form fields value on metaData pageFields
   getFormData(prjId: string, formId: number, clFldGrpId: number) {
     const fields: any[] = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
@@ -1989,8 +2011,10 @@ export class GtsDataService {
             // set checked and unchecked values
             if (field.valueChecked === 'true' || field.valueChecked === 'false') {
               pageField.value = field.value;
+            } else if (field.value === true || field.value === field.valueChecked) {
+              pageField.value = field.valueChecked;
             } else {
-              pageField.value = field.value ? field.valueChecked : field.valueUnchecked;   
+              pageField.value = field.valueUnchecked;
             }           
           } else {
             pageField.value = field.value;
@@ -3455,7 +3479,20 @@ export class GtsDataService {
             if (dataSet.selectedRows !== undefined && dataSet.selectedRows !== null && dataSet.selectedRows.length > 0) {
               firstDataSetRow = dataSet.selectedRows[0];
             } else {
-              firstDataSetRow = null;
+              // selectedRows empty — try to find row by key from pageFields
+              const dsMetaData = this.getPageMetaData(prjId, formId, 'dataSets', dataSetName);
+              const gridMeta = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+                ?.pageData?.grids?.find((g: any) => g.dataSetName === dataSetName);
+              const sqlKeys = dsMetaData?.sqlKeys || gridMeta?.sqlKeys || [];
+              if (sqlKeys.length > 0 && dataSet.rows?.length > 0) {
+                const keyField = sqlKeys[0].keyField;
+                const pageField = this.metaData.filter((page: any) => page.prjId === prjId && page.formId === formId)[0]
+                  ?.pageData?.pageFields?.find((pf: any) => pf.dbFieldName === keyField && pf.dataSetName === dataSetName);
+                if (pageField?.value !== null && pageField?.value !== undefined) {
+                  firstDataSetRow = dataSet.rows.find((row: any) => String(row[keyField]) === String(pageField.value)) || null;
+                }
+              }
+              if (!firstDataSetRow) firstDataSetRow = null;
             }
           } else if (goToFirstRow) {
             if (dataSet.rows !== undefined && dataSet.rows !== null && dataSet.rows.length > 0) {
@@ -3647,17 +3684,31 @@ export class GtsDataService {
       reportParams = params
       reportConn = connCode;
     } else {
-      reportParams = this.buildParamsArray(prjId, formId, action);
+      // Build params from sqlParams if available, otherwise from pageFields of the report group
+      if (report.sqlParams && report.sqlParams.length > 0) {
+        reportParams = this.buildParamsArray(prjId, formId, action);
+      } else if (report.serverJson && report.serverJson.length > 0) {
+        // For serverJson reports, send pageFields by pageFieldName — server resolves paramName via paramObjectName
+        const pageFields = this.metaData.filter((p: any) => p.prjId === prjId && p.formId === formId)[0]
+          ?.pageData?.pageFields?.filter((pf: any) => pf.fieldGrpId === report.fieldGrpId) || [];
+        pageFields.forEach((pf: any) => {
+          if (pf.pageFieldName && pf.value !== null && pf.value !== undefined) {
+            reportParams[pf.pageFieldName] = pf.value;
+          }
+        });
+      }
       reportConn = this.getConnCode();
     }
 
-    const dataReq: ExecReportData = {
+    const dataReq: any = {
       prjId: prjId,
       formId: formId,
       fieldGrpId: report.fieldGrpId,
       reportCode: report.reportCode,
       reportName: report.reportName,
       sqlId: report.sqlId,
+      serverJson: report.serverJson || null,
+      linksJson: report.linksJson || null,
       params: reportParams,
       connCode: reportConn,
       goToNextStep: goToNextStep,

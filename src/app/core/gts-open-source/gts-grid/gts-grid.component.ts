@@ -951,10 +951,15 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       };
     }
 
-    // Handle image columns
-    if (col.cellTemplate === 'cellTemplate') {
-      colDef.headerClass = 'gts-header-center';
-      colDef.cellStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center' };
+    // Handle image columns (X = icon only, L = icon + label)
+    if (col.cellTemplate === 'cellTemplate' || col.cellTemplate === 'cellTemplateWithLabel') {
+      const showLabel = col.cellTemplate === 'cellTemplateWithLabel';
+      if (!showLabel) {
+        colDef.headerClass = 'gts-header-center';
+        colDef.cellStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center' };
+      } else {
+        colDef.cellStyle = { display: 'flex', alignItems: 'center', gap: '6px' };
+      }
       colDef.cellRenderer = (params: any) => {
         if (params.value === null || params.value === undefined || params.value === '') return '';
 
@@ -962,10 +967,13 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         if (col.images && col.images.length > 0) {
           const image = col.images.find((img: any) => String(img.imgValue) === String(params.value));
           if (image) {
-            // Use larger icon (without _16 suffix) for better quality on HiDPI screens
-            return `<img src="/assets/icons/stdImage_${image.stdImageId}.png"
-                         style="height: 24px; width: 24px; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;"
+            const imgHtml = `<img src="/assets/icons/stdImage_${image.stdImageId}.png"
+                         style="height: 20px; width: 20px; margin-right: 6px; vertical-align: middle; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;"
                          alt="${params.value}" />`;
+            if (showLabel) {
+              return `${imgHtml}<span style="line-height: 20px;">${image.imgText || params.value}</span>`;
+            }
+            return imgHtml;
           }
           // Se images è definito ma non trova il valore, mostra il testo
           return `<span>${params.value}</span>`;

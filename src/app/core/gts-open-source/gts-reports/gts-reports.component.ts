@@ -231,7 +231,14 @@ export class GtsReportsComponent implements OnInit, OnDestroy {
   }
 
   async showReportData(reportResponse: any) {
-    // loop on outBinds obj properties for preparing grids arrays
+    // ServerJson format: procResult is { alias: { rows, metaData } } — no outBinds
+    if (reportResponse.procResult && !reportResponse.procResult.outBinds) {
+      // New serverJson format — handled by logs page and template builder directly
+      return;
+    }
+
+    // Legacy Oracle format: loop on outBinds obj properties for preparing grids arrays
+    if (!reportResponse.procResult?.outBinds) return;
     Object.keys(reportResponse.procResult.outBinds).forEach((key: any) => {
       let columns: any = [];
       reportResponse.procResult['fields_' + key]

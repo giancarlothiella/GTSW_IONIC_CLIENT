@@ -784,12 +784,12 @@ export class AiTemplateBuilderComponent implements OnInit {
 
     // Caso 1: Carica template con dati sessione reali come mock data (GET_TEMPLATE + sessionId)
     // Questo caso deve essere prima degli altri perché ha sia loadTemplate che sessionData
-    if (state && state.loadTemplate && state.useSessionDataAsMock && state.oracleData) {
+    if (state && state.loadTemplate && state.useSessionDataAsMock && (state.oracleData || state.serverJsonData)) {
       const { prjId, connCode, reportCode } = state.loadTemplate;
       console.log('[checkRouteState] Loading template with session data as mock:', prjId, connCode, reportCode);
       // Salva i dati sessione per usarli dopo il caricamento del template
-      this.pendingSessionOracleData = state.oracleData;
-      this.pendingSessionMetadata = state.oracleMetadata;
+      this.pendingSessionOracleData = state.serverJsonData || state.oracleData;
+      this.pendingSessionMetadata = state.linksJson || state.oracleMetadata;
       this.pendingSessionData = state.sessionData;
       this.loadTemplateByKey(prjId, connCode, reportCode, true);
       return true;
@@ -1186,8 +1186,15 @@ export class AiTemplateBuilderComponent implements OnInit {
     const state = window.history.state;
     if (state && state.sessionData) {
       this.sessionData = state.sessionData as SessionData;
-      this.oracleData = state.oracleData as OracleData;
-      this.oracleMetadata = state.oracleMetadata as OracleMetadata;
+      // Support both Oracle format and serverJson format
+      if (state.serverJsonData) {
+        // ServerJson format — convert to oracleData-compatible structure for the template builder
+        this.oracleData = state.serverJsonData as OracleData;
+        this.oracleMetadata = state.linksJson as OracleMetadata;
+      } else {
+        this.oracleData = state.oracleData as OracleData;
+        this.oracleMetadata = state.oracleMetadata as OracleMetadata;
+      }
       this.fastReportPdf = state.fastReportPdf as string || null;
       this.requireManualPdf = state.requireManualPdf === true;
       this.saveConfig.prjId = this.sessionData.prjId;

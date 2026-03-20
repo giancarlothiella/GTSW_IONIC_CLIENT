@@ -503,24 +503,34 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
             reportCode: row.reportCode,
             reportName: row.reportName,
             sqlId: row.sqlId,
+            serverJson: row.serverJson || null,
+            linksJson: row.linksJson || null,
           };
           await this.gtsDataService.getOtherPageData(this.reportPrjId, this.reportFormId);
           this.report = await this.gtsDataService.getReportData(this.reportPrjId, this.reportFormId, report, this.reportParams, this.reportConnCode, false, false);
           if (this.report !== undefined && this.report !== null && this.report.valid) {
-            // const dataRows = report with only keys beginnig with rows
-            const dataRows: any = {};
-            Object.keys(this.report).forEach((key: any) => {
-              if (key.startsWith('rows_')) {  
-                dataRows[key] = this.report[key];
-              }
-            });
+            let dataRows: any = {};
+            if (this.report.procResult && !this.report.procResult.outBinds) {
+              // ServerJson format — extract rows from each alias
+              Object.keys(this.report.procResult).forEach((alias: string) => {
+                if (this.report.procResult[alias]?.rows) {
+                  dataRows[alias] = this.report.procResult[alias].rows;
+                }
+              });
+            } else {
+              // Legacy Oracle format
+              Object.keys(this.report).forEach((key: any) => {
+                if (key.startsWith('rows_')) {
+                  dataRows[key] = this.report[key];
+                }
+              });
+            }
             this.jsonDataTitle = this.reportCode + ' - Data Rows';
             this.jsonDataString = JSON.stringify(dataRows, null, 2);
             this.jsonVisible = true;
           } else {
-            const errorMessage = this.report.message;
+            const errorMessage = this.report?.message || 'Unknown error';
             this.gtsDataService.sendAppLoaderListener(false);
-            // Show error message to user
             alert('Error getting report data: ' + errorMessage);
           }
         }
@@ -540,25 +550,34 @@ export class GTSW_LogsComponent implements OnInit, OnDestroy {
             reportCode: row.reportCode,
             reportName: row.reportName,
             sqlId: row.sqlId,
+            serverJson: row.serverJson || null,
+            linksJson: row.linksJson || null,
           };
           await this.gtsDataService.getOtherPageData(this.reportPrjId, this.reportFormId);
           this.report = await this.gtsDataService.getReportData(this.reportPrjId, this.reportFormId, report, this.reportParams, this.reportConnCode, false, false);
           if (this.report !== undefined && this.report !== null && this.report.valid) {
-            // const dataRows = report with only keys beginnig with rows
-            const dataRows: any = {};
-            Object.keys(this.report).forEach((key: any) => {
-              if (key.startsWith('fields_')) {  
-                dataRows[key] = this.report[key];
-              }
-            });
+            let dataFields: any = {};
+            if (this.report.procResult && !this.report.procResult.outBinds) {
+              // ServerJson format — extract metaData from each alias
+              Object.keys(this.report.procResult).forEach((alias: string) => {
+                if (this.report.procResult[alias]?.metaData) {
+                  dataFields[alias] = this.report.procResult[alias].metaData;
+                }
+              });
+            } else {
+              // Legacy Oracle format
+              Object.keys(this.report).forEach((key: any) => {
+                if (key.startsWith('fields_')) {
+                  dataFields[key] = this.report[key];
+                }
+              });
+            }
             this.jsonDataTitle = this.reportCode + ' - Data Fields';
-            this.jsonDataString = JSON.stringify(dataRows, null, 2);
-            console.log('dataRows', dataRows);
+            this.jsonDataString = JSON.stringify(dataFields, null, 2);
             this.jsonVisible = true;
           } else {
-            const errorMessage = this.report.message;
+            const errorMessage = this.report?.message || 'Unknown error';
             this.gtsDataService.sendAppLoaderListener(false);
-            // Show error message to user
             alert('Error getting report data: ' + errorMessage);
           }
         }
