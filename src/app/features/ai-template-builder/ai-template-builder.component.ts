@@ -3496,20 +3496,29 @@ ${html}
   // ============================================
 
   get mainRecordsCount(): number {
+    // ServerJson format: oracleData.main is { rows, metaData }
+    if (this.oracleData?.main?.rows) return this.oracleData.main.rows.length;
+    // Oracle format: oracleData.main is array of rows
     return this.oracleData?.main?.length || 0;
   }
 
   get subreportsCount(): number {
+    // ServerJson format: count aliases except 'main'
+    if (this.oracleData && this.oracleData.main?.rows) {
+      return Object.keys(this.oracleData).filter(k => k !== 'main').length;
+    }
+    // Oracle format
     return this.oracleData?.subreports ? Object.keys(this.oracleData.subreports).length : 0;
   }
 
   get totalRecords(): number {
     let total = this.mainRecordsCount;
-    if (this.oracleData?.subreports) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Object.values(this.oracleData.subreports).forEach((sr: any) => {
-        total += Array.isArray(sr) ? sr.length : 0;
+    if (this.oracleData?.main?.rows) {
+      // ServerJson format
+      Object.keys(this.oracleData).filter(k => k !== 'main').forEach((key: string) => {
+        total += this.oracleData[key]?.rows?.length || 0;
       });
+    } else if (this.oracleData?.subreports) {
     }
     return total;
   }

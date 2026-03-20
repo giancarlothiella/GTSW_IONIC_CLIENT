@@ -280,15 +280,15 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
 
         this.gtsDataService.sendAppLoaderListener(false);
 
-        // Check if serverJson format (new) or Oracle format (legacy)
-        if (report.serverJson && reportData.procResult && !reportData.procResult.outBinds) {
+        // Check if serverJson format (procResult has alias objects with rows) or Oracle format
+        if (reportData.procResult && !reportData.procResult.outBinds && reportData.procResult.main?.rows) {
           // ServerJson format — pass data directly with linksJson
           console.log('[SHOW_AI_BUILDER] ServerJson format detected');
           this.router.navigate(['/GTSW/templateBuilder'], {
             state: {
               sessionData: sessionData,
               serverJsonData: reportData.procResult,
-              linksJson: report.linksJson,
+              linksJson: reportData.linksJson || report.linksJson,
               fastReportPdf: reportPdf
             }
           });
@@ -335,34 +335,44 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
         reportCode: row.reportCode,
         reportName: row.reportName,
         sqlId: row.sqlId,
+        serverJson: row.serverJson || null,
+        linksJson: row.linksJson || null,
       };
 
       await this.gtsDataService.getOtherPageData(row.prjId, row.formId);
-      // Passa false per skipPdf per ottenere solo i dati senza generare PDF
       const reportData = await this.gtsDataService.getReportData(row.prjId, row.formId, report, row.params, row.connCode, false, false);
       console.log('[AI_BUILD_NOPDF] getReportData response:', reportData);
 
       if (reportData && reportData.valid) {
-        // Usa helper per mappare i dati
-        const oracleData = mapOracleDataForTemplateBuilder(reportData);
-        const oracleMetadata = mapOracleMetadataForTemplateBuilder(reportData);
         const sessionData = extractSessionData(row);
-
-        console.log('[AI_BUILD_NOPDF] Mapped data ready, navigating without PDF...');
-
         this.gtsDataService.sendAppLoaderListener(false);
 
-        // Naviga alla pagina Template Builder SENZA PDF
-        // L'utente dovrà caricare il PDF manualmente
-        this.router.navigate(['/GTSW/templateBuilder'], {
-          state: {
-            sessionData: sessionData,
-            oracleData: oracleData,
-            oracleMetadata: oracleMetadata,
-            fastReportPdf: null,  // Nessun PDF automatico
-            requireManualPdf: true  // Flag per indicare che serve upload manuale
-          }
-        });
+        // Check if serverJson format (procResult has alias objects with rows) or Oracle format
+        if (reportData.procResult && !reportData.procResult.outBinds && reportData.procResult.main?.rows) {
+          // ServerJson format
+          this.router.navigate(['/GTSW/templateBuilder'], {
+            state: {
+              sessionData: sessionData,
+              serverJsonData: reportData.procResult,
+              linksJson: reportData.linksJson || report.linksJson,
+              fastReportPdf: null,
+              requireManualPdf: true
+            }
+          });
+        } else {
+          // Legacy Oracle format
+          const oracleData = mapOracleDataForTemplateBuilder(reportData);
+          const oracleMetadata = mapOracleMetadataForTemplateBuilder(reportData);
+          this.router.navigate(['/GTSW/templateBuilder'], {
+            state: {
+              sessionData: sessionData,
+              oracleData: oracleData,
+              oracleMetadata: oracleMetadata,
+              fastReportPdf: null,
+              requireManualPdf: true
+            }
+          });
+        }
       } else {
         console.log('[AI_BUILD_NOPDF] Report data invalid or null:', reportData);
         this.gtsDataService.sendAppLoaderListener(false);
