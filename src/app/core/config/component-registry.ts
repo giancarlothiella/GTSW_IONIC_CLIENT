@@ -50,6 +50,8 @@ export const COMPONENT_REGISTRY: { [key: string]: () => Promise<any> } = {
 // HRDEMO Components
   'HRDEMO/employees': () => import('../../features/HRDEMO/employees/employees.page').then(m => m.HRDEMO_EmployeesComponent),
   'HRDEMO/stdTable': () => import('../../features/HRDEMO/std-table/std-table.page').then(m => m.HRDEMO_StdTableComponent),
+  'HRDEMO/openPositions': () => import('../../features/HRDEMO/open-positions/open-positions.page').then(m => m.HRDEMO_OpenPositionsComponent),
+  'HRDEMO/applications': () => import('../../features/HRDEMO/applications/applications.page').then(m => m.HRDEMO_ApplicationsComponent),
   // Altri progetti qui...
 };
 

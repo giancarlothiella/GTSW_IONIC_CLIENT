@@ -54,6 +54,7 @@ export class GtsGridService {
       column.caption = col.text;
       column.allowEditing = col.allowEditing;
       column.columnType = col.columnType; // Preserve columnType for multiline (B), checkbox (C), image (X)
+      column.textMode = col.textMode; // Preserve textMode: W = wrap, T = tooltip
       column.colType = col.colType; // Preserve colType (String, Integer, Float, Date, etc.)
       column.visible = col.visible;
       column.width = col.width; // Preserve width for minWidth in AG Grid

@@ -788,7 +788,21 @@ export class AiTemplateBuilderComponent implements OnInit {
       const { prjId, connCode, reportCode } = state.loadTemplate;
       console.log('[checkRouteState] Loading template with session data as mock:', prjId, connCode, reportCode);
       // Salva i dati sessione per usarli dopo il caricamento del template
-      this.pendingSessionOracleData = state.serverJsonData || state.oracleData;
+      if (state.serverJsonData) {
+        // Normalize serverJson format to { main: [rows], subreports: { alias: [rows] } }
+        const sjData = state.serverJsonData;
+        const normalized: any = { main: [], subreports: {} };
+        Object.keys(sjData).forEach((alias: string) => {
+          if (alias === 'main') {
+            normalized.main = sjData[alias]?.rows || [];
+          } else {
+            normalized.subreports[alias] = sjData[alias]?.rows || [];
+          }
+        });
+        this.pendingSessionOracleData = normalized;
+      } else {
+        this.pendingSessionOracleData = state.oracleData;
+      }
       this.pendingSessionMetadata = state.linksJson || state.oracleMetadata;
       this.pendingSessionData = state.sessionData;
       this.loadTemplateByKey(prjId, connCode, reportCode, true);
@@ -1188,8 +1202,17 @@ export class AiTemplateBuilderComponent implements OnInit {
       this.sessionData = state.sessionData as SessionData;
       // Support both Oracle format and serverJson format
       if (state.serverJsonData) {
-        // ServerJson format — convert to oracleData-compatible structure for the template builder
-        this.oracleData = state.serverJsonData as OracleData;
+        // ServerJson format — normalize to { main: [rows], subreports: { alias: [rows] } }
+        const sjData = state.serverJsonData;
+        const normalized: any = { main: [], subreports: {} };
+        Object.keys(sjData).forEach((alias: string) => {
+          if (alias === 'main') {
+            normalized.main = sjData[alias]?.rows || [];
+          } else {
+            normalized.subreports[alias] = sjData[alias]?.rows || [];
+          }
+        });
+        this.oracleData = normalized as OracleData;
         this.oracleMetadata = state.linksJson as OracleMetadata;
       } else {
         this.oracleData = state.oracleData as OracleData;
@@ -1885,7 +1908,8 @@ export class AiTemplateBuilderComponent implements OnInit {
       return;
     }
 
-    const mockData = this.aiResult?.mockData || this.oracleData;
+    // Usa oracleData (dati reali sessione) con priorità su aiResult.mockData (che può essere vuoto)
+    const mockData = this.oracleData || this.aiResult?.mockData;
     if (!mockData) {
       return;
     }
@@ -1925,7 +1949,7 @@ export class AiTemplateBuilderComponent implements OnInit {
    * usa updatePreview() che chiama il server con Handlebars completo.
    */
   private generateLocalPreview(): void {
-    const mockData = this.aiResult?.mockData || this.oracleData;
+    const mockData = this.oracleData || this.aiResult?.mockData;
 
     if (!this.templateHtml || !mockData) {
       this.previewHtml = '<p style="color: #666; padding: 20px;">Nessun template o dati disponibili per la preview.</p>';
@@ -1946,31 +1970,126 @@ export class AiTemplateBuilderComponent implements OnInit {
       // Gestisci {{#each main}}...{{/each}} blocks
       if (mockData.main) {
         const mainRecords = Array.isArray(mockData.main) ? mockData.main : [mockData.main];
-        const eachMainRegex = /\{\{#each\s+main\s*\}\}([\s\S]*?)\{\{\/each\}\}/gi;
+        const eachMainRegex = /\{\{#each\s+main\s*\}\}([\s\S]*)\{\{\/each\}\}/i;
         html = html.replace(eachMainRegex, (_match: string, innerTemplate: string) => {
           if (mainRecords.length === 0) return '';
           return mainRecords.map((record: Record<string, unknown>) => {
             let row = innerTemplate;
+
+            // Process Handlebars blocks iteratively (innermost first)
+            // Run multiple passes until no more changes
+            let prevRow: string;
+            do {
+              prevRow = row;
+              // {{#if (eq field 'value')}}...{{else}}...{{/if}} (no nested #if inside)
+              row = row.replace(/\{\{#if\s+\(eq\s+(\w+)\s+'([^']+)'\)\s*\}\}((?:(?!\{\{#if)[\s\S])*?)\{\{else\}\}((?:(?!\{\{#if)[\s\S])*?)\{\{\/if\}\}/i,
+                (_m: string, field: string, val: string, ifContent: string, elseContent: string) => {
+                  return String(record[field] ?? '').toLowerCase() === val.toLowerCase() ? ifContent : elseContent;
+                });
+              // {{#each (split field ',')}}...{{/each}}
+              row = row.replace(/\{\{#each\s+\(split\s+(\w+)\s+'([^']+)'\)\s*\}\}((?:(?!\{\{#each)[\s\S])*?)\{\{\/each\}\}/i,
+                (_m: string, field: string, sep: string, innerTpl: string) => {
+                  const val = record[field];
+                  if (!val) return '';
+                  return String(val).split(sep).map(item => {
+                    let itemHtml = innerTpl;
+                    itemHtml = itemHtml.replace(/\{\{\s*trim\s+this\s*\}\}/gi, item.trim());
+                    itemHtml = itemHtml.replace(/\{\{\s*this\s*\}\}/gi, item.trim());
+                    return itemHtml;
+                  }).join('\n');
+                });
+              // {{#if field}}...{{else}}...{{/if}} — branches must not cross other blocks
+              row = row.replace(/\{\{#if\s+(\w+)\s*\}\}((?:(?!\{\{#if)(?!\{\{else\}\})(?!\{\{\/if\}\})[\s\S])*?)\{\{else\}\}((?:(?!\{\{#if)(?!\{\{else\}\})(?!\{\{\/if\}\})[\s\S])*?)\{\{\/if\}\}/i,
+                (_m: string, field: string, ifContent: string, elseContent: string) => {
+                  const val = record[field];
+                  return (val !== undefined && val !== null && val !== '' && val !== false) ? ifContent : elseContent;
+                });
+              // {{#if field}}...{{/if}} without else
+              row = row.replace(/\{\{#if\s+(\w+)\s*\}\}((?:(?!\{\{#if)(?!\{\{else\}\})(?!\{\{\/if\}\})[\s\S])*?)\{\{\/if\}\}/i,
+                (_m: string, field: string, content: string) => {
+                  const val = record[field];
+                  return (val !== undefined && val !== null && val !== '' && val !== false) ? content : '';
+                });
+            } while (row !== prevRow);
+
+            // Handle helpers: {{upper field}}, {{lower field}}, {{substring field N N}}
+            row = row.replace(/\{\{\s*upper\s+(\w+)\s*\}\}/gi, (_m: string, field: string) => {
+              const val = record[field] ?? record[field.toUpperCase()] ?? record[field.toLowerCase()];
+              return val != null ? String(val).toUpperCase() : '';
+            });
+            row = row.replace(/\{\{\s*substring\s+(\w+)\s+(\d+)\s+(\d+)\s*\}\}/gi, (_m: string, field: string, start: string, end: string) => {
+              const val = record[field] ?? record[field.toUpperCase()] ?? record[field.toLowerCase()];
+              return val != null ? String(val).substring(Number(start), Number(end)) : '';
+            });
+
+            // Clean Handlebars helpers like {{formatDate X}}, {{formatCurrency X}} — format values
+            row = row.replace(/\{\{\s*formatDate\s+(\S+?)\s*\}\}/gi, (_m: string, field: string) => {
+              const val = record[field] || record[field.toUpperCase()] || record[field.toLowerCase()];
+              if (val == null) return '';
+              const d = new Date(String(val));
+              if (isNaN(d.getTime())) return String(val);
+              return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+            });
+            row = row.replace(/\{\{\s*formatCurrency\s+(\S+?)\s*\}\}/gi, (_m: string, field: string) => {
+              const val = record[field] || record[field.toUpperCase()] || record[field.toLowerCase()];
+              if (val == null) return '';
+              const num = Number(val);
+              return isNaN(num) ? String(val) : num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            });
+
+            // Simple field replacements
             for (const [key, value] of Object.entries(record)) {
               const fieldRegex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi');
               row = row.replace(fieldRegex, String(value ?? ''));
             }
-            // Clean Handlebars helpers like {{formatDate X}}, {{formatCurrency X}} — show raw value
-            row = row.replace(/\{\{\s*formatDate\s+(\S+?)\s*\}\}/gi, (_m: string, field: string) => {
-              const val = record[field] || record[field.toUpperCase()] || record[field.toLowerCase()];
-              return val != null ? String(val) : '';
-            });
-            row = row.replace(/\{\{\s*formatCurrency\s+(\S+?)\s*\}\}/gi, (_m: string, field: string) => {
-              const val = record[field] || record[field.toUpperCase()] || record[field.toLowerCase()];
-              return val != null ? String(val) : '';
-            });
+
+            // Second pass: process any remaining #if blocks after field substitution
+            // Fields have been replaced, so we can evaluate truthiness by checking if content exists
+            let prev2: string;
+            do {
+              prev2 = row;
+              // {{#if FIELD}}...{{else}}...{{/if}} - field already substituted, check if #if tag remains
+              row = row.replace(/\{\{#if\s+[^}]+\}\}((?:(?!\{\{#if)[\s\S])*?)\{\{else\}\}((?:(?!\{\{#if)[\s\S])*?)\{\{\/if\}\}/i,
+                (_m: string, ifContent: string, _elseContent: string) => {
+                  return ifContent; // field had a value (was substituted), keep if-branch
+                });
+              row = row.replace(/\{\{#if\s+[^}]+\}\}((?:(?!\{\{#if)[\s\S])*?)\{\{\/if\}\}/i,
+                (_m: string, content: string) => {
+                  return content;
+                });
+            } while (row !== prev2);
+
             return row;
           }).join('\n');
         });
 
-        // Fallback: sostituisce {{main.campo}} con valori da main[0] (template senza #each)
+        // Fallback: sostituisce {{main.campo}} e helpers come {{formatDate main.campo}} da main[0]
         const mainRecord = mainRecords[0];
         if (mainRecord) {
+          // Prima gestisci helpers con main.field: {{formatDate main.hire_date}}, {{formatCurrency main.salary}}, etc.
+          html = html.replace(/\{\{\s*(formatDate)\s+main\.(\w+)\s*\}\}/gi, (_m: string, _helper: string, field: string) => {
+            const val = mainRecord[field] ?? mainRecord[field.toUpperCase()] ?? mainRecord[field.toLowerCase()];
+            if (val == null) return '';
+            const d = new Date(String(val));
+            if (isNaN(d.getTime())) return String(val);
+            return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+          });
+          html = html.replace(/\{\{\s*(formatCurrency)\s+main\.(\w+)\s*\}\}/gi, (_m: string, _helper: string, field: string) => {
+            const val = mainRecord[field] ?? mainRecord[field.toUpperCase()] ?? mainRecord[field.toLowerCase()];
+            if (val == null) return '';
+            const num = Number(val);
+            return isNaN(num) ? String(val) : num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          });
+          html = html.replace(/\{\{\s*(formatNumber)\s+main\.(\w+)(?:\s+\d+)?\s*\}\}/gi, (_m: string, _helper: string, field: string) => {
+            const val = mainRecord[field] ?? mainRecord[field.toUpperCase()] ?? mainRecord[field.toLowerCase()];
+            return val != null ? String(val) : '';
+          });
+          html = html.replace(/\{\{\s*substring\s+main\.(\w+)\s+(\d+)\s+(\d+)\s*\}\}/gi, (_m: string, field: string, start: string, end: string) => {
+            const val = mainRecord[field] ?? mainRecord[field.toUpperCase()] ?? mainRecord[field.toLowerCase()];
+            return val != null ? String(val).substring(Number(start), Number(end)) : '';
+          });
+
+          // Poi sostituisci i campi semplici {{main.campo}}
           for (const [key, value] of Object.entries(mainRecord as Record<string, unknown>)) {
             const regexWithMain = new RegExp(`\\{\\{\\s*main\\.${key}\\s*\\}\\}`, 'gi');
             const regexDirect = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi');
@@ -1994,6 +2113,25 @@ export class AiTemplateBuilderComponent implements OnInit {
 
             return records.slice(0, 10).map(record => {
               let row = innerTemplate;
+              // Handle helpers: {{formatDate field}}, {{formatCurrency field}}, {{formatNumber field N}}
+              row = row.replace(/\{\{\s*formatDate\s+(\w+)\s*\}\}/gi, (_m: string, field: string) => {
+                const val = record[field] ?? record[field.toUpperCase()] ?? record[field.toLowerCase()];
+                if (val == null) return '';
+                const d = new Date(String(val));
+                if (isNaN(d.getTime())) return String(val);
+                return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+              });
+              row = row.replace(/\{\{\s*formatCurrency\s+(\w+)\s*\}\}/gi, (_m: string, field: string) => {
+                const val = record[field] ?? record[field.toUpperCase()] ?? record[field.toLowerCase()];
+                if (val == null) return '';
+                const num = Number(val);
+                return isNaN(num) ? String(val) : num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              });
+              row = row.replace(/\{\{\s*formatNumber\s+(\w+)(?:\s+\d+)?\s*\}\}/gi, (_m: string, field: string) => {
+                const val = record[field] ?? record[field.toUpperCase()] ?? record[field.toLowerCase()];
+                return val != null ? String(val) : '';
+              });
+              // Simple field replacements
               for (const [key, value] of Object.entries(record)) {
                 const fieldRegex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi');
                 row = row.replace(fieldRegex, String(value ?? ''));
@@ -2004,6 +2142,42 @@ export class AiTemplateBuilderComponent implements OnInit {
 
           html = html.replace(eachRegexFull, replaceEach);
           html = html.replace(eachRegexShort, replaceEach);
+        }
+      }
+
+      // Gestisci blocchi {{#if}}...{{else}}...{{/if}} (dall'interno verso l'esterno)
+      // Step 1: {{#if (gt (len subreports.X) 0)}}...{{else}}...{{/if}}
+      html = html.replace(
+        /\{\{#if\s+\(gt\s+\(len\s+subreports\.(\w+)\)\s+0\)\s*\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/gi,
+        (_m: string, srName: string, ifContent: string, elseContent: string) => {
+          const data = mockData.subreports?.[srName];
+          return (Array.isArray(data) && data.length > 0) ? ifContent : elseContent;
+        }
+      );
+      // Step 2: {{#if subreports.X}}...{{/if}} (outer wrapper, senza else)
+      html = html.replace(
+        /\{\{#if\s+subreports\.(\w+)\s*\}\}([\s\S]*?)\{\{\/if\}\}/gi,
+        (_m: string, srName: string, content: string) => {
+          const data = mockData.subreports?.[srName];
+          return (Array.isArray(data) && data.length > 0) ? content : '';
+        }
+      );
+      // Step 3: {{#if main.X}}...{{else}}...{{/if}} (es. photo_url)
+      if (mockData.main) {
+        const mainRec = Array.isArray(mockData.main) ? mockData.main[0] : mockData.main;
+        if (mainRec) {
+          html = html.replace(
+            /\{\{#if\s+main\.(\w+)\s*\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/gi,
+            (_m: string, field: string, ifContent: string, elseContent: string) => {
+              return mainRec[field] ? ifContent : elseContent;
+            }
+          );
+          html = html.replace(
+            /\{\{#if\s+main\.(\w+)\s*\}\}([\s\S]*?)\{\{\/if\}\}/gi,
+            (_m: string, field: string, content: string) => {
+              return mainRec[field] ? content : '';
+            }
+          );
         }
       }
 
@@ -2185,7 +2359,7 @@ ${html}
     const payload = {
       template: this.templateHtml,
       aggregationRules: rules,
-      mockData: this.aiResult?.mockData || this.oracleData,
+      mockData: this.oracleData || this.aiResult?.mockData,
       pdfConfig: {
         format: this.saveConfig.pdfFormat || 'A4',
         orientation: this.saveConfig.pdfOrientation || 'portrait',
@@ -3496,29 +3670,16 @@ ${html}
   // ============================================
 
   get mainRecordsCount(): number {
-    // ServerJson format: oracleData.main is { rows, metaData }
-    if (this.oracleData?.main?.rows) return this.oracleData.main.rows.length;
-    // Oracle format: oracleData.main is array of rows
     return this.oracleData?.main?.length || 0;
   }
 
   get subreportsCount(): number {
-    // ServerJson format: count aliases except 'main'
-    if (this.oracleData && this.oracleData.main?.rows) {
-      return Object.keys(this.oracleData).filter(k => k !== 'main').length;
-    }
-    // Oracle format
     return this.oracleData?.subreports ? Object.keys(this.oracleData.subreports).length : 0;
   }
 
   get totalRecords(): number {
     let total = this.mainRecordsCount;
-    if (this.oracleData?.main?.rows) {
-      // ServerJson format
-      Object.keys(this.oracleData).filter(k => k !== 'main').forEach((key: string) => {
-        total += this.oracleData[key]?.rows?.length || 0;
-      });
-    } else if (this.oracleData?.subreports) {
+    if (this.oracleData?.subreports) {
     }
     return total;
   }
@@ -3850,7 +4011,7 @@ ${html}
     this.startQuickEditTimer();
 
     // Prepara mock data per context
-    const mockData = this.aiResult?.mockData || this.oracleData;
+    const mockData = this.oracleData || this.aiResult?.mockData;
 
     // Prepara aggregation rules correnti
     let currentRules: any = null;
@@ -4427,7 +4588,7 @@ ${html}
       return;
     }
     // Converti mock data in JSON string per editing
-    const mockData = this.aiResult?.mockData || this.oracleData || {};
+    const mockData = this.oracleData || this.aiResult?.mockData || {};
     this.mockDataJson = JSON.stringify(mockData, null, 2);
     this.originalMockDataJson = this.mockDataJson;
     this.isEditingMockData = true;
@@ -4475,7 +4636,7 @@ ${html}
    * Restituisce i mock data correnti per la visualizzazione
    */
   get currentMockData(): { main: any[]; subreports: Record<string, any[]> } | null {
-    return this.aiResult?.mockData || this.oracleData || null;
+    return this.oracleData || this.aiResult?.mockData || null;
   }
 
   /**

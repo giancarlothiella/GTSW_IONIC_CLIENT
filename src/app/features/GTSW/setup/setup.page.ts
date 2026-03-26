@@ -53,7 +53,7 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
             ></app-gts-tabs>
           }
         }
-        @for (element of metaData.reports; track element) {
+        @for (element of metaData.reportsGroups; track element) {
           @if (element.visible) {
             <app-gts-reports
               [style]="'grid-area: '+element.gridArea"

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, ApplicationRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { GetDBData, ExecProcData, ExecReportData } from './pages.model';
 import { AppInfoService } from './app-info.service';
@@ -30,7 +30,8 @@ export class GtsDataService {
     private authService: AuthService,
     private appInfo: AppInfoService,
     private menuService: MenuService,
-    private translationService: TranslationService
+    private translationService: TranslationService,
+    private appRef: ApplicationRef
   ) {
     this.appActionsDebugListenerSubs = this.appInfo
     .getAppActionsDebugListener()
@@ -97,7 +98,7 @@ export class GtsDataService {
   pdfVisible: boolean = false;
   pdfFileData: string = '';
 
-  private iLoop: number = 0;
+  iLoop: number = 0;
 
   // Helper method to get current connection code based on project
   private getConnCode(prjId?: string): string {
@@ -307,10 +308,11 @@ export class GtsDataService {
     if (t === 'setRule') return `${el.condId}=${el.condValue ?? ''}`;
     if (t === 'setTabsRules') return el.tabsName || '';
     if (t === 'execCustom') return el.customCode || '';
-    if (t === 'gridSetAIMode' || t === 'formAIAssist') return el.customCode || '';
+    if (t === 'gridSetAIMode' || t === 'formAIAssist' || t === 'aiGridComplete') return el.customCode || '';
     if (t === 'showPDF' || t === 'showPDFRemote') return el.pageFldName || '';
     if (t === 'hidePDF') return '';
     if (t === 'lockToolbar' || t === 'unlockToolbar') return el.toolbarName || '';
+    if (t === 'lockToolbarsAll' || t === 'unlockToolbarsAll') return '';
     if (t === 'showFormTemplSel' || t === 'showFormTemplAll') return `${el.dataSetName || ''} → Grp:${el.clFldGrpId || ''}`;
     if (t === 'deleteFile' || t === 'deleteFileNoPath') return el.pageFldName || '';
     if (t === 'uploadFile' || t === 'uploadFileNoPath') return `${el.customCode || ''} → ${el.pageFldName || ''}`;
@@ -1051,6 +1053,7 @@ export class GtsDataService {
   runActionInDebug: boolean = false;
 
   async runAction(prjId: string, formId: number, objectName: string, iStart: number = 0, debugLevel: number = 0) {
+
     this.perfLog(`runAction START ${objectName}`);
     const page: any = this.metaData.filter((page) => page.prjId === prjId && page.formId == formId)[0];
     const mainAction = page.pageData.actions.filter((action: any) => action.objectName === objectName);
@@ -1322,6 +1325,12 @@ export class GtsDataService {
           } else if (element.actionType === 'unlockToolbar') {
             this.setToolbarLock(prjId, formId, element.toolbarName, false);
             this.actionCanRun = true;
+          } else if (element.actionType === 'lockToolbarsAll') {
+            this.setAllToolbarsLock(prjId, formId, true);
+            this.actionCanRun = true;
+          } else if (element.actionType === 'unlockToolbarsAll') {
+            this.setAllToolbarsLock(prjId, formId, false);
+            this.actionCanRun = true;
 
           } else if (element.actionType === 'deleteFile') {
             this.actionCanRun = await this.handleDeleteFile(prjId, formId, element);
@@ -1340,6 +1349,12 @@ export class GtsDataService {
               prjId, formId, element.clFldGrpId, element.dataSetName, true
             );
 
+          } else if (element.actionType === 'aiInsertFromPDF') {
+            this.actionCanRun = await this.handleAiInsertFromPDF(prjId, formId, element);
+
+          } else if (element.actionType === 'aiGridComplete') {
+            this.actionCanRun = await this.handleAiGridComplete(prjId, formId, element);
+
           } else if (element.actionType === 'showFormTemplAll') {
             this.actionCanRun = await this.compileFormTemplate(
               prjId, formId, element.clFldGrpId, element.dataSetName, false
@@ -1357,6 +1372,7 @@ export class GtsDataService {
         // Slow-motion delay for demo mode
         if (this.demoLogActive && this.demoLogDelay > 0) {
           await new Promise(resolve => setTimeout(resolve, this.demoLogDelay));
+          this.appRef.tick();
         }
 
         let debugCanRun = this.actionCanRun;
@@ -2007,15 +2023,23 @@ export class GtsDataService {
       .pageData
       .pageFields.forEach((pageField: any) => {
         if (pageField.pageFieldName === field.objectName) {
+          // Skip if form field value is undefined (form not visible/loaded)
+          // This prevents overwriting good pageField values with undefined
+          // Empty string '' is allowed (user intentionally cleared a field)
+          if (field.value === undefined) {
+            formFields.push({ pageFieldName: pageField.pageFieldName, value: pageField.value });
+            return;
+          }
           if (field.editorType === 'CheckBox') {
             // set checked and unchecked values
             if (field.valueChecked === 'true' || field.valueChecked === 'false') {
-              pageField.value = field.value;
+              // Boolean checkbox: convert to actual boolean
+              pageField.value = field.value === true || field.value === 'true';
             } else if (field.value === true || field.value === field.valueChecked) {
               pageField.value = field.valueChecked;
             } else {
               pageField.value = field.valueUnchecked;
-            }           
+            }
           } else {
             pageField.value = field.value;
           }
@@ -2510,6 +2534,16 @@ export class GtsDataService {
     }
   }
 
+  // Lock/Unlock all toolbars except submit toolbars
+  setAllToolbarsLock(prjId: string, formId: number, lock: boolean) {
+    const page = this.metaData.filter((p: any) => p.prjId === prjId && p.formId === formId)[0];
+    if (!page?.pageData?.toolbars) return;
+
+    page.pageData.toolbars
+      .filter((tb: any) => !tb.toolbarFlagSubmit)
+      .forEach((tb: any) => this.setToolbarLock(prjId, formId, tb.objectName, lock));
+  }
+
   async handleDeleteFile(prjId: string, formId: number, element: any, filenameOnly: boolean = false): Promise<boolean> {
     // pageFldName = pageField containing the file path/name to delete
     // customCode = pageField whose value = server directory path (used when filenameOnly)
@@ -2593,6 +2627,221 @@ export class GtsDataService {
         uploaderTitle: 'Upload File'
       });
     });
+  }
+
+  async handleAiInsertFromPDF(prjId: string, formId: number, element: any): Promise<boolean> {
+    // element.dataSetName = dataset name (has sqlInsertId)
+    // element.pageFldName = pageField name whose value = server upload path
+    // element.customCode  = chatCode for AI instructions (from GtsAIChatConfig)
+
+    // 1. Get the dataset metadata to find sqlInsertId
+    const dataSetMeta: any = this.metaData
+      .filter((data: any) => data.prjId === prjId && data.formId === formId)[0]
+      ?.pageData?.dataSets
+      ?.filter((ds: any) => ds.dataSetName === element.dataSetName)[0];
+
+    if (!dataSetMeta || !dataSetMeta.sqlInsertId) {
+      console.error('[aiInsertFromPDF] No dataset or sqlInsertId found for', element.dataSetName);
+      return false;
+    }
+
+    // 2. Get upload path from pageFldName (it's a pageField name containing the path)
+    const uploadPath = element.pageFldName
+      ? (this.getPageFieldValue(prjId, formId, element.pageFldName) || '')
+      : '';
+
+    // 3. Open file picker for PDF only
+    this.sendAppLoaderListener(false);
+
+    const fileResult = await new Promise<any>((resolve) => {
+      let dialogOpened = false;
+      const sub = this.getFileLoaderListener().subscribe((status: any) => {
+        if (status.fileUploadVisible) {
+          dialogOpened = true;
+          return;
+        }
+        if (!dialogOpened) return;
+
+        if (!status.fileUploadVisible && status.result === true && status.fileUploadedName) {
+          sub.unsubscribe();
+          resolve({
+            success: true,
+            fileName: status.fileUploadedName.split('/').pop(),
+            fileData: status.fileData
+          });
+        } else if (!status.fileUploadVisible && !status.result) {
+          sub.unsubscribe();
+          resolve({ success: false });
+        }
+      });
+
+      this.sendFileLoaderListener({
+        fileUploadVisible: true,
+        fileUploadPath: uploadPath,
+        autoName: true,
+        allowedExtensions: ['.pdf'],
+        maxFileSize: 10000000,
+        uploaderTitle: 'Upload PDF for AI Extraction',
+        keepFileData: true
+      });
+    });
+
+    if (!fileResult.success) return false;
+
+    // 4. Show loader and call AI extraction endpoint
+    this.sendAppLoaderListener(true);
+
+    try {
+      const connCode = this.getConnCode(prjId);
+      const response: any = await this.execMethod('data', 'aiExtractFromPDF', {
+        prjId: prjId,
+        sqlId: dataSetMeta.sqlInsertId,
+        pdfBase64: fileResult.fileData,
+        chatCode: element.customCode || '',
+        connCode: connCode
+      });
+
+      if (response && response.valid && response.data) {
+        // 6. Map extracted data to pageFields
+        const fieldMapping = response.fieldMapping || [];
+        for (const mapping of fieldMapping) {
+          const value = response.data[mapping.paramName];
+          if (value !== undefined && value !== null) {
+            if (mapping.objectName) {
+              this.setPageFieldValue(prjId, formId, mapping.objectName, value);
+            }
+          }
+        }
+
+        // 7. Auto-set uploaded filename in the matching pageField (convention: param containing "filename" or "file_name")
+        const filenameMapping = fieldMapping.find((m: any) =>
+          m.fieldName.includes('filename') || m.fieldName.includes('file_name')
+        );
+        if (filenameMapping?.objectName && fileResult.fileName) {
+          this.setPageFieldValue(prjId, formId, filenameMapping.objectName, fileResult.fileName);
+        }
+
+        // 7. Notify forms to refresh with new data
+        this.formRepListener.next({ prjId, formId });
+
+        this.sendAppLoaderListener(false);
+        return true;
+      } else {
+        this.sendAppLoaderListener(false);
+        this.sendDbError('AI Extraction', response?.message || 'AI extraction failed');
+        return false;
+      }
+    } catch (error: any) {
+      this.sendAppLoaderListener(false);
+      this.sendDbError('AI Extraction Error', error?.message || 'Failed to extract data from PDF');
+      return false;
+    }
+  }
+
+  async handleAiGridComplete(prjId: string, formId: number, element: any): Promise<boolean> {
+    // element.dataSetName = header dataset (selected row = context for AI)
+    // element.gridName    = detail grid dataset name (rows to complete)
+    // element.customCode  = chatCode for AI instructions
+
+    // 1. Get header selected row as context
+    const page = this.metaData.filter((p: any) => p.prjId === prjId && p.formId === formId)[0];
+    if (!page) return false;
+
+    const headerDsMeta = page.pageData.dataSets.find((ds: any) => ds.dataSetName === element.dataSetName);
+    if (!headerDsMeta) return false;
+
+    const headerPageData = this.pageData.find((pd: any) => pd.prjId === prjId && pd.formId === formId && pd.dataAdapter === headerDsMeta.dataAdapterName);
+    const headerDs = headerPageData?.data?.find((ds: any) => ds.dataSetName === element.dataSetName);
+    const headerRow = headerDs?.selectedRows?.[0] || null;
+
+    if (!headerRow) {
+      this.sendDbError('AI Grid Complete', 'No header record selected');
+      return false;
+    }
+
+    // 2. Get detail grid by objectName, then find its dataset
+    const gridMeta = page.pageData.grids?.find((g: any) => g.objectName === element.gridName);
+    if (!gridMeta) {
+      this.sendDbError('AI Grid Complete', 'Grid not found: ' + element.gridName);
+      return false;
+    }
+    const gridDataSetName = gridMeta.dataSetName;
+
+    const gridDsMeta = page.pageData.dataSets.find((ds: any) => ds.dataSetName === gridDataSetName);
+    if (!gridDsMeta) return false;
+
+    const gridPageData = this.pageData.find((pd: any) => pd.prjId === prjId && pd.formId === formId && pd.dataAdapter === gridDsMeta.dataAdapterName);
+    const gridDs = gridPageData?.data?.find((ds: any) => ds.dataSetName === gridDataSetName);
+    const gridRows = gridDs?.rows || [];
+
+    if (gridRows.length === 0) {
+      this.sendDbError('AI Grid Complete', 'No rows in detail grid');
+      return false;
+    }
+
+    // 3. Get grid column names from metadata
+    const columnNames = gridMeta.columns?.map((c: any) => c.fieldName || c.dataField).filter(Boolean) || [];
+
+    // 4. Call AI endpoint
+    this.sendAppLoaderListener(true);
+
+    try {
+      const connCode = this.getConnCode(prjId);
+      const response: any = await this.execMethod('data', 'aiGridComplete', {
+        prjId,
+        chatCode: element.customCode || '',
+        headerData: headerRow,
+        gridRows,
+        columnNames,
+        connCode
+      });
+
+      if (response?.valid && response.data && Array.isArray(response.data)) {
+        // 5. Update grid rows with AI results
+        if (gridDs) {
+          gridDs.rows = response.data;
+        }
+
+        // 6. Build changeArray for gridPostChanges (all rows as updates)
+        const keyFields = gridMeta.keys || [];
+        const changeArray: any[] = [];
+        response.data.forEach((row: any) => {
+          const dataParams: any = {};
+          const keyParams: any = {};
+          Object.keys(row).forEach(k => { dataParams['P_' + k] = row[k]; });
+          keyFields.forEach((kf: string) => { keyParams['P_' + kf] = row[kf]; });
+          changeArray.push({ type: 'update', key: keyParams, data: row, dataParams });
+        });
+        this.setGridChangeArray(prjId, formId, element.gridName, changeArray);
+
+        // 7. Defer grid reload so it runs AFTER the action loop completes
+        setTimeout(() => this.sendGridReload(gridDataSetName + ';AutoSize:true'), 0);
+
+        // 8. Set success rule if configured
+        if (element.condId) {
+          this.setPageRule(prjId, formId, element.condId, element.condValue || 2);
+        }
+
+        this.sendAppLoaderListener(false);
+        return true;
+      } else {
+        // Set failure rule (condId=1)
+        if (element.condId) {
+          this.setPageRule(prjId, formId, element.condId, 1);
+        }
+
+        this.sendAppLoaderListener(false);
+        return true;  // Continue action chain - failure handled via condRule
+      }
+    } catch (error: any) {
+      // Set failure rule (condId=1)
+      if (element.condId) {
+        this.setPageRule(prjId, formId, element.condId, 1);
+      }
+
+      this.sendAppLoaderListener(false);
+      return true;  // Continue action chain - failure handled via condRule
+    }
   }
 
   async compileFormTemplate(
@@ -3299,8 +3548,14 @@ export class GtsDataService {
 
       // ReportsGroups
       pageData.reportsGroups.forEach((rptGroup: any) => {
-        const key = `reportsGroup:${rptGroup.fieldGrpId}`;
-        const desired = desiredStateMap.get(key);
+        // Check both reportsGroup and reportsGroupPDFOnly objectTypes
+        let desired = desiredStateMap.get(`reportsGroup:${rptGroup.fieldGrpId}`);
+        if (!desired) {
+          desired = desiredStateMap.get(`reportsGroupPDFOnly:${rptGroup.fieldGrpId}`);
+          if (desired) {
+            rptGroup.pdfOnly = true;
+          }
+        }
         const newVisible = desired?.visible || false;
 
         if (rptGroup.visible !== newVisible) {

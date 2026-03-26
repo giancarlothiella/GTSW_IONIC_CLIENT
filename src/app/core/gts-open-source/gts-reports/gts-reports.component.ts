@@ -55,11 +55,19 @@ export class GtsReportsComponent implements OnInit, OnDestroy {
   connCode: string = '';
 
   @Input()
+  pdfOnly: boolean = false;
+
+  @Input()
   report: any = {};
 
   async ngOnInit() {
     const objectName = this.fieldGrpId.toString();
     this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'reportsGroups', objectName);
+
+    // Read pdfOnly from metadata if not set via Input
+    if (!this.pdfOnly && this.metaData?.pdfOnly) {
+      this.pdfOnly = true;
+    }
 
     this.prepareReports();
   }
@@ -109,7 +117,6 @@ export class GtsReportsComponent implements OnInit, OnDestroy {
   }
 
   async prepareReports() {
-    console.log('prepareReports ', this.metaData);
 
     this.reportTitle = this.metaData.fieldGrpDescr;
     this.reportsGroups.gridArea = 'grid-area: ' + this.metaData.gridArea;
@@ -233,7 +240,46 @@ export class GtsReportsComponent implements OnInit, OnDestroy {
   async showReportData(reportResponse: any) {
     // ServerJson format: procResult is { alias: { rows, metaData } } — no outBinds
     if (reportResponse.procResult && !reportResponse.procResult.outBinds) {
-      // New serverJson format — handled by logs page and template builder directly
+      // Build grids from serverJson data
+      Object.keys(reportResponse.procResult).forEach((alias: string) => {
+        const dataset = reportResponse.procResult[alias];
+        if (!dataset?.rows || !dataset?.metaData) return;
+
+        const columns = dataset.metaData.map((field: any) => {
+          const col: any = { dataField: field.name, caption: field.name };
+          // PostgreSQL type OIDs: 23=int, 20=bigint, 1700=numeric, 700/701=float
+          if ([23, 20, 1700, 700, 701].includes(field.type)) {
+            col.dataType = 'number';
+            col.format = '#,###.00';
+          } else if ([1082, 1114, 1184].includes(field.type)) {
+            col.dataType = 'date';
+            col.format = 'dd/MM/yyyy';
+          } else {
+            col.dataType = 'string';
+          }
+          return col;
+        });
+
+        dataset.rows.forEach((row: any, index: number) => { row.id = index; });
+
+        this.grids.push({
+          id: alias,
+          name: alias,
+          columns: columns,
+          rows: dataset.rows,
+          visible: false,
+          fileName: alias + '.xlsx'
+        });
+      });
+
+      if (this.grids.length > 0) {
+        this.grids[0].visible = true;
+      }
+
+      if (reportResponse.reportPdf) {
+        this.base64PdfStream = reportResponse.reportPdf;
+      }
+      this.showReport = true;
       return;
     }
 

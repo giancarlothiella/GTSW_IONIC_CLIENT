@@ -224,6 +224,8 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
   uploadProgress: number = 0;
   errorMessage: string = '';
   autoName: boolean = false;
+  keepFileData: boolean = false;
+  private lastBase64Data: string = '';
 
   fileLoaderListenerSubs: Subscription | undefined;
 
@@ -242,6 +244,7 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
           if (status.maxFileSize !== undefined) this.maxFileSize = status.maxFileSize;
           if (status.uploaderTitle !== undefined) this.uploaderTitle = status.uploaderTitle;
           this.autoName = status.autoName === true;
+          this.keepFileData = status.keepFileData === true;
         }
       });
   }
@@ -295,6 +298,9 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
     try {
       // Convert file to base64
       const base64Data = await this.fileToBase64(this.selectedFile);
+      if (this.keepFileData) {
+        this.lastBase64Data = base64Data;
+      }
 
       // Simulate progress (you can implement real progress tracking with HttpClient)
       const progressInterval = setInterval(() => {
@@ -339,11 +345,15 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
           ? `${this.fileUploadPath}/${finalFileName}`
           : finalFileName;
         setTimeout(() => {
-          this.gtsDataService.sendFileLoaderListener({
+          const response: any = {
             fileUploadVisible: false,
             result: true,
             fileUploadedName: uploadedName
-          });
+          };
+          if (this.keepFileData && this.lastBase64Data) {
+            response.fileData = this.lastBase64Data;
+          }
+          this.gtsDataService.sendFileLoaderListener(response);
           this.resetUploader();
         }, 500);
       } else {
@@ -364,6 +374,7 @@ export class GtsFileUploaderComponent implements OnInit, OnDestroy {
     this.selectedFile = null;
     this.uploadProgress = 0;
     this.errorMessage = '';
+    this.lastBase64Data = '';
   }
 
   getFileSize(bytes: number): string {

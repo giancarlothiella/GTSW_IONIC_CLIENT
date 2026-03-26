@@ -423,6 +423,12 @@ export class GtsAiChatComponent implements OnInit, OnDestroy {
       throw new Error('Sessione template non trovata. Creare prima una sessione di addestramento.');
     }
 
+    // No existing session — create a new one
+    if (!response.data.session) {
+      await this.createSession();
+      return;
+    }
+
     this.sessionId = response.data.session._id;
     this.sessionName = response.data.session.sessionName;
 
@@ -449,6 +455,12 @@ export class GtsAiChatComponent implements OnInit, OnDestroy {
 
     if (!response.valid || !response.data) {
       throw new Error('Sessione non trovata per questo chatCode. Creare prima una sessione.');
+    }
+
+    // No existing session — create a new one
+    if (!response.data.session) {
+      await this.createSession();
+      return;
     }
 
     this.sessionId = response.data.session._id;

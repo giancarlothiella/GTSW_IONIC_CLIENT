@@ -29,8 +29,8 @@
 }
 
 @if (showReport) {
-  <!-- Main Tabs: PDF / DATA -->
-  <div class="gts-tabs">
+  <!-- Tabs: hidden when pdfOnly, kept in DOM for viewer layout -->
+  <div class="gts-tabs" [style.display]="pdfOnly ? 'none' : ''">
     <ion-segment [(ngModel)]="mainTabIndex" (ionChange)="onMainTabChange(mainTabIndex)">
       <ion-segment-button value="pdf">
         <ion-label>PDF</ion-label>
@@ -47,7 +47,7 @@
       <ngx-extended-pdf-viewer
         [base64Src]="base64PdfStream"
         [textLayer]="true"
-        height="auto"
+        height="100%"
         [showHandToolButton]="true"
         [showPresentationModeButton]="true"
         [language]="pdfLanguage"
@@ -56,8 +56,8 @@
     </div>
   }
 
-  <!-- Data Tab Content -->
-  @if (mainTabIndex === 'data') {
+  <!-- Data Tab Content (hidden when pdfOnly) -->
+  @if (mainTabIndex === 'data' && !pdfOnly) {
     @if (tabLoading) {
       <div class="tab-loader">
         <ion-spinner name="crescent"></ion-spinner>

@@ -96,7 +96,7 @@ import { send, trash } from 'ionicons/icons';
             }
           }
 
-          @for (element of metaData.reports; track element.fieldGrpId) {
+          @for (element of metaData.reportsGroups; track element.fieldGrpId) {
             @if (element.visible) {
               <app-gts-reports
                 [style]="'grid-area: ' + element.gridArea"

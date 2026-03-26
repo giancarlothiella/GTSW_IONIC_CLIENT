@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -65,6 +65,7 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
   public gtsDataService = inject(GtsDataService);
   private router = inject(Router);
   private ts = inject(TranslationService);
+  private cdr = inject(ChangeDetectorRef);
 
   /**
    * Ottiene un testo tradotto
@@ -94,6 +95,7 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
     .getAppLoaderListener()
     .subscribe((loading) => {
       this.loading = loading;
+      this.cdr.detectChanges();
     })
 
     // View Listener
@@ -531,6 +533,8 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
       reportCode: sessionRow.reportCode,
       reportName: sessionRow.reportName,
       sqlId: sessionRow.sqlId,
+      serverJson: sessionRow.serverJson || null,
+      linksJson: sessionRow.linksJson || null,
     };
 
     await this.gtsDataService.getOtherPageData(sessionRow.prjId, sessionRow.formId);
@@ -545,30 +549,45 @@ export class GTSW_ReportTemplatesComponent implements OnInit, OnDestroy {
     );
 
     if (reportData && reportData.valid) {
-      // Mappa i dati Oracle
-      const oracleData = mapOracleDataForTemplateBuilder(reportData);
-      const oracleMetadata = mapOracleMetadataForTemplateBuilder(reportData);
       const sessionData = extractSessionData(sessionRow);
-
       this.gtsDataService.sendAppLoaderListener(false);
 
-      // Naviga al template builder con:
-      // - loadTemplate: per caricare il template selezionato
-      // - oracleData/oracleMetadata: dati reali dalla sessione come mock data
-      this.router.navigate(['/GTSW/templateBuilder'], {
-        state: {
-          loadTemplate: {
-            prjId: templateRow.prjId,
-            connCode: templateRow.connCode,
-            reportCode: templateRow.reportCode
-          },
-          sessionData: sessionData,
-          oracleData: oracleData,
-          oracleMetadata: oracleMetadata,
-          useSessionDataAsMock: true,  // Flag per indicare di usare questi dati come mock
-          returnTo: this.getReturnToState()
-        }
-      });
+      // Detect serverJson format vs Oracle format (same logic as SHOW_AI_BUILDER)
+      if (reportData.procResult && !reportData.procResult.outBinds && reportData.procResult.main?.rows) {
+        // ServerJson format — pass data directly with linksJson
+        this.router.navigate(['/GTSW/templateBuilder'], {
+          state: {
+            loadTemplate: {
+              prjId: templateRow.prjId,
+              connCode: templateRow.connCode,
+              reportCode: templateRow.reportCode
+            },
+            sessionData: sessionData,
+            serverJsonData: reportData.procResult,
+            linksJson: reportData.linksJson || report.linksJson,
+            useSessionDataAsMock: true,
+            returnTo: this.getReturnToState()
+          }
+        });
+      } else {
+        // Legacy Oracle format
+        const oracleData = mapOracleDataForTemplateBuilder(reportData);
+        const oracleMetadata = mapOracleMetadataForTemplateBuilder(reportData);
+        this.router.navigate(['/GTSW/templateBuilder'], {
+          state: {
+            loadTemplate: {
+              prjId: templateRow.prjId,
+              connCode: templateRow.connCode,
+              reportCode: templateRow.reportCode
+            },
+            sessionData: sessionData,
+            oracleData: oracleData,
+            oracleMetadata: oracleMetadata,
+            useSessionDataAsMock: true,
+            returnTo: this.getReturnToState()
+          }
+        });
+      }
     } else {
       this.gtsDataService.sendAppLoaderListener(false);
       alert('Errore caricamento dati sessione: ' + (reportData?.message || 'Errore sconosciuto'));

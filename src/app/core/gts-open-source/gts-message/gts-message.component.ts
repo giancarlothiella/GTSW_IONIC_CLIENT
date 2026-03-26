@@ -159,12 +159,13 @@ export class GtsMessageComponent implements OnInit, OnDestroy {
             cssClass: 'gts-btn-close',
             handler: () => {
               document.body.classList.remove('gts-alert-active');
+              const nextStep = this.gtsDataService.iLoop + 1;
               this.gtsDataService.setMessageStatus('Close');
               this.gtsDataService.runAction(
                 this.prjId,
                 this.formId,
                 this.action.objectName,
-                0,
+                nextStep,
                 this.action.debugLevel
               );
             }

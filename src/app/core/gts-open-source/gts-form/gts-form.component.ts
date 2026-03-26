@@ -259,6 +259,11 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
               if (formField.dataType === 'N' && formField.mask && formField.value !== undefined && formField.value !== null && formField.value !== '') {
                 formField.value = this.formatNumberWithMask(formField.value, formField.mask);
               }
+              // Apply date formatting for detail fields
+              const dt = (formField.dataType || '').toLowerCase();
+              if ((dt === 'date' || dt === 'datetime') && formField.value) {
+                formField.value = this.formatDetailValue(formField.value, formField.dataType);
+              }
             });
         });
       });
@@ -373,7 +378,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
       this.formData
         .filter((f: any) => f.masterFieldName === field.objectName)
         .forEach((formField: any) => {
-          formField.value = event.data[formField.fieldName];
+          formField.value = this.formatDetailValue(event.data[formField.fieldName], formField.dataType);
         });
     }
 
@@ -658,7 +663,8 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
             objectName: this.metaData.fields[i].details[j].pageFieldName,
             fieldName: this.metaData.fields[i].details[j].detailFieldName,
             label: this.metaData.fields[i].details[j].pageFieldLabel,
-            value: this.metaData.fields[i].details[j].value,
+            value: this.formatDetailValue(this.metaData.fields[i].details[j].value, this.metaData.fields[i].details[j].dataType),
+            dataType: this.metaData.fields[i].details[j].dataType || 'C',
             style: 'grid-area: ' + this.metaData.fields[i].details[j].pageFieldName + ';',
             readOnly: this.metaData.fields[i].details[j].detailFieldLocked,
             loadOnlyIfEmpty: this.metaData.fields[i].details[j].detailFieldLoadOnlyIfEmpty || false,
@@ -878,7 +884,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
                 return;
               }
               formField.validated = true;
-              formField.value = responseData.data[0].rows[0][formField.fieldName];
+              formField.value = this.formatDetailValue(responseData.data[0].rows[0][formField.fieldName], formField.dataType);
             });
         } else {
           field.validationMessage = 'Field value not found';
@@ -1098,5 +1104,27 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
       return parseFloat(value.replace(/,/g, ''));
     }
     return NaN;
+  }
+
+  /**
+   * Format detail field value based on dataType from metadata
+   */
+  formatDetailValue(value: any, dataType: string): any {
+    if (value === undefined || value === null || value === '') return value;
+    const dt = (dataType || 'C').toLowerCase();
+    if (dt === 'date' || dt === 'datetime') {
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+        const d = new Date(value);
+        if (!isNaN(d.getTime())) {
+          const dd = String(d.getDate()).padStart(2, '0');
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const yyyy = d.getFullYear();
+          return dt === 'datetime'
+            ? `${dd}/${mm}/${yyyy} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+            : `${dd}/${mm}/${yyyy}`;
+        }
+      }
+    }
+    return value;
   }
 }

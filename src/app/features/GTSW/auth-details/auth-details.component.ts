@@ -53,7 +53,7 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
         }
       }
 
-      @for (element of metaData.reports; track element.fieldGrpId) {
+      @for (element of metaData.reportsGroups; track element.fieldGrpId) {
         @if (element.visible) {
           <app-gts-reports
             [style]="'grid-area: ' + element.gridArea"

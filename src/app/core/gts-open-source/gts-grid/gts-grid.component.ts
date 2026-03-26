@@ -310,6 +310,18 @@ export class GtsGridComponent implements OnInit, OnDestroy {
               this.cdr.detectChanges();
               return;
             }
+            if (allowFlags[0] === 'AutoSize') {
+              // Force auto-size after AI data update
+              this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
+              await this.prepareGridData();
+              setTimeout(() => {
+                if (this.gridApi && !this.gridApi.isDestroyed()) {
+                  this.autoSizeAndFit(this.gridApi);
+                  this.initialColumnState = this.gridApi.getColumnState();
+                }
+              }, 100);
+              return;
+            }
             if (allowFlags[0] === 'Lock') {
               this.rowsLocked = allowFlags[1] === 'true';
               this.cdr.detectChanges();
@@ -675,7 +687,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       // Still need to check multiline for gridKey computation
       const checkMultiline = (cols: any[]): boolean => {
         return cols.some((col: any) => {
-          if (col.columnType === 'B') return true;
+          if (col.columnType === 'B' || col.textMode === 'W') return true;
           if (col.columns && Array.isArray(col.columns)) return checkMultiline(col.columns);
           return false;
         });
@@ -752,7 +764,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     // Also check nested columns in bands
     const checkMultiline = (cols: any[]): boolean => {
       return cols.some((col: any) => {
-        if (col.columnType === 'B') return true;
+        if (col.columnType === 'B' || col.textMode === 'W') return true;
         if (col.columns && Array.isArray(col.columns)) {
           return checkMultiline(col.columns);
         }
@@ -912,11 +924,14 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       colDef.filter = col.allowFiltering !== false;
     }
 
-    // Column width: use metadata width as minWidth, autoSizeAllColumns handles the rest
-    if (col.width) {
-      colDef.minWidth = col.width;
-    } else {
+    // Column width: for W/T textMode use as maxWidth; for others use as minWidth if > 60
+    if (col.textMode === 'W' || col.textMode === 'T') {
+      if (col.width && col.width > 0) {
+        colDef.maxWidth = col.width;
+      }
       colDef.minWidth = 60;
+    } else {
+      colDef.minWidth = (col.width && col.width > 60) ? col.width : 60;
     }
 
     // Normalize column type (supports both dataType and colType properties, case-insensitive)
@@ -1020,6 +1035,55 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       };
       // Remove maxWidth constraint for multiline columns
       delete colDef.maxWidth;
+    }
+
+    // Handle textMode: W = wrap (autoHeight), T = tooltip
+    if (col.textMode === 'W') {
+      colDef.wrapText = true;
+      colDef.autoHeight = true;
+      colDef.cellStyle = {
+        'white-space': 'pre-wrap',
+        'word-wrap': 'break-word',
+        'line-height': '1.4',
+        'padding-top': '6px',
+        'padding-bottom': '6px'
+      };
+    } else if (col.textMode === 'T') {
+      colDef.cellRenderer = (params: any) => {
+        if (!params.value) return '';
+        const escaped = String(params.value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const div = document.createElement('div');
+        div.style.cssText = 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer';
+        div.textContent = params.value;
+        div.title = ''; // prevent native tooltip
+        div.addEventListener('mouseenter', () => {
+          // Remove any existing tooltip
+          document.querySelectorAll('.gts-grid-tooltip').forEach(el => el.remove());
+          const tooltip = document.createElement('div');
+          tooltip.className = 'gts-grid-tooltip';
+          tooltip.innerHTML = escaped.replace(/\r?\n/g, '<br>');
+          tooltip.style.cssText = `position:fixed;z-index:10000;max-width:400px;padding:10px 14px;background:#333;color:#fff;
+            border-radius:6px;font-size:12px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;
+            box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:none`;
+          document.body.appendChild(tooltip);
+          const rect = div.getBoundingClientRect();
+          tooltip.style.left = rect.left + 'px';
+          tooltip.style.top = (rect.bottom + 4) + 'px';
+          // Reposition if overflows right/bottom
+          const tr = tooltip.getBoundingClientRect();
+          if (tr.right > window.innerWidth) tooltip.style.left = (window.innerWidth - tr.width - 8) + 'px';
+          if (tr.bottom > window.innerHeight) tooltip.style.top = (rect.top - tr.height - 4) + 'px';
+        });
+        div.addEventListener('mouseleave', () => {
+          document.querySelectorAll('.gts-grid-tooltip').forEach(el => el.remove());
+        });
+        return div;
+      };
+      colDef.cellStyle = {
+        'white-space': 'nowrap',
+        'overflow': 'hidden',
+        'text-overflow': 'ellipsis'
+      };
     }
 
     // Handle numeric columns - right align and format with mask
