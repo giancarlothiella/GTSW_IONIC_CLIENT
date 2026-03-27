@@ -1892,6 +1892,9 @@
     }
 
     <!-- Input row -->
+    <!-- Horizontal splitter to resize input area -->
+    <div class="chat-splitter" (mousedown)="onChatSplitterMouseDown($event)"></div>
+
     <div class="input-row">
       <!-- Upload button -->
       <button pButton
@@ -1910,10 +1913,11 @@
                 (input)="onQuickEditRequestChange()"
                 (paste)="onPasteImage($event)"
                 (keydown.control.enter)="executeQuickEdit()"
-                rows="2"
+                [rows]="chatInputRows"
                 [placeholder]="t(1655, 'Descrivi la modifica... (Ctrl+V per incollare screenshot)')"
                 [disabled]="quickEditProcessing"
-                class="chat-input"></textarea>
+                class="chat-input"
+                [style.height.px]="chatInputHeight"></textarea>
 
       <!-- Send button -->
       <button pButton

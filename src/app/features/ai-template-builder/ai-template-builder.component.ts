@@ -519,6 +519,8 @@ export class AiTemplateBuilderComponent implements OnInit {
   quickEditProcessing = false;
   quickEditRequest = '';
   quickEditTimeout = false;
+  chatInputHeight = 80;
+  chatInputRows = 3;
   quickEditRequestProcessed = false; // true quando la richiesta è stata elaborata, reset quando il testo cambia
   lastQuickEditResult: {
     changes: string[];
@@ -3285,7 +3287,7 @@ ${html}
     }
 
     // Scegli operazione: INSERT (POST) per nuovi, UPDATE (PUT) per esistenti
-    const isUpdate = this.mode === 'edit';
+    const isUpdate = this.mode === 'edit' || !!this.existingTemplate;
     const saveOperation$ = isUpdate
       ? this.aiReportsService.updateTemplate(this.saveConfig.prjId, this.saveConfig.connCode, this.saveConfig.reportCode, payload)
       : this.aiReportsService.saveTemplate(payload);
@@ -4179,6 +4181,32 @@ ${html}
    */
   onQuickEditRequestChange(): void {
     this.quickEditRequestProcessed = false;
+  }
+
+  /**
+   * Handle horizontal splitter drag to resize chat input area
+   */
+  onChatSplitterMouseDown(event: MouseEvent): void {
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = this.chatInputHeight;
+
+    const onMouseMove = (e: MouseEvent) => {
+      const delta = startY - e.clientY; // dragging up = bigger
+      this.chatInputHeight = Math.max(60, Math.min(400, startHeight + delta));
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   }
 
   // ============================================
