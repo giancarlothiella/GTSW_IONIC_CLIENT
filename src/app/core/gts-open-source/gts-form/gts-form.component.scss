@@ -192,6 +192,15 @@
     margin-top: 0;
   }
 
+  // HTML Editor label
+  .html-editor-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 4px;
+  }
+
   // Validation error goes on new line below
   .validation-error {
     flex-basis: 100%;

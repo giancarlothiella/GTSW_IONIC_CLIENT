@@ -37,6 +37,7 @@ export const COMPONENT_REGISTRY: { [key: string]: () => Promise<any> } = {
   'GTSW/dashboardBuilder': () => import('../../features/GTSW/dashboardBuilder/dashboardBuilder.page').then(m => m.GTSW_DashboardBuilderComponent),
 
   'GTSW/reporttemplates': () => import('../../features/GTSW/report-templates/report-templates.page').then(m => m.GTSW_ReportTemplatesComponent),
+  'GTSW/actionTypes': () => import('../../features/GTSW/actionTypes/actionTypes.page').then(m => m.GTSW_ActionTypesComponent),
   // DCW Components
   'DCW/schedeContabili': () => import('../../features/DCW/schede-contabili/schede-contabili.page').then(m => m.DCW_SchedeContabiliComponent),
 

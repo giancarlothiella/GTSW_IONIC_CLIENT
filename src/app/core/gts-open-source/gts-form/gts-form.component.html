@@ -165,6 +165,21 @@
             </div>
           }
 
+          <!-- HtmlEditor -->
+          @if (element.editorType === 'HtmlEditor' && element.visible) {
+            <div [style]="element.style" [class]="element.cssClass">
+              <label class="html-editor-label">{{ element.label }}</label>
+              <quill-editor
+                [(ngModel)]="element.value"
+                [readOnly]="element.disabled || element.readOnly"
+                (ngModelChange)="onFieldDataChanged(element, $event)"
+                (onBlur)="onFieldFocusOut(element)"
+                [styles]="{height: (element.areaHeight || 200) + 'px'}"
+                [modules]="quillBasicModules"
+              ></quill-editor>
+            </div>
+          }
+
           <!-- DropDownBox -->
           @if (element.editorType === 'DropDownBox' && element.visible) {
             <div [style]="element.style" [class]="element.cssClass">

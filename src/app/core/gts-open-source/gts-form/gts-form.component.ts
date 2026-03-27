@@ -15,6 +15,7 @@ import { Button } from 'primeng/button';
 import { FloatLabel } from 'primeng/floatlabel';
 import { Tooltip } from 'primeng/tooltip';
 
+import { QuillModule } from 'ngx-quill';
 import { GtsToolbarComponent } from '../gts-toolbar/gts-toolbar.component';
 // import { GtsLookupComponent } from '../../gts/gts-lookup/gts-lookup.component'; // DevExtreme version
 import { GtsLookupComponent } from '../gts-lookup/gts-lookup.component'; // Open-source version ✨
@@ -51,6 +52,8 @@ import { GtsLookupComponent } from '../gts-lookup/gts-lookup.component'; // Open
     Button,
     FloatLabel,
     Tooltip,
+    // Rich Text Editor
+    QuillModule,
     // GTS Components
     GtsToolbarComponent,
     GtsLookupComponent
@@ -98,6 +101,18 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   lookUpField: any = {};
   focusComponent: any = {};
   passwMode: string = 'password';
+
+  //========= QUILL CONFIG =================
+  quillBasicModules = {
+    toolbar: [
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'header': [1, 2, 3, false] }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'color': [] }, { 'background': [] }],
+      ['link'],
+      ['clean']
+    ]
+  };
 
   //========= FORM CSS =================
   formCSSTitle: string = '';
