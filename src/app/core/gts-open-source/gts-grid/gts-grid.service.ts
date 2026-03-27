@@ -40,9 +40,11 @@ export class GtsGridService {
       column.index = i;
 
       if (col.bandId !== null  && colBands.filter((band: any) => band.bandId === col.bandId).length === 0) {
+        const bandMeta = metaData.bands.filter((band: any) => band.bandId === col.bandId)[0];
         colBand = {
           bandId: col.bandId,
-          caption: metaData.bands.filter((band: any) => band.bandId === col.bandId)[0].bandText,
+          caption: bandMeta.bandText,
+          bandColor: bandMeta.bandCssClass || null,
           columns: []
         };
 

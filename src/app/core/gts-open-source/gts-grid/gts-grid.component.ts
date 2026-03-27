@@ -800,10 +800,24 @@ export class GtsGridComponent implements OnInit, OnDestroy {
           children: []
         };
 
+        // Apply band background color to group header and child column headers
+        if (col.bandColor) {
+          const cls = 'band-bg-' + col.bandId;
+          groupDef.headerClass = cls;
+
+          // Inject dynamic CSS rule for this band color
+          this.injectBandColorStyle(cls, col.bandColor);
+        }
+
         // Process each child column in the band
         col.columns.forEach((childCol: any) => {
           const childColDef = this.createColumnDef(childCol);
           if (childColDef) {
+            if (col.bandColor) {
+              const cls = 'band-bg-' + col.bandId;
+              childColDef.headerClass = cls;
+              childColDef.cellClass = cls + '-cell';
+            }
             groupDef.children.push(childColDef);
           }
         });
@@ -876,6 +890,22 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       // Just hide the column
       this.gridApi.setColumnsVisible(['__delete__'], false);
     }
+  }
+
+  /**
+   * Inject dynamic CSS for band header background color
+   */
+  private injectedBandStyles = new Set<string>();
+  private injectBandColorStyle(className: string, color: string): void {
+    if (this.injectedBandStyles.has(className)) return;
+    this.injectedBandStyles.add(className);
+
+    const style = document.createElement('style');
+    style.textContent = `
+      .${className} { background-color: ${color} !important; }
+      .${className}-cell { background-color: ${color}30 !important; }
+    `;
+    document.head.appendChild(style);
   }
 
   /**

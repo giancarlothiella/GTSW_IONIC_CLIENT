@@ -76,6 +76,8 @@
           @if (item.type === 'button') {
             <ion-button
               [disabled]="item.disabled"
+              [fill]="item.fill"
+              [color]="item.color || undefined"
               (click)="onButtonClick(item, $event)"
             >
               @if (item.ionIcon) {
@@ -132,6 +134,8 @@
           @if (item.type === 'button') {
             <ion-button
               [disabled]="item.disabled"
+              [fill]="item.fill"
+              [color]="item.color || undefined"
               (click)="onButtonClick(item, $event)"
             >
               @if (item.ionIcon) {

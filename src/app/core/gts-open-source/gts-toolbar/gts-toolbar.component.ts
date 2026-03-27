@@ -348,6 +348,16 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       }
     }
 
+    // Map buttonType → Ionic color: normal=default, success/danger/warning map directly
+    const colorMap: any = { normal: '', default: '', success: 'success', danger: 'danger', warning: 'warning' };
+    const color = colorMap[item.buttonType] || '';
+
+    // Map stylingMode → Ionic fill: outlined=outline, text=clear
+    // contained + color → solid (so Ionic applies the color background)
+    // contained/normal without color → undefined (keep toolbar default CSS)
+    const fillMap: any = { outlined: 'outline', text: 'clear' };
+    const fill = fillMap[item.stylingMode] || (color ? 'solid' : undefined);
+
     return {
       type: 'button',
       objectName: item.objectName,
@@ -356,6 +366,8 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       ionIcon: useIonIcon ? this.mapToIonIcon(item.stdImageId) : null,
       visible: item.visible,
       disabled: item.disabled,
+      fill: fill,
+      color: color,
       submitBehavior: item.submitBehavior,
       actionName: item.actionName,
       actionToolbar: actionToolbar,
