@@ -1052,8 +1052,10 @@ export class GtsDataService {
   //========== RUN ACTION LOOP ========================================================
   runActionInDebug: boolean = false;
 
-  async runAction(prjId: string, formId: number, objectName: string, iStart: number = 0, debugLevel: number = 0) {
+  currentActionName: string = '';
 
+  async runAction(prjId: string, formId: number, objectName: string, iStart: number = 0, debugLevel: number = 0) {
+    this.currentActionName = objectName;
     this.perfLog(`runAction START ${objectName}`);
     const page: any = this.metaData.filter((page) => page.prjId === prjId && page.formId == formId)[0];
     const mainAction = page.pageData.actions.filter((action: any) => action.objectName === objectName);
@@ -2629,6 +2631,20 @@ export class GtsDataService {
     });
   }
 
+  /**
+   * Find toolbar item hintText by actionName
+   */
+  private getToolbarHintText(prjId: string, formId: number, actionName: string): string {
+    const pageData = this.metaData
+      .filter((data: any) => data.prjId === prjId && data.formId === formId)[0]?.pageData;
+    if (!pageData?.toolbars) return '';
+    for (const toolbar of pageData.toolbars) {
+      const item = toolbar.itemsList?.find((i: any) => i.actionName === actionName);
+      if (item?.hintText) return item.hintText;
+    }
+    return '';
+  }
+
   async handleAiInsertFromPDF(prjId: string, formId: number, element: any): Promise<boolean> {
     // element.dataSetName = dataset name (has sqlInsertId)
     // element.pageFldName = pageField name whose value = server upload path
@@ -2681,7 +2697,7 @@ export class GtsDataService {
         autoName: true,
         allowedExtensions: ['.pdf'],
         maxFileSize: 10000000,
-        uploaderTitle: 'Upload PDF for AI Extraction',
+        uploaderTitle: this.getToolbarHintText(prjId, formId, this.currentActionName) || 'Upload PDF',
         keepFileData: true
       });
     });

@@ -19,6 +19,7 @@ import { GtsGridPopupComponent } from '../../../core/gts-open-source/gts-grid-po
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
 import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';
+import { GtsPdfComponent } from '../../../core/gts-open-source/gts-pdf/gts-pdf.component';
 
 @Component({
   selector: 'app-applications',
@@ -38,7 +39,8 @@ import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/g
     GtsGridPopupComponent,
     GtsMessageComponent,
     GtsLoaderComponent,
-    GtsReportsComponent
+    GtsReportsComponent,
+    GtsPdfComponent
   ],
   templateUrl: './applications.page.html',
   styleUrls: ['./applications.page.scss']

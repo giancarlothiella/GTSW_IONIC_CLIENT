@@ -362,6 +362,7 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
       type: 'button',
       objectName: item.objectName,
       text: item.text,
+      hintText: item.hintText || null,
       icon: icon,
       ionIcon: useIonIcon ? this.mapToIonIcon(item.stdImageId) : null,
       visible: item.visible,

@@ -78,6 +78,7 @@
               [disabled]="item.disabled"
               [fill]="item.fill"
               [color]="item.color || undefined"
+              [title]="item.hintText || ''"
               (click)="onButtonClick(item, $event)"
             >
               @if (item.ionIcon) {
@@ -136,6 +137,7 @@
               [disabled]="item.disabled"
               [fill]="item.fill"
               [color]="item.color || undefined"
+              [title]="item.hintText || ''"
               (click)="onButtonClick(item, $event)"
             >
               @if (item.ionIcon) {

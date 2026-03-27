@@ -203,6 +203,10 @@ async function main() {
     const includeReportsInput = await question('📊 Include GTS Reports? (y/N): ');
     const includeReports = includeReportsInput.toLowerCase() === 'y';
 
+    // 6b. Include PDF Viewer
+    const includePdfInput = await question('📄 Include PDF Viewer (showPdf action)? (y/N): ');
+    const includePdf = includePdfInput.toLowerCase() === 'y';
+
     // 7. Base Path
     const defaultBasePath = `src/app/features/${projectCode}`;
     const basePath = await question(`📁 Base path [${defaultBasePath}]: `) || defaultBasePath;
@@ -225,6 +229,7 @@ async function main() {
     log(`  Form ID:            ${isDynamic ? 'Dynamic (from URL)' : formId}`, 'yellow');
     log(`  Component Class:    ${componentClassName}`, 'yellow');
     log(`  Include Reports:    ${includeReports ? 'Yes' : 'No'}`, 'yellow');
+    log(`  Include PDF Viewer: ${includePdf ? 'Yes' : 'No'}`, 'yellow');
     log(`  Target Path:        ${basePath}/${pageName}/`, 'yellow');
     log(`  Registry Update:    ${autoUpdate ? 'Automatic' : 'Manual'}`, 'yellow');
     log('─'.repeat(50) + '\n', 'bright');
@@ -252,13 +257,13 @@ async function main() {
     }
 
     // Generate TypeScript component
-    const tsContent = generateTsComponent(projectCode, pageName, formId, componentPrefix, isDynamic, includeLoader, includeReports);
+    const tsContent = generateTsComponent(projectCode, pageName, formId, componentPrefix, isDynamic, includeLoader, includeReports, includePdf);
     const tsFile = path.join(targetPath, `${pageName}.page.ts`);
     fs.writeFileSync(tsFile, tsContent);
     log(`✅ Generated: ${pageName}.page.ts`, 'green');
 
     // Generate HTML template
-    const htmlContent = generateHtmlTemplate(includeLoader, includeReports);
+    const htmlContent = generateHtmlTemplate(includeLoader, includeReports, includePdf);
     const htmlFile = path.join(targetPath, `${pageName}.page.html`);
     fs.writeFileSync(htmlFile, htmlContent);
     log(`✅ Generated: ${pageName}.page.html`, 'green');
@@ -335,7 +340,7 @@ function showManualRegistryInstructions(registryKey, registryEntry) {
   log(`\nRegistry key: ${registryKey}`, 'yellow');
 }
 
-function generateTsComponent(projectCode, pageName, formId, componentPrefix, isDynamic, includeLoader = false, includeReports = false) {
+function generateTsComponent(projectCode, pageName, formId, componentPrefix, isDynamic, includeLoader = false, includeReports = false, includePdf = false) {
   const className = componentPrefix + toPascalCase(pageName) + 'Component';
   const selector = `app-${pageName}`;
 
@@ -357,6 +362,9 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
   if (includeReports) {
     gtsImports += `\nimport { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component';`;
   }
+  if (includePdf) {
+    gtsImports += `\nimport { GtsPdfComponent } from '../../../core/gts-open-source/gts-pdf/gts-pdf.component';`;
+  }
 
   // Build component imports array
   let componentImports = `    GtsToolbarComponent,
@@ -375,6 +383,9 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
   }
   if (includeReports) {
     componentImports += `,\n    GtsReportsComponent`;
+  }
+  if (includePdf) {
+    componentImports += `,\n    GtsPdfComponent`;
   }
 
   return `import { Component, OnInit, OnDestroy, inject } from '@angular/core';
@@ -551,7 +562,7 @@ ${isDynamic ? `    // Get formId from query params and run page
 `;
 }
 
-function generateHtmlTemplate(includeLoader, includeReports) {
+function generateHtmlTemplate(includeLoader, includeReports, includePdf = false) {
   let template = `<div class="pageFormat">
 ${includeLoader ? '  <app-gts-loader></app-gts-loader>\n\n' : ''}  <app-gts-toolbar
     [prjId]="prjId"
@@ -652,7 +663,13 @@ ${includeReports ? `
     }
   </div>
 
-  <app-gts-message
+${includePdf ? `  @if (gtsDataService.pdfVisible) {
+    <app-gts-pdf
+      [base64PdfStream]="gtsDataService.pdfFileData"
+    ></app-gts-pdf>
+  }
+
+` : ''}  <app-gts-message
     [prjId]="prjId"
     [formId]="formId"
   ></app-gts-message>
