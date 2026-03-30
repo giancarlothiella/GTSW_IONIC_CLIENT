@@ -172,7 +172,7 @@
               <quill-editor
                 [(ngModel)]="element.value"
                 [readOnly]="element.disabled || element.readOnly"
-                (ngModelChange)="onFieldDataChanged(element, $event)"
+                (onContentChanged)="onHtmlEditorChanged(element)"
                 (onBlur)="onFieldFocusOut(element)"
                 [styles]="{height: (element.areaHeight || 200) + 'px'}"
                 [modules]="quillBasicModules"

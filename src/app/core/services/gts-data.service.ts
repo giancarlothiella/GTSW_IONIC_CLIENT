@@ -178,6 +178,18 @@ export class GtsDataService {
     return this.formRepListener.asObservable();
   }
 
+  private formSubmitListener = new Subject<any>();
+  getFormSubmitListener() {
+    return this.formSubmitListener.asObservable();
+  }
+  private formSubmitResultListener = new Subject<any>();
+  getFormSubmitResultListener() {
+    return this.formSubmitResultListener.asObservable();
+  }
+  sendFormSubmitResult(result: any) {
+    this.formSubmitResultListener.next(result);
+  }
+
   private lookUpListener = new Subject<any>();
   getLookUpListener() {
     return this.lookUpListener.asObservable();
@@ -299,7 +311,7 @@ export class GtsDataService {
     if (t === 'setPreviousView') return 'back';
     if (t === 'getFormData' || t === 'reloadFormData' || t === 'refreshFormLocked' ||
         t === 'clearFields' || t === 'pkLock' || t === 'pkUnlock' ||
-        t === 'saveFormData' || t === 'getExportedData' || t === 'getGroupData') return el.clFldGrpId ? `Grp:${el.clFldGrpId}` : '';
+        t === 'saveFormData' || t === 'formSubmit' || t === 'getExportedData' || t === 'getGroupData') return el.clFldGrpId ? `Grp:${el.clFldGrpId}` : '';
     if (t === 'setField') return `${el.pageFldName}=${el.fieldValue ?? ''}`;
     if (t === 'gridSetIdle' || t === 'gridSetEdit' || t === 'gridSetInsert' ||
         t === 'gridAllowDelete' || t === 'gridLockRows' || t === 'gridUnLockRows' ||
@@ -1174,6 +1186,8 @@ export class GtsDataService {
             this.pkLock(prjId, formId, element.clFldGrpId);
           } else if (element.actionType === 'pkUnlock') {
             this.pkUnlock(prjId, formId, element.clFldGrpId);
+          } else if (element.actionType === 'formSubmit') {
+            this.actionCanRun = await this.handleFormSubmit(prjId, formId, element.clFldGrpId);
           } else if (element.actionType === 'saveFormData') {
             this.saveFormData(prjId, formId, element.clFldGrpId, false, '', '');
           } else if (element.actionType === 'getExportedData') {
@@ -1365,7 +1379,7 @@ export class GtsDataService {
 
           lastActionType = element.actionType;
 
-          console.log('ACTION END', formId, objectName, element.actionType, this.metaData, this.pageData)
+          console.log('ACTION END', formId, objectName, element.actionType, this.metaData, this.pageData);
         }
 
         // Emit demo log entry (lightweight, independent from debug)
@@ -2083,6 +2097,22 @@ export class GtsDataService {
   }
 
   // set metaData page fields value from form fields and update dataSet fields value (if required)
+  /**
+   * formSubmit action: request form validation + collect values into pageFields
+   * Returns false if validation fails (blocks action chain)
+   */
+  async handleFormSubmit(prjId: string, formId: number, clFldGrpId: number): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      const sub = this.getFormSubmitResultListener().subscribe((result: any) => {
+        if (result.clFldGrpId === clFldGrpId) {
+          sub.unsubscribe();
+          resolve(result.valid);
+        }
+      });
+      this.formSubmitListener.next({ prjId, formId, clFldGrpId });
+    });
+  }
+
   saveFormData(prjId: string, formId: number, clFldGrpId: number, setDataSet: boolean, dataSetName: string = '', status: string = '') {
     if (status !== 'delete') {
       let formFields: any[] = [];

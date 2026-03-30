@@ -75,6 +75,7 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
   formExternalListenerSubs: Subscription | undefined;
   formReloadListenerSubs: Subscription | undefined;
   formRefreshLockedListenerSubs: Subscription | undefined;
+  formSubmitListenerSubs: Subscription | undefined;
   formFormFocusListenerSubs: Subscription | undefined;
   appViewListenerSubs: Subscription | undefined;
 
@@ -283,6 +284,15 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         });
       });
 
+    // Listen for formSubmit action (wizard/external submit without runAction)
+    this.formSubmitListenerSubs = this.gtsDataService
+      .getFormSubmitListener()
+      .subscribe(async (req: any) => {
+        if (req.prjId === this.prjId && req.formId === this.formId && req.clFldGrpId === this.metaData?.groupId) {
+          await this.submitFormValues(req.clFldGrpId);
+        }
+      });
+
     this.formReady = false;
     this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'forms', this.objectName);
 
@@ -311,10 +321,34 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     this.formExternalListenerSubs?.unsubscribe();
     this.formReloadListenerSubs?.unsubscribe();
     this.formRefreshLockedListenerSubs?.unsubscribe();
+    this.formSubmitListenerSubs?.unsubscribe();
     this.appViewListenerSubs?.unsubscribe();
   }
 
   //========= FORM EVENTS =================
+  /**
+   * Submit form values without triggering runAction (used by formSubmit action type)
+   */
+  async submitFormValues(clFldGrpId: number) {
+    const valid = await this.formValidation();
+    if (valid) {
+      this.formData.forEach((field: any) => {
+        if (field.dataType === 'N' && field.value !== undefined && field.value !== null && field.value !== '') {
+          const raw = typeof field.value === 'string' ? field.value.replace(/,/g, '') : field.value;
+          field.value = Number(raw);
+        }
+        let submitValue = field.value;
+        if (field.editorType === 'CheckBox' && field.valueChecked !== null && field.valueChecked !== undefined) {
+          submitValue = field.value ? field.valueChecked : field.valueUnChecked;
+        }
+        this.gtsDataService.setPageFieldValue(this.prjId, this.formId, field.objectName, submitValue);
+      });
+    } else {
+      this.changeDetector.detectChanges();
+    }
+    this.gtsDataService.sendFormSubmitResult({ clFldGrpId, valid });
+  }
+
   async toolbarSubmitEvent(event: any) {
     this.gtsDataService.perfLog(`form.submit START validation (${this.formData.length} fields)`);
     this.gtsDataService.sendAppLoaderListener(true);
@@ -499,6 +533,14 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
         visible: true,
         validationMessage: ''
       };
+
+      // Apply ruleArray: if rule matches, field becomes readOnly
+      if (this.metaData.fields[i].ruleArray && this.metaData.fields[i].ruleArray.length > 0) {
+        const ruleMatch = this.gtsDataService.checkPageRule(this.prjId, this.formId, this.metaData.fields[i].ruleArray);
+        if (ruleMatch) {
+          field.readOnly = true;
+        }
+      }
 
       // Set mode = password if objectname contains password
       if (field.objectName.toLowerCase().includes('password')) {
@@ -742,6 +784,12 @@ export class GtsFormComponent implements OnInit, AfterViewInit, OnDestroy {
     field.dirty = true;
     field.validated = false;
     field.updateFromLookUp = false;
+  }
+
+  onHtmlEditorChanged(element: any) {
+    element.dirty = true;
+    element.validated = false;
+    this.gtsDataService.setPageFieldValue(this.prjId, this.formId, element.objectName, element.value);
   }
 
   async onFieldDataChanged(field: any, previousValue: any) {
