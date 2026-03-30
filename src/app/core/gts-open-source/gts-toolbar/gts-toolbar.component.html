@@ -71,7 +71,7 @@
 
       <!-- Bottoni e controlli a sinistra (start) -->
       <ion-buttons slot="start">
-        @for (item of startItems; track item.objectName) {
+        @for (item of startItems; track item?.objectName) {
           <!-- Button -->
           @if (item.type === 'button') {
             <ion-button
@@ -130,7 +130,7 @@
 
       <!-- Bottoni e controlli a destra (end) -->
       <ion-buttons slot="end">
-        @for (item of endItems; track item.objectName) {
+        @for (item of endItems; track item?.objectName) {
           <!-- Button -->
           @if (item.type === 'button') {
             <ion-button

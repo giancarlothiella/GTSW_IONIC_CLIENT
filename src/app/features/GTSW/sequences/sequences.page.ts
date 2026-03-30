@@ -42,7 +42,7 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
           @if (loading) {
             <app-gts-loader></app-gts-loader>
           }
-          @for (element of metaData.tabs; track element) {
+          @for (element of metaData.tabs; track element.objectName) {
             @if (element.visible) {
               <app-gts-tabs
                 [style]="'grid-area: '+element.gridArea"
@@ -52,7 +52,7 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
               ></app-gts-tabs>
             }
           }
-          @for (element of metaData.reports; track element) {
+          @for (element of metaData.reports; track element.fieldGrpId) {
             @if (element.visible) {
               <app-gts-reports
                 [style]="'grid-area: '+element.gridArea"
@@ -62,7 +62,7 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
               ></app-gts-reports>
             }
           }
-          @for (element of metaData.toolbars; track element) {
+          @for (element of metaData.toolbars; track element.objectName) {
             @if (element.visible && element.objectName !== 'mainToolbar' && !element.toolbarFlagSubmit) {
               <app-gts-toolbar
                 [style]="'grid-area: '+element.gridArea"
@@ -74,7 +74,7 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
               ></app-gts-toolbar>
             }
           }
-          @for (element of metaData.grids; track element) {
+          @for (element of metaData.grids; track element.objectName) {
             @if (element.visible) {
               <app-gts-grid
                 [style]="'grid-area: '+element.gridArea"
@@ -84,7 +84,7 @@ import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/g
               ></app-gts-grid>
             }
           }
-          @for (element of metaData.forms; track element) {
+          @for (element of metaData.forms; track element.objectName) {
             @if (element.visible && !element.groupShowPopUp) {
               <app-gts-form
                 [style]="'grid-area: '+element.gridArea"

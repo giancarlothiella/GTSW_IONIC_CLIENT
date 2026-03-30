@@ -99,6 +99,13 @@ export class GtsToolbarComponent implements OnInit, OnDestroy {
           if (!this.toolbarReady) {
             this.toolbarReady = true;
           }
+        } else {
+          // Reset toolbar when metadata not available (page changed)
+          this.toolbarReady = false;
+          this.startItems = [];
+          this.endItems = [];
+          this.centerItems = [];
+          this.itemsList = [];
         }
       });
 

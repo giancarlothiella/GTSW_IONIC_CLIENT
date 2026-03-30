@@ -575,7 +575,7 @@ ${includeLoader ? '  <app-gts-loader></app-gts-loader>\n\n' : ''}  <app-gts-tool
   <div
     [style]="viewStyle"
     >
-    @for (element of metaData.tabs; track element) {
+    @for (element of metaData.tabs; track element.objectName) {
       @if (element.visible) {
         <app-gts-tabs
           [style]="'grid-area: '+element.gridArea"
@@ -586,7 +586,7 @@ ${includeLoader ? '  <app-gts-loader></app-gts-loader>\n\n' : ''}  <app-gts-tool
       }
     }
 ${includeReports ? `
-    @for (element of metaData.reportsGroups; track element) {
+    @for (element of metaData.reportsGroups; track element.fieldGrpId) {
       @if (element.visible) {
         <app-gts-reports
           [style]="'grid-area: '+element.gridArea"
@@ -597,7 +597,7 @@ ${includeReports ? `
       }
     }
 ` : ''}
-    @for (element of metaData.toolbars; track element) {
+    @for (element of metaData.toolbars; track element.objectName) {
       @if (element.visible && element.objectName != 'mainToolbar' && !element.toolbarFlagSubmit) {
         <app-gts-toolbar
           [style]="'grid-area: '+element.gridArea"
@@ -610,7 +610,7 @@ ${includeReports ? `
       }
     }
 
-    @for (element of metaData.grids; track element) {
+    @for (element of metaData.grids; track element.objectName) {
       @if (element.visible && element.viewType === 'tree') {
         <app-gts-tree
           [style]="'grid-area: '+element.gridArea"
@@ -636,7 +636,7 @@ ${includeReports ? `
       }
     }
 
-    @for (element of metaData.forms; track element) {
+    @for (element of metaData.forms; track element.objectName) {
       @if (element.visible && element.groupType === 'RPT' && !element.groupShowPopUp) {
         <app-gts-html-view
           [style]="'grid-area: '+element.gridArea"
