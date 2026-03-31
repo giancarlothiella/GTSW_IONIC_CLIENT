@@ -2897,7 +2897,7 @@ export class GtsDataService {
   ): Promise<boolean> {
     // Find the RPT form to get reportCode from wizName
     const form = this.getFormMetaDataByGroupId(prjId, formId, clFldGrpId);
-    if (!form || !form.wizName) return false;
+    if (!form || !form.objectName) return false;
 
     // Get data from dataset
     const adapter = this.getDataSetAdapter(prjId, formId, dataSetName);
@@ -2911,7 +2911,7 @@ export class GtsDataService {
     // Call server to compile template
     const connCode = this.getConnCode(prjId);
     const result: any = await this.execMethod('data', 'compileHtmlTemplate', {
-      prjId, connCode, reportCode: form.wizName,
+      prjId, connCode, reportCode: form.objectName,
       data: { main: rows }
     });
 
