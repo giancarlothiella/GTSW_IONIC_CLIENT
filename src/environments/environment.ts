@@ -11,7 +11,6 @@ export const environment = {
   reCaptchaKey: '6LcCP9gpAAAAAP-tR83NsGBoL5tm--Odo1DvmmOm',
   //reCaptchaKey: '6LdSfB0nAAAAAFGSuYGivNfrGyIyo10jancaixg7',
    
-  dbMode: 'D',
   languageId: 'EN',
 
   aiEnabled: true,

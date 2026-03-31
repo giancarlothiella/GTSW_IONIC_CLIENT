@@ -760,8 +760,7 @@ export class AuthService {
         email,
         password,
         authKey,
-        name,
-        dbMode: environment.dbMode
+        name
       };
 
       const response = await firstValueFrom(this.http.post<{valid: boolean, message: string}>(

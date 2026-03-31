@@ -9,7 +9,6 @@ export const environment = {
   reCaptchaEnabled: false,
   reCaptchaKey: '6LcCP9gpAAAAAP-tR83NsGBoL5tm--Odo1DvmmOm',
 
-  dbMode: 'P',
   languageId: 'EN',
 
   aiEnabled: true,
