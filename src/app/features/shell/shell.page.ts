@@ -1562,19 +1562,16 @@ export class ShellPage implements OnInit {
 
   async runWizardCreate() {
     const sel = this.getSelectedConnections();
-    const dbConns = sel.map(c => ({
-      connCode: c.connCode,
-      flagDefault: sel.length === 1 || c.connCode === this.wizard.project.defaultConnCode
-    }));
-
     const projectBody: any = {
       prjId: this.wizard.project.prjId,
-      description: this.wizard.project.description,
-      iconImage: this.wizard.project.iconImage || '',
-      homeImage: this.wizard.project.homeImage || '',
-      dbConnections: dbConns,
-      demoGuideHtml: ''
+      description: this.wizard.project.description
     };
+    if (sel.length > 0) {
+      projectBody.dbConnections = sel.map(c => ({
+        connCode: c.connCode,
+        flagDefault: sel.length === 1 || c.connCode === this.wizard.project.defaultConnCode
+      }));
+    }
 
     const baseDesc = this.wizard.project.description || '';
     const baseSetup = {
@@ -1612,10 +1609,7 @@ export class ShellPage implements OnInit {
         this.menuService.addProject({
           prjId: projectBody.prjId,
           description: projectBody.description,
-          iconImage: projectBody.iconImage || '',
-          homeImage: projectBody.homeImage || '',
-          dbConnections: projectBody.dbConnections || [],
-          demoGuideHtml: ''
+          dbConnections: projectBody.dbConnections || []
         } as any);
 
         const toast = await this.toastCtrl.create({
@@ -1778,6 +1772,9 @@ export class ShellPage implements OnInit {
   }
 
   async openSuiteConfigModal() {
+    // Blur the trigger so Ionic can set aria-hidden on app-shell without the
+    // focused button ancestor warning.
+    (document.activeElement as HTMLElement | null)?.blur();
     this.suiteConfigSection = 'setup';
     this.suiteConfigLoading = true;
     this.suiteConfigModalOpen = true;

@@ -558,6 +558,47 @@ export class GtsDataService {
     this.fileLoaderListener.next(status);
   }
 
+  /**
+   * Open the gts-file-uploader dialog and wait for the user to upload (or cancel).
+   * Returns the upload result on success, or null if the user cancelled.
+   * Use this from any page that needs an "await upload" flow without manually
+   * managing fileLoaderListener subscriptions.
+   */
+  async uploadFileAsync(config: {
+    fileUploadName?: string;
+    fileUploadPath?: string;
+    allowedExtensions?: string[];
+    maxFileSize?: number;
+    uploaderTitle?: string;
+    autoName?: boolean;
+    keepFileData?: boolean;
+  }): Promise<{ fileUploadedName: string; fileData?: string } | null> {
+    this.sendAppLoaderListener(false);
+    return new Promise((resolve) => {
+      let dialogOpened = false;
+      const sub = this.getFileLoaderListener().subscribe((status: any) => {
+        if (status.fileUploadVisible) {
+          dialogOpened = true;
+          return;
+        }
+        if (!dialogOpened) return;
+        sub.unsubscribe();
+        if (status.result === true && status.fileUploadedName) {
+          resolve({
+            fileUploadedName: status.fileUploadedName,
+            fileData: status.fileData
+          });
+        } else {
+          resolve(null);
+        }
+      });
+      this.sendFileLoaderListener({
+        fileUploadVisible: true,
+        ...config
+      });
+    });
+  }
+
   sendAppLoaderListener(status: boolean) {
     this.appLoaderListener.next(status);
   }

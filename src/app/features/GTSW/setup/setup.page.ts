@@ -122,7 +122,6 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
     <app-gts-file-uploader
       [fileUploadPath]="uploadPath"
       uploaderTitle="Project Images"
-      [fileUploadName]="uploadName"
       [allowedExtensions]="allowedExtensions"
       [maxFileSize]="maxFileSize"
     ></app-gts-file-uploader>
@@ -181,7 +180,6 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
   formReqListenerSubs: Subscription | undefined;
   pageCustomListenerSubs: Subscription | undefined;
   appLoaderListenerSubs: Subscription | undefined;
-  fileLoaderListenerSubs: Subscription | undefined;
 
   // Component state
   metaData: any = {};
@@ -198,8 +196,6 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
   prjShowImages = false;
   prjImage = '';
   prjLogo = '';
-  fileUploaderVisible = false;
-  uploadName = '';
   allowedExtensions: string[] = ['.jpg', '.jpeg', '.gif', '.png'];
   maxFileSize = 5000000;
   uploadPath = 'Projects';
@@ -209,35 +205,6 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
     if (this.authService.autoAuthUser()) {
       this.authService.checkToken();
     }
-
-    // File Loader Listener
-    this.fileLoaderListenerSubs = this.gtsDataService
-      .getFileLoaderListener()
-      .subscribe((status) => {
-        if (status.result === true && status.fileUploadVisible === false) {
-          // Auto-update the form field with the uploaded filename
-          if (status.fileUploadedName) {
-            const selPrj = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daSetup', 'qPrj');
-            if (this.uploadName.endsWith('_home')) {
-              this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqPrj_homeImage', status.fileUploadedName);
-              // Clear cached image so it reloads
-              const cachedPrj = this.prjArray.find(p => p.prjId === selPrj?.prjId);
-              if (cachedPrj) {
-                cachedPrj.homeImageFile = undefined;
-              }
-            } else if (this.uploadName.endsWith('_logo')) {
-              this.gtsDataService.setPageFieldValue(this.prjId, this.formId, 'gtsFldqPrj_iconImage', status.fileUploadedName);
-              // Clear cached image so it reloads
-              const cachedPrj = this.prjArray.find(p => p.prjId === selPrj?.prjId);
-              if (cachedPrj) {
-                cachedPrj.logoImageFile = undefined;
-              }
-            }
-          }
-          this.gtsDataService.runAction(this.prjId, this.formId, 'prjRefreshDetail');
-          this.gtsDataService.sendAppLoaderListener(false);
-        }
-      });
 
     // Loader Listener
     this.appLoaderListenerSubs = this.gtsDataService
@@ -300,13 +267,13 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
           }
 
           if (prjData.homeImageFile === undefined || prjData === null) {
-            if (selPrj.homeImage !== undefined) {
+            if (selPrj.homeImage) {
               const imageResult = await this.getProjectImage(selPrj.prjId, 'home', selPrj.homeImage);
               if (imageResult !== null && imageResult !== undefined && imageResult.valid) {
                 prjData.homeImageFile = 'data:image;base64,' + imageResult.fileData;
               }
             }
-            if (selPrj.iconImage !== undefined) {
+            if (selPrj.iconImage) {
               const imageResult = await this.getProjectImage(selPrj.prjId, 'logo', selPrj.iconImage);
               if (imageResult !== null && imageResult !== undefined && imageResult.valid) {
                 prjData.logoImageFile = 'data:image;base64,' + imageResult.fileData;
@@ -324,26 +291,35 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
           this.prjShowImages = false;
         }
 
-        if (event.customCode === 'UPLOAD_IMAGE') {
+        if (event.customCode === 'UPLOAD_IMAGE' || event.customCode === 'UPLOAD_LOGO') {
+          const isLogo = event.customCode === 'UPLOAD_LOGO';
           const selPrj = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daSetup', 'qPrj');
-          this.uploadName = selPrj.prjId + '_home';
-          this.fileUploaderVisible = true;
-
-          this.gtsDataService.sendFileLoaderListener({
-            fileUploadVisible: this.fileUploaderVisible
+          const result = await this.gtsDataService.uploadFileAsync({
+            fileUploadName: selPrj.prjId + (isLogo ? '_logo' : '_home')
           });
-          this.gtsDataService.sendAppLoaderListener(false);
-        }
+          if (result?.fileUploadedName) {
+            // Store only the filename (no "Projects/" prefix) in the pageField
+            const fileOnly = result.fileUploadedName.split('/').pop() || result.fileUploadedName;
+            const targetField = isLogo ? 'gtsFldqPrj_iconImage' : 'gtsFldqPrj_homeImage';
+            this.gtsDataService.setPageFieldValue(this.prjId, this.formId, targetField, fileOnly);
+            // Also sync the dataset row so getProjectImage uses the new filename
+            if (isLogo) selPrj.iconImage = fileOnly;
+            else selPrj.homeImage = fileOnly;
 
-        if (event.customCode === 'UPLOAD_LOGO') {
-          const selPrj = this.gtsDataService.getDataSetSelectRow(this.prjId, this.formId, 'daSetup', 'qPrj');
-          this.uploadName = selPrj.prjId + '_logo';
-          this.fileUploaderVisible = true;
-
-          this.gtsDataService.sendFileLoaderListener({
-            fileUploadVisible: this.fileUploaderVisible
-          });
-          this.gtsDataService.sendAppLoaderListener(false);
+            // Reload the image from the server and update cache + visible variables
+            const imageResult = await this.getProjectImage(selPrj.prjId, isLogo ? 'logo' : 'home', fileOnly);
+            const cachedPrj = this.prjArray.find(p => p.prjId === selPrj?.prjId);
+            if (imageResult?.valid) {
+              const imgData = 'data:image;base64,' + imageResult.fileData;
+              if (isLogo) {
+                if (cachedPrj) cachedPrj.logoImageFile = imgData;
+                this.prjLogo = imgData;
+              } else {
+                if (cachedPrj) cachedPrj.homeImageFile = imgData;
+                this.prjImage = imgData;
+              }
+            }
+          }
         }
 
         if (event.customCode === 'PRJCONN_POST') {
@@ -413,7 +389,6 @@ export class GTSW_SetupComponent implements OnInit, OnDestroy {
     this.pageCustomListenerSubs?.unsubscribe();
     this.appLoaderListenerSubs?.unsubscribe();
     this.formReqListenerSubs?.unsubscribe();
-    this.fileLoaderListenerSubs?.unsubscribe();
   }
 
   async getProjectImage(prjId: string, imageType: string, fileName: string) {
