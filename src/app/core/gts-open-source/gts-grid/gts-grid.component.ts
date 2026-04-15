@@ -108,6 +108,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
     minWidth: 60
   };
 
+  autoSizeStrategy: any = {
+    type: 'fitCellContents',
+    skipHeader: false
+  };
+
   // Grid options
   gridApi!: GridApi;
   enablePagination: boolean = true;
@@ -376,16 +381,11 @@ export class GtsGridComponent implements OnInit, OnDestroy {
             await this.prepareGridData();
           }
 
-          // After reload: auto-size if grid was empty before (first data load),
-          // otherwise restore saved column state (preserves user's column widths)
+          // After reload: restore saved column state if any (preserves user's column widths).
+          // First data load is handled by autoSizeStrategy + firstDataRendered natively.
           setTimeout(() => {
             if (this.gridApi && !this.gridApi.isDestroyed()) {
-              if (!hadDataBefore && this.rowData && this.rowData.length > 0) {
-                // First data load - auto-size to content
-                this.autoSizeAndFit(this.gridApi);
-                // Update initial state so Reset Columns uses content-based widths
-                this.initialColumnState = this.gridApi.getColumnState();
-              } else if (this.savedColumnState) {
+              if (hadDataBefore && this.savedColumnState) {
                 this.gridApi.applyColumnState({
                   state: this.savedColumnState,
                   applyOrder: true
@@ -1195,13 +1195,7 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       // Go to first page to ensure rows are displayed
       params.api.paginationGoToFirstPage();
 
-      // Auto-size all columns to fit their content, then fill remaining space
-      this.autoSizeAndFit(params.api);
-
-      // Save initial column state for reset functionality (only on first load)
-      if (!this.initialColumnState) {
-        this.initialColumnState = params.api.getColumnState();
-      }
+      // Auto-sizing is handled by autoSizeStrategy (firstDataRendered event)
 
       // Restore selection if there was one saved
       this.restoreSelection();
@@ -1231,6 +1225,20 @@ export class GtsGridComponent implements OnInit, OnDestroy {
         this.setupDragDrop();
       }
     }, 100); // Small delay to ensure gridObject is set
+  }
+
+  /**
+   * Fires after AG Grid has rendered the first batch of data with real dimensions.
+   * autoSizeStrategy sizes columns on this event too — we defer capture to the next
+   * tick so we read the state AFTER AG Grid has applied the autoSize.
+   */
+  onFirstDataRendered(params: any): void {
+    if (!params.api || params.api.isDestroyed()) return;
+    setTimeout(() => {
+      if (params.api && !params.api.isDestroyed()) {
+        this.initialColumnState = params.api.getColumnState();
+      }
+    }, 0);
   }
 
   /**

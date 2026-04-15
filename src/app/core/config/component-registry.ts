@@ -44,6 +44,8 @@ export const COMPONENT_REGISTRY: { [key: string]: () => Promise<any> } = {
   'DCW/bilancio': () => import('../../features/DCW/bilancio/bilancio.page').then(m => m.DCW_BilancioComponent),
   'DCW/salesDashboard': () => import('../../features/DCW/salesDashboard/salesDashboard.page').then(m => m.DCW_SalesDashboardComponent),
 
+  'DCW/registrazioniIVA': () => import('../../features/DCW/registrazioniIVA/registrazioniIVA.page').then(m => m.DCW_RegistrazioniIVAComponent),
+  'DCW/bilancioVerifica': () => import('../../features/DCW/bilancioVerifica/bilancioVerifica.page').then(m => m.DCW_BilancioVerificaComponent),
 // WFS Components
   'WFS/sales': () => import('../../features/WFS/sales/sales.page').then(m => m.WFS_SalesComponent),
   'WFS/organisations': () => import('../../features/WFS/organisations/organisations.page').then(m => m.WFS_OrganisationsComponent),
