@@ -21,6 +21,10 @@ import {
   IonToggle,
   IonInput,
   IonFooter,
+  IonCheckbox,
+  IonSelect,
+  IonSelectOption,
+  IonNote,
   MenuController,
   ModalController,
   ToastController,
@@ -46,7 +50,9 @@ import {
   constructOutline,
   listOutline,
   personOutline,
-  shieldCheckmarkOutline
+  shieldCheckmarkOutline,
+  addCircleOutline,
+  checkmarkCircleOutline
 } from 'ionicons/icons';
 import { AuthService } from '../../core/services/auth.service';
 import { MenuService } from '../../core/services/menu.service';
@@ -87,6 +93,10 @@ import { Subscription, lastValueFrom } from 'rxjs';
     IonToggle,
     IonInput,
     IonFooter,
+    IonCheckbox,
+    IonSelect,
+    IonSelectOption,
+    IonNote,
     GtsLoaderComponent,
     GtsDebugComponent,
     GtsActionsDebugComponent,
@@ -340,6 +350,10 @@ import { Subscription, lastValueFrom } from 'rxjs';
                   <ion-icon slot="start" name="construct-outline"></ion-icon>
                   <ion-label>Setup Data</ion-label>
                 </ion-item>
+                <ion-item button (click)="selectConfigSection('newproject')" [class.active]="suiteConfigSection === 'newproject'">
+                  <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+                  <ion-label>New Project</ion-label>
+                </ion-item>
                 <ion-item button (click)="selectConfigSection('delete')" [class.active]="suiteConfigSection === 'delete'">
                   <ion-icon slot="start" name="trash-outline"></ion-icon>
                   <ion-label>Remove Project</ion-label>
@@ -384,13 +398,13 @@ import { Subscription, lastValueFrom } from 'rxjs';
                           <textarea rows="2" class="config-textarea" [(ngModel)]="suiteConfig.anthropicApiKey" placeholder="sk-ant-api03-..."></textarea>
                         </ion-item>
                         <ion-item>
-                          <ion-input label="Model" labelPlacement="stacked" [(ngModel)]="suiteConfig.anthropicModel" placeholder="claude-sonnet-4-20250514"></ion-input>
+                          <ion-input label="Model" labelPlacement="stacked" [(ngModel)]="suiteConfig.anthropicModel" placeholder="Claude model name"></ion-input>
                         </ion-item>
                         <ion-item>
-                          <ion-input label="Vision Model" labelPlacement="stacked" [(ngModel)]="suiteConfig.anthropicModelVision" placeholder="claude-sonnet-4-20250514"></ion-input>
+                          <ion-input label="Vision Model" labelPlacement="stacked" [(ngModel)]="suiteConfig.anthropicModelVision" placeholder="Claude vision model name"></ion-input>
                         </ion-item>
                         <ion-item>
-                          <ion-input label="Fast Model" labelPlacement="stacked" [(ngModel)]="suiteConfig.anthropicModelFast" placeholder="claude-sonnet-4-20250514"></ion-input>
+                          <ion-input label="Fast Model" labelPlacement="stacked" [(ngModel)]="suiteConfig.anthropicModelFast" placeholder="Claude fast model name"></ion-input>
                         </ion-item>
                       </div>
 
@@ -451,6 +465,147 @@ import { Subscription, lastValueFrom } from 'rxjs';
                       </div>
                     </div>
                   }
+                }
+                @case ('newproject') {
+                  <div class="wizard-container">
+                    <ion-item class="config-section-header">
+                      <ion-label><strong>New Project Wizard — Step {{ wizardStep }}/3</strong></ion-label>
+                    </ion-item>
+
+                    @if (wizardStep === 1) {
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>Step 1 · Project</strong></ion-label>
+                      </ion-item>
+                      <ion-item>
+                        <ion-note color="medium">
+                          Before starting, create any DB connections your project needs from the <strong>DB Connections</strong> page (under GTSW menu) — that page includes the Test Connection feature.
+                          Icon and home images can be uploaded later from the standard <strong>Setup</strong> page.
+                        </ion-note>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Project ID *" labelPlacement="stacked" [(ngModel)]="wizard.project.prjId"
+                          (ionInput)="onPrjIdChange()" placeholder="e.g. DEMO (uppercase, unique)"></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Description *" labelPlacement="stacked" [(ngModel)]="wizard.project.description"
+                          placeholder="e.g. Demo Project"></ion-input>
+                      </ion-item>
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>DB Connections (optional)</strong></ion-label>
+                      </ion-item>
+                      @if (wizardConnections.length === 0) {
+                        <ion-item>
+                          <ion-label color="medium">No DB connections available — none will be linked to the project.</ion-label>
+                        </ion-item>
+                      } @else {
+                        @for (c of wizardConnections; track c.connCode) {
+                          <ion-item>
+                            <ion-checkbox [(ngModel)]="c.selected" labelPlacement="end">
+                              <strong>{{ c.connCode }}</strong> — {{ c.connDescr }} ({{ c.connType }})
+                            </ion-checkbox>
+                          </ion-item>
+                        }
+                        @if (getSelectedConnections().length > 1) {
+                          <ion-item>
+                            <ion-select label="Default Connection *" labelPlacement="stacked"
+                              [(ngModel)]="wizard.project.defaultConnCode" interface="popover">
+                              @for (c of getSelectedConnections(); track c.connCode) {
+                                <ion-select-option [value]="c.connCode">{{ c.connCode }}</ion-select-option>
+                              }
+                            </ion-select>
+                          </ion-item>
+                        }
+                      }
+                    }
+
+                    @if (wizardStep === 2) {
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>Step 2 · Roles</strong></ion-label>
+                      </ion-item>
+                      <ion-item>
+                        <ion-note color="medium">
+                          Two base roles will be created. User roles (for menu items) can be added later from the <strong>Auth Rules</strong> page.
+                        </ion-note>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Admin Role *" labelPlacement="stacked" [(ngModel)]="wizard.roles.adminRole"></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Admin Role Description" labelPlacement="stacked" [(ngModel)]="wizard.roles.adminRoleDescr"></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Devel Role *" labelPlacement="stacked" [(ngModel)]="wizard.roles.develRole"></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Devel Role Description" labelPlacement="stacked" [(ngModel)]="wizard.roles.develRoleDescr"></ion-input>
+                      </ion-item>
+                    }
+
+                    @if (wizardStep === 3) {
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>Step 3 · Setup</strong></ion-label>
+                      </ion-item>
+                      <ion-item>
+                        <ion-note color="medium">
+                          Setup description is auto-generated from the project description with a suffix: <em>{{ wizard.project.description || '…' }} - DEVEL</em> (and TEST/PROD if enabled).
+                        </ion-note>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Token Expires Time (minutes) *" labelPlacement="stacked" type="number"
+                          [(ngModel)]="wizard.setup.tokenExpiresTime"></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-select label="Password Policy *" labelPlacement="stacked"
+                          [(ngModel)]="wizard.setup.policyStdCode" interface="popover">
+                          @for (p of wizardPolicies; track p) {
+                            <ion-select-option [value]="p">{{ p }}</ion-select-option>
+                          }
+                        </ion-select>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Password Expire Warning (days)" labelPlacement="stacked" type="number"
+                          [(ngModel)]="wizard.setup.passwExpireWarningDays"></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Auth Key Expires (hours)" labelPlacement="stacked" type="number"
+                          [(ngModel)]="wizard.setup.authKeyExpiresHours"></ion-input>
+                      </ion-item>
+                      @if (getSelectedConnections().length === 0) {
+                        <ion-item>
+                          <ion-select label="Default Connection Code" labelPlacement="stacked"
+                            [(ngModel)]="wizard.setup.connCode" interface="popover">
+                            <ion-select-option value="">(none)</ion-select-option>
+                            @for (c of wizardConnections; track c.connCode) {
+                              <ion-select-option [value]="c.connCode">{{ c.connCode }}</ion-select-option>
+                            }
+                          </ion-select>
+                        </ion-item>
+                      }
+                      <ion-item>
+                        <ion-input label="Angular URL" labelPlacement="stacked" [(ngModel)]="wizard.setup.angularURL"></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-input label="Backup Path" labelPlacement="stacked" [(ngModel)]="wizard.setup.backupPath"></ion-input>
+                      </ion-item>
+                      <ion-item>
+                        <ion-select label="Language *" labelPlacement="stacked"
+                          [(ngModel)]="wizard.setup.languageId" interface="popover">
+                          @for (l of wizardLanguages; track l.languageId) {
+                            <ion-select-option [value]="l.languageId">{{ l.languageId }} — {{ l.description }}</ion-select-option>
+                          }
+                        </ion-select>
+                      </ion-item>
+                      <ion-item class="config-section-header">
+                        <ion-label><strong>Additional dbModes</strong></ion-label>
+                      </ion-item>
+                      <ion-item>
+                        <ion-toggle [(ngModel)]="wizard.setup.createT">Also create Test setup (T)</ion-toggle>
+                      </ion-item>
+                      <ion-item>
+                        <ion-toggle [(ngModel)]="wizard.setup.createP">Also create Production setup (P)</ion-toggle>
+                      </ion-item>
+                    }
+                  </div>
                 }
                 @case ('delete') {
                   @if (deleteProjectLoading) {
@@ -527,7 +682,7 @@ import { Subscription, lastValueFrom } from 'rxjs';
             </div>
           </div>
         </ion-content>
-        @if (suiteConfigSection === 'setup' || suiteConfigSection === 'migrate') {
+        @if (suiteConfigSection === 'setup' || suiteConfigSection === 'migrate' || suiteConfigSection === 'newproject') {
           <ion-footer>
             <ion-toolbar>
               <ion-buttons slot="end">
@@ -543,6 +698,24 @@ import { Subscription, lastValueFrom } from 'rxjs';
                     <ion-icon slot="start" name="swap-horizontal-outline"></ion-icon>
                     {{ migrateRunning ? 'Migrating...' : 'Migrate' }}
                   </ion-button>
+                }
+                @if (suiteConfigSection === 'newproject') {
+                  @if (wizardStep > 1) {
+                    <ion-button fill="outline" (click)="wizardStep = wizardStep - 1" [disabled]="wizardCreating">
+                      Back
+                    </ion-button>
+                  }
+                  @if (wizardStep < 3) {
+                    <ion-button fill="solid" color="primary" (click)="wizardNext()" [disabled]="!wizardStepValid()">
+                      Next
+                    </ion-button>
+                  }
+                  @if (wizardStep === 3) {
+                    <ion-button fill="solid" color="success" (click)="runWizardCreate()" [disabled]="wizardCreating || !wizardStepValid()">
+                      <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+                      {{ wizardCreating ? 'Creating...' : 'Create Project' }}
+                    </ion-button>
+                  }
                 }
               </ion-buttons>
             </ion-toolbar>
@@ -735,6 +908,14 @@ import { Subscription, lastValueFrom } from 'rxjs';
       height: 100%;
     }
 
+    .wizard-container {
+      /* Only highlight actual text input fields, not checkboxes/toggles/selects/notes */
+      ion-item:has(ion-input) {
+        --background: #f0f7ff;
+        --border-color: #c7dcf4;
+      }
+    }
+
     .suite-config-nav {
       width: 180px;
       min-width: 180px;
@@ -922,13 +1103,55 @@ export class ShellPage implements OnInit {
   suiteConfigLoading = false;
   suiteConfigSaving = false;
   suiteConfig: any = null;
-  suiteConfigSection: 'setup' | 'delete' | 'migrate' = 'setup';
+  suiteConfigSection: 'setup' | 'delete' | 'migrate' | 'newproject' = 'setup';
   deleteProjectList: ProjectInfo[] = [];
   deleteProjectLoading = false;
   migrateTargetServer = 'mongodb://';
   migrateIncludeRoot = true;
   migrateProjectList: any[] = [];
   migrateRunning = false;
+
+  // New Project wizard
+  wizardStep = 1;
+  wizardCreating = false;
+  wizardConnections: any[] = [];
+  wizardPolicies: string[] = [];
+  wizardLanguages: any[] = [];
+  wizard: any = this.emptyWizard();
+
+  private emptyWizard(): any {
+    return {
+      project: {
+        prjId: '',
+        description: '',
+        iconImage: '',
+        homeImage: '',
+        dbConnections: [],
+        defaultConnCode: ''
+      },
+      roles: {
+        adminRole: '',
+        develRole: '',
+        adminRoleDescr: '',
+        develRoleDescr: ''
+      },
+      setup: {
+        description: '',
+        tokenExpiresTime: 480,
+        policyStdCode: 'regular',
+        passwExpireWarningDays: 15,
+        authKeyExpiresHours: 48,
+        connCode: '',
+        activateConn: false,
+        angularURL: 'http://localhost:8100',
+        locked: false,
+        backupPath: '',
+        languageId: 'en',
+        createT: false,
+        createP: false
+      }
+    };
+  }
 
   // Demo Action Log
   demoLogActive = false;
@@ -960,7 +1183,9 @@ export class ShellPage implements OnInit {
       constructOutline,
       listOutline,
       personOutline,
-      shieldCheckmarkOutline
+      shieldCheckmarkOutline,
+      addCircleOutline,
+      checkmarkCircleOutline
     });
 
     // Sottoscrivi ai cambiamenti dell'utente
@@ -1248,12 +1473,177 @@ export class ShellPage implements OnInit {
     return 'person-outline';
   }
 
-  selectConfigSection(section: 'setup' | 'delete' | 'migrate') {
+  selectConfigSection(section: 'setup' | 'delete' | 'migrate' | 'newproject') {
     this.suiteConfigSection = section;
     if (section === 'delete') {
       this.loadDeleteProjects();
     } else if (section === 'migrate') {
       this.loadMigrateProjects();
+    } else if (section === 'newproject') {
+      this.loadNewProjectData();
+    }
+  }
+
+  private async loadNewProjectData() {
+    this.wizard = this.emptyWizard();
+    this.wizardStep = 1;
+    try {
+      const [connRes, polRes, langRes] = await Promise.all([
+        this.gtsDataService.execMethod('setup', 'listDbConnections', {}),
+        this.gtsDataService.execMethod('setup', 'listPasswordPolicies', {}),
+        this.gtsDataService.execMethod('setup', 'listLanguages', {})
+      ]);
+      this.wizardConnections = (connRes?.connections || []).map((c: any) => ({ ...c, selected: false }));
+      this.wizardPolicies = polRes?.policies || [];
+      this.wizardLanguages = langRes?.languages || [];
+      if (this.wizardPolicies.length > 0 && !this.wizardPolicies.includes(this.wizard.setup.policyStdCode)) {
+        this.wizard.setup.policyStdCode = this.wizardPolicies[0];
+      }
+      if (this.wizardLanguages.length > 0 && !this.wizardLanguages.find((l: any) => l.languageId === this.wizard.setup.languageId)) {
+        this.wizard.setup.languageId = this.wizardLanguages[0].languageId;
+      }
+    } catch (err: any) {
+      const toast = await this.toastCtrl.create({
+        message: `Failed to load wizard data: ${err?.message || err}`,
+        duration: 3000,
+        color: 'danger'
+      });
+      await toast.present();
+    }
+  }
+
+  onPrjIdChange() {
+    const prjId = (this.wizard.project.prjId || '').toUpperCase();
+    this.wizard.project.prjId = prjId;
+    if (prjId) {
+      this.wizard.roles.adminRole = `${prjId}_RL_ADMIN`;
+      this.wizard.roles.develRole = `${prjId}_RL_DEVEL`;
+      this.wizard.roles.adminRoleDescr = `Administration role for ${prjId}`;
+      this.wizard.roles.develRoleDescr = `Development role for ${prjId}`;
+      // Sync backup path while in step 1 (always re-generate so it stays aligned with the current prjId)
+      if (this.wizardStep === 1) {
+        this.wizard.setup.backupPath = `${prjId}-Backup`;
+      }
+    } else {
+      this.wizard.roles.adminRole = '';
+      this.wizard.roles.develRole = '';
+      if (this.wizardStep === 1) {
+        this.wizard.setup.backupPath = '';
+      }
+    }
+  }
+
+  getSelectedConnections(): any[] {
+    return this.wizardConnections.filter(c => c.selected);
+  }
+
+  wizardStepValid(): boolean {
+    if (this.wizardStep === 1) {
+      const p = this.wizard.project;
+      if (!p.prjId || !p.description) return false;
+      const sel = this.getSelectedConnections();
+      if (sel.length > 1 && !p.defaultConnCode) return false;
+      return true;
+    }
+    if (this.wizardStep === 2) {
+      return !!(this.wizard.roles.adminRole && this.wizard.roles.develRole);
+    }
+    if (this.wizardStep === 3) {
+      const s = this.wizard.setup;
+      return !!(s.tokenExpiresTime > 0 && s.policyStdCode && s.languageId);
+    }
+    return false;
+  }
+
+  wizardNext() {
+    if (!this.wizardStepValid()) return;
+    if (this.wizardStep < 3) this.wizardStep++;
+  }
+
+  async runWizardCreate() {
+    const sel = this.getSelectedConnections();
+    const dbConns = sel.map(c => ({
+      connCode: c.connCode,
+      flagDefault: sel.length === 1 || c.connCode === this.wizard.project.defaultConnCode
+    }));
+
+    const projectBody: any = {
+      prjId: this.wizard.project.prjId,
+      description: this.wizard.project.description,
+      iconImage: this.wizard.project.iconImage || '',
+      homeImage: this.wizard.project.homeImage || '',
+      dbConnections: dbConns,
+      demoGuideHtml: ''
+    };
+
+    const baseDesc = this.wizard.project.description || '';
+    const baseSetup = {
+      tokenExpiresTime: Number(this.wizard.setup.tokenExpiresTime),
+      policyStdCode: this.wizard.setup.policyStdCode,
+      passwExpireWarningDays: Number(this.wizard.setup.passwExpireWarningDays) || 15,
+      authKeyExpiresHours: Number(this.wizard.setup.authKeyExpiresHours) || 48,
+      connCode: this.wizard.setup.connCode || '',
+      activateConn: !!this.wizard.setup.activateConn,
+      angularURL: this.wizard.setup.angularURL || '',
+      locked: false,
+      languageId: this.wizard.setup.languageId,
+      backupPath: this.wizard.setup.backupPath || ''
+    };
+    const setups: any[] = [];
+    setups.push({ ...baseSetup, dbMode: 'D', description: `${baseDesc} - DEVEL` });
+    if (this.wizard.setup.createT) setups.push({ ...baseSetup, dbMode: 'T', description: `${baseDesc} - TEST` });
+    if (this.wizard.setup.createP) setups.push({ ...baseSetup, dbMode: 'P', description: `${baseDesc} - PROD` });
+
+    this.wizardCreating = true;
+    try {
+      const result: any = await this.gtsDataService.execMethod('setup', 'createProjectWizard', {
+        project: projectBody,
+        roles: {
+          adminRole: this.wizard.roles.adminRole,
+          develRole: this.wizard.roles.develRole,
+          adminRoleDescr: this.wizard.roles.adminRoleDescr,
+          develRoleDescr: this.wizard.roles.develRoleDescr
+        },
+        setups
+      });
+
+      if (result?.valid) {
+        // Update local projects list so Remove Project / menu see the new project immediately
+        this.menuService.addProject({
+          prjId: projectBody.prjId,
+          description: projectBody.description,
+          iconImage: projectBody.iconImage || '',
+          homeImage: projectBody.homeImage || '',
+          dbConnections: projectBody.dbConnections || [],
+          demoGuideHtml: ''
+        } as any);
+
+        const toast = await this.toastCtrl.create({
+          message: `Project ${projectBody.prjId} created successfully`,
+          duration: 3000,
+          color: 'success'
+        });
+        await toast.present();
+        this.wizard = this.emptyWizard();
+        this.wizardStep = 1;
+        this.suiteConfigSection = 'setup';
+      } else {
+        const alert = await this.alertCtrl.create({
+          header: 'Creation Failed',
+          message: result?.message || 'Unknown error',
+          buttons: ['OK']
+        });
+        await alert.present();
+      }
+    } catch (err: any) {
+      const alert = await this.alertCtrl.create({
+        header: 'Creation Failed',
+        message: err?.error?.message || err?.message || 'Network error',
+        buttons: ['OK']
+      });
+      await alert.present();
+    } finally {
+      this.wizardCreating = false;
     }
   }
 
@@ -1359,6 +1749,8 @@ export class ShellPage implements OnInit {
       );
       if (res?.valid) {
         this.deleteProjectList = this.deleteProjectList.filter(p => p.prjId !== prjId);
+        // Update shared projects list so the portal menu reflects the deletion immediately
+        this.menuService.removeProject(prjId);
         const toast = await this.toastCtrl.create({
           message: `Project ${prjId} deleted`,
           duration: 2000,

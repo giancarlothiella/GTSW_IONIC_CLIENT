@@ -280,6 +280,23 @@ export class MenuService {
   }
 
   /**
+   * Aggiunge un progetto all'elenco corrente (dopo creazione via wizard root)
+   */
+  addProject(project: ProjectInfo): void {
+    const current = this.projectsSubject.value;
+    if (current.find(p => p.prjId === project.prjId)) return;
+    this.projectsSubject.next([...current, project]);
+  }
+
+  /**
+   * Rimuove un progetto dall'elenco corrente (dopo delete via Suite Admin)
+   */
+  removeProject(prjId: string): void {
+    const current = this.projectsSubject.value;
+    this.projectsSubject.next(current.filter(p => p.prjId !== prjId));
+  }
+
+  /**
    * Ottiene il progetto corrente per prjId
    */
   getCurrentProjectInfo(): ProjectInfo | null {
