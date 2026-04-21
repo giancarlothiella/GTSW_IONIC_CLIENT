@@ -38,6 +38,7 @@ export const COMPONENT_REGISTRY: { [key: string]: () => Promise<any> } = {
 
   'GTSW/reporttemplates': () => import('../../features/GTSW/report-templates/report-templates.page').then(m => m.GTSW_ReportTemplatesComponent),
   'GTSW/actionTypes': () => import('../../features/GTSW/actionTypes/actionTypes.page').then(m => m.GTSW_ActionTypesComponent),
+  'GTSW/aiAnalyzer': () => import('../../features/GTSW/ai-analyzer/ai-analyzer.page').then(m => m.GTSW_AiAnalyzerComponent),
   // DCW Components
   'DCW/schedeContabili': () => import('../../features/DCW/schede-contabili/schede-contabili.page').then(m => m.DCW_SchedeContabiliComponent),
 
@@ -55,6 +56,10 @@ export const COMPONENT_REGISTRY: { [key: string]: () => Promise<any> } = {
   'HRDEMO/stdTable': () => import('../../features/HRDEMO/std-table/std-table.page').then(m => m.HRDEMO_StdTableComponent),
   'HRDEMO/openPositions': () => import('../../features/HRDEMO/open-positions/open-positions.page').then(m => m.HRDEMO_OpenPositionsComponent),
   'HRDEMO/applications': () => import('../../features/HRDEMO/applications/applications.page').then(m => m.HRDEMO_ApplicationsComponent),
+
+// TPXDEMO Components
+  'TPXDEMO/stdTable': () => import('../../features/TPXDEMO/std-table/std-table.page').then(m => m.TPXDEMO_StdTableComponent),
+  'TPXDEMO/products': () => import('../../features/TPXDEMO/products/products.page').then(m => m.TPXDEMO_ProductsComponent),
   // Altri progetti qui...
 };
 

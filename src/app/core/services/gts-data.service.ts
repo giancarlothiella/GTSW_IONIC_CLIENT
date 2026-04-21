@@ -345,6 +345,24 @@ export class GtsDataService {
     this.aiChatListener.next(config);
   }
 
+  // AI Analyzer Listener - per aprire l'analyzer AI da action showAIAnalyzer
+  private aiAnalyzerListener = new Subject<any>();
+  getAiAnalyzerListener() {
+    return this.aiAnalyzerListener.asObservable();
+  }
+  sendAiAnalyzerRequest(request: any) {
+    this.aiAnalyzerListener.next(request);
+  }
+
+  // Excel Upload Listener - per aprire il picker Excel da action uploadExcel
+  private excelUploadListener = new Subject<any>();
+  getExcelUploadListener() {
+    return this.excelUploadListener.asObservable();
+  }
+  sendExcelUploadRequest(request: any) {
+    this.excelUploadListener.next(request);
+  }
+
   // HTML View Listener - per aggiornare i componenti gts-html-view (form tipo RPT)
   private htmlViewListener = new Subject<any>();
   getHtmlViewListener() {
@@ -1416,6 +1434,55 @@ export class GtsDataService {
             this.actionCanRun = await this.compileFormTemplate(
               prjId, formId, element.clFldGrpId, element.dataSetName, false
             );
+
+          } else if (element.actionType === 'showDashboard') {
+            // Read dashboard code from pageField (visibility handled by subsequent setView)
+            const dashboardCode = this.getPageFieldValue(prjId, formId, element.pageFldName);
+            console.log('[showDashboard]', { dashboardCode });
+            this.actionCanRun = true;
+
+          } else if (element.actionType === 'excelUpload') {
+            // Trigger Excel upload picker: sqlId is resolved from dataSet metadata (query sqlId)
+            const uploadSqlId = this.getDataSetSqlId(prjId, formId, element.dataSetName, '');
+            const uploadDsMeta = this.metaData
+              .filter((m: any) => m.prjId === prjId && m.formId === formId)[0]
+              ?.pageData?.dataSets
+              ?.filter((ds: any) => ds.dataSetName === element.dataSetName)[0];
+            console.log('[excelUpload]', {
+              dataSetName: element.dataSetName,
+              resolvedSqlId: uploadSqlId,
+              dataSetFound: !!uploadDsMeta,
+              dataSetMeta: uploadDsMeta
+            });
+            this.sendExcelUploadRequest({
+              prjId,
+              formId,
+              sqlId: uploadSqlId,
+              dataSetName: element.dataSetName
+            });
+            this.actionCanRun = true;
+
+          } else if (element.actionType === 'showAIAnalyzer') {
+            // Open AI Analyzer: code from pageField, rows from dataSet
+            const code = this.getPageFieldValue(prjId, formId, element.pageFldName);
+            const adapter = this.getDataSetAdapter(prjId, formId, element.dataSetName);
+            const ds = adapter?.data?.filter((d: any) => d.dataSetName === element.dataSetName)[0];
+            const rows = ds?.rows || [];
+            console.log('[showAIAnalyzer]', {
+              code, dataSetName: element.dataSetName,
+              adapterFound: !!adapter?.data, dsFound: !!ds, rowCount: rows.length
+            });
+            if (!code) {
+              console.warn('[showAIAnalyzer] pageField has no value:', element.pageFldName);
+            }
+            this.sendAiAnalyzerRequest({
+              prjId,
+              formId,
+              code: code || '',
+              dataSetName: element.dataSetName,
+              rows
+            });
+            this.actionCanRun = true;
           }
 
           lastActionType = element.actionType;
@@ -3630,6 +3697,21 @@ export class GtsDataService {
         }
         if (grid.disabled !== newDisabled) {
           grid.disabled = newDisabled;
+        }
+      });
+
+      // Dashboards
+      (pageData.dashboards || []).forEach((dashboard: any) => {
+        const key = `dashboard:${dashboard.objectName}`;
+        const desired = desiredStateMap.get(key);
+        const newVisible = desired?.visible || false;
+        const newDisabled = desired?.disabled || false;
+
+        if (dashboard.visible !== newVisible) {
+          dashboard.visible = newVisible;
+        }
+        if (dashboard.disabled !== newDisabled) {
+          dashboard.disabled = newDisabled;
         }
       });
 

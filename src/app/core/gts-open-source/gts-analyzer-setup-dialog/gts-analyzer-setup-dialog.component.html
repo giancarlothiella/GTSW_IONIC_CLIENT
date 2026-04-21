@@ -1,0 +1,172 @@
+<p-toast></p-toast>
+
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [style]="{ width: '900px', maxWidth: '95vw' }"
+  (onHide)="onDialogHide()">
+
+  <ng-template pTemplate="header">
+    <div class="dialog-header">
+      <span class="dialog-title">
+        {{ mode === 'edit' ? t(1720, 'Modifica Analyzer') : t(1721, 'Nuovo Analyzer') }}
+      </span>
+    </div>
+  </ng-template>
+
+  <div class="dialog-body" *ngIf="!loading">
+
+    <!-- Master fields -->
+    <div class="form-section">
+      <div class="section-title">{{ t(1722, 'Intestazione') }}</div>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>{{ t(1723, 'Codice') }} *</label>
+          <input pInputText type="text" [(ngModel)]="analyzer.code" [disabled]="mode === 'edit'" />
+        </div>
+        <div class="form-field">
+          <label>{{ t(1724, 'sqlId') }} *</label>
+          <p-inputNumber [(ngModel)]="analyzer.sqlId" [useGrouping]="false" [min]="1"></p-inputNumber>
+        </div>
+        <div class="form-field form-field-full">
+          <label>{{ t(1725, 'Descrizione') }}</label>
+          <input pInputText type="text" [(ngModel)]="analyzer.description" />
+        </div>
+        <div class="form-field">
+          <label>{{ t(1726, 'Titolo dialog') }}</label>
+          <input pInputText type="text" [(ngModel)]="analyzer.dialogConfig!.title" />
+        </div>
+        <div class="form-field">
+          <label>{{ t(1727, 'Larghezza') }}</label>
+          <input pInputText type="text" [(ngModel)]="analyzer.dialogConfig!.width" placeholder="es. 1000px" />
+        </div>
+        <div class="form-field">
+          <label>{{ t(1728, 'Altezza') }}</label>
+          <input pInputText type="text" [(ngModel)]="analyzer.dialogConfig!.height" placeholder="es. 80vh" />
+        </div>
+        <div class="form-field">
+          <label>{{ t(1729, 'Status') }}</label>
+          <p-select
+            [(ngModel)]="analyzer.status"
+            [options]="[{label:'Active',value:'active'},{label:'Draft',value:'draft'},{label:'Archived',value:'archived'}]"
+            optionLabel="label" optionValue="value">
+          </p-select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schema fields -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-title">
+          {{ t(1730, 'Struttura dati') }}
+          <span class="section-hint" *ngIf="analyzer.dataStructure?.analyzedAt">
+            ({{ t(1731, 'analizzata il') }} {{ analyzer.dataStructure?.analyzedAt | date:'dd/MM/yyyy HH:mm' }})
+          </span>
+        </div>
+        <p-button
+          [label]="t(1732, 'Analizza schema da sqlId')"
+          icon="pi pi-sync"
+          [loading]="analyzingSchema"
+          (onClick)="onAnalyzeSchema()"
+          [disabled]="!analyzer.code || mode === 'new'"
+          pTooltip="{{ t(1733, 'Salva prima l\'analyzer, poi deriva i campi da GtsSql.sqlFields') }}">
+        </p-button>
+      </div>
+
+      <p-table
+        [value]="analyzer.dataStructure?.availableFields || []"
+        [scrollable]="true"
+        scrollHeight="220px"
+        styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
+          <tr>
+            <th style="width: 35%">{{ t(1734, 'Nome campo') }}</th>
+            <th style="width: 20%">{{ t(1735, 'Tipo') }}</th>
+            <th>{{ t(1736, 'Descrizione') }}</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-field>
+          <tr>
+            <td>{{ field.name }}</td>
+            <td>
+              <p-select
+                [(ngModel)]="field.type"
+                [options]="fieldTypeOptions"
+                optionLabel="label" optionValue="value"
+                appendTo="body">
+              </p-select>
+            </td>
+            <td>
+              <input pInputText type="text" [(ngModel)]="field.description" style="width: 100%" />
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="3" class="text-center text-color-secondary p-4">
+              {{ t(1737, 'Nessun campo. Clicca "Analizza schema" per derivare i campi da sqlId.') }}
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+
+    <!-- Saved analyses -->
+    <div class="form-section" *ngIf="mode === 'edit'">
+      <div class="section-title">
+        {{ t(1740, 'Analisi salvate') }} ({{ analyzer.analyses?.length || 0 }})
+      </div>
+      <p-table
+        [value]="analyzer.analyses || []"
+        [scrollable]="true"
+        scrollHeight="220px"
+        styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
+          <tr>
+            <th style="width: 30%">{{ t(1741, 'Nome') }}</th>
+            <th>{{ t(1742, 'Richiesta utente') }}</th>
+            <th style="width: 10%">{{ t(1743, 'Uso') }}</th>
+            <th style="width: 15%">{{ t(1744, 'Ultimo uso') }}</th>
+            <th style="width: 80px"></th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-a>
+          <tr>
+            <td>{{ a.analysisName }}</td>
+            <td class="text-truncate">{{ a.userRequest }}</td>
+            <td>{{ a.usageCount || 0 }}</td>
+            <td>{{ a.lastUsed | date:'dd/MM/yy' }}</td>
+            <td>
+              <p-button
+                icon="pi pi-trash"
+                severity="danger"
+                [text]="true"
+                (onClick)="onDeleteAnalysis(a)">
+              </p-button>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="5" class="text-center text-color-secondary p-4">
+              {{ t(1745, 'Nessuna analisi salvata.') }}
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+
+  </div>
+
+  <div class="dialog-loading" *ngIf="loading">
+    <i class="pi pi-spin pi-spinner"></i>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button [label]="t(1746, 'Annulla')" severity="secondary" (onClick)="onDialogHide()"></p-button>
+    <p-button [label]="t(1747, 'Salva')" icon="pi pi-check" [loading]="loading" (onClick)="onSave()"></p-button>
+  </ng-template>
+</p-dialog>

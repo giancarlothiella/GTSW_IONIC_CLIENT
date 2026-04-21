@@ -1621,6 +1621,8 @@ export class ShellPage implements OnInit {
         this.wizard = this.emptyWizard();
         this.wizardStep = 1;
         this.suiteConfigSection = 'setup';
+        // Close the modal so the user sees the new project in the portal immediately
+        this.suiteConfigModalOpen = false;
       } else {
         const alert = await this.alertCtrl.create({
           header: 'Creation Failed',

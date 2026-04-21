@@ -19,7 +19,6 @@ import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-for
 import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
-import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts-open-source/gts-ai-analyzer/gts-ai-analyzer.component';
 import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
 import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
@@ -41,7 +40,6 @@ import { MessageService } from 'primeng/api';
     GtsFormPopupComponent,
     GtsMessageComponent,
     GtsLoaderComponent,
-    GtsAiAnalyzerComponent,
     GtsHtmlViewComponent,
     GtsFileUploaderComponent,
 
@@ -154,9 +152,6 @@ export class GTR_SitPagamentiComponent implements OnInit, OnDestroy {
     // Run Page with hardcoded formId
     this.gtsDataService.runPage(this.prjId, this.formId);
 
-    // Imposta connCode dinamicamente per AI Analyzer
-    this.aiAnalyzerConfig.connCode = this.gtsDataService.getActualConnCode();
-
     // Verifica se esistono dati cached per questa pagina
     this.checkCachedData();
   }
@@ -190,17 +185,6 @@ export class GTR_SitPagamentiComponent implements OnInit, OnDestroy {
     uploadedBy?: string;
   } | null = null;
   cacheLoading: boolean = false;
-  pendingOpenAnalyzer: boolean = false;
-
-  //========= AI ANALYZER =================
-  showAiAnalyzer: boolean = false;
-  aiAnalyzerData: any[] = [];
-  aiAnalyzerConfig: AiAnalyzerConfig = {
-    prjId: 'GTR',
-    datasetName: 'sitPagamenti',
-    pageCode: 'sitPagamenti_11',  // prjId + formId per filtro analisi salvate
-    dialogTitle: 'AI Analyzer - Situazione Pagamenti'
-  };
 
   //========= PAGE FUNCTIONS =================
   async getCustomData(prjId: string, formId: number, customCode: string, actualView: string) {
@@ -219,20 +203,6 @@ export class GTR_SitPagamentiComponent implements OnInit, OnDestroy {
         // Se non ci sono dati in cache, spegni il loader e mostra messaggio
         this.gtsDataService.sendAppLoaderListener(false);
         this.showWarning(this.t(1548, 'Nessun dato in cache per questa connessione. Carica prima un file Excel.'));
-      }
-    }
-
-    // SHOW_AI_ANALYZER - Apri AI Analyzer con i dati caricati
-    if (customCode === 'SHOW_AI_ANALYZER') {
-      if (this.rawExcelData && this.rawExcelData.length > 0) {
-        this.aiAnalyzerData = this.rawExcelData;
-        this.showAiAnalyzer = true;
-      } else if (this.hasCachedData) {
-        // Carica dalla cache e poi apri
-        this.pendingOpenAnalyzer = true;
-        this.loadCachedData();
-      } else {
-        this.showWarning(this.t(1548, 'Carica prima un file Excel con i dati'));
       }
     }
 
@@ -288,19 +258,11 @@ export class GTR_SitPagamentiComponent implements OnInit, OnDestroy {
           const formattedData = this.formatDatesInData(response.data);
           this.rawExcelData = formattedData;
           this.populateGrid(formattedData);
-
-          // Se c'era richiesta pendente di aprire l'analyzer
-          if (this.pendingOpenAnalyzer) {
-            this.pendingOpenAnalyzer = false;
-            this.aiAnalyzerData = formattedData;
-            this.showAiAnalyzer = true;
-          }
         }
       },
       error: (err) => {
         console.error('Error loading cached data:', err);
         this.showError(this.t(1551, 'Errore nel caricamento dei dati dalla cache'));
-        this.pendingOpenAnalyzer = false;
       },
       complete: () => {
         this.cacheLoading = false;

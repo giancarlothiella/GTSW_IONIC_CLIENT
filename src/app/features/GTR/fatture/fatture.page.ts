@@ -25,7 +25,6 @@ import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-po
 import { GtsReportsComponent } from '../../../core/gts-open-source/gts-reports/gts-reports.component'; // Open-source version ✨
 // import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component'; // DevExtreme version
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component'; // Ionic version ✨
-import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts-open-source/gts-ai-analyzer/gts-ai-analyzer.component';
 import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
 import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
@@ -44,7 +43,6 @@ import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file
     GtsFormPopupComponent,
     GtsReportsComponent,
     GtsMessageComponent,
-    GtsAiAnalyzerComponent,
     GtsHtmlViewComponent,
     GtsFileUploaderComponent
   ],
@@ -272,9 +270,6 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
 
     // Run Page
     this.gtsDataService.runPage(this.prjId, this.formId);
-
-    // Imposta connCode dinamicamente per AI Analyzer
-    this.aiAnalyzerConfig.connCode = this.gtsDataService.getActualConnCode();
   }
 
   ngOnDestroy(): void {
@@ -293,16 +288,6 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
   viewStyle: string = '';
   customData: any[] = [];
   toolbarSelectedValue = '';
-
-  //========= AI ANALYZER =================
-  showAiAnalyzer: boolean = false;
-  aiAnalyzerData: any[] = [];
-  aiAnalyzerConfig: AiAnalyzerConfig = {
-    prjId: 'GTR',
-    datasetName: 'fatture',
-    pageCode: 'fatture_1',  // datasetName + formId per filtro analisi salvate
-    dialogTitle: 'AI Analyzer - Fatture'
-  };
 
   //========= PAGE FUNCTIONS =================
   async getCustomData(prjId: string, formId: number, customCode: string, actualView: string) {
@@ -355,28 +340,6 @@ export class GTR_FattureComponent implements OnInit, OnDestroy {
       .filter((row: any) => row.INVH_ID === qInvHdr.selectedKeys[0].INVH_ID)[0];
 
       selectedDSRow.INVH_FLAG_INSERT_STATUS = 'P';
-    }
-
-    // SHOW AI ANALYZER
-    //==================================================================================================
-    if (customCode === 'SHOW_AI_ANALYZER') {
-      console.log('[AI Analyzer] SHOW_AI_ANALYZER triggered');
-      console.log('[AI Analyzer] pageData:', this.pageData);
-
-      // Estrai i dati dalla griglia principale (qInvHdr)
-      const daInv = this.pageData.filter((element: any) => element.dataAdapter === 'daInv')[0];
-      console.log('[AI Analyzer] daInv:', daInv);
-
-      const gridData = daInv?.data?.filter((dataSet: any) => dataSet.dataSetName === 'qInvHdr')[0]?.rows || [];
-      console.log('[AI Analyzer] gridData length:', gridData.length);
-
-      if (gridData.length > 0) {
-        this.aiAnalyzerData = gridData;
-        this.showAiAnalyzer = true;
-        console.log('[AI Analyzer] Dialog should open now, showAiAnalyzer:', this.showAiAnalyzer);
-      } else {
-        console.warn('[AI Analyzer] No data available for AI Analyzer');
-      }
     }
 
     this.gtsDataService.sendAppLoaderListener(false);

@@ -2331,9 +2331,12 @@ export class GtsGridComponent implements OnInit, OnDestroy {
             return value ? 'Yes' : 'No';
           }
 
-          // Format numbers
-          if (metaColumnType === 'number' && typeof value === 'number') {
-            return value;
+          // Numeric columns: always emit as Number so Excel treats them as numeric
+          const numericTypes = ['number', 'int', 'integer', 'decimal', 'float', 'double', 'numeric', 'money', 'currency', 'smallint'];
+          if (numericTypes.includes(metaColumnType)) {
+            if (value === null || value === undefined || value === '') return null;
+            const num = typeof value === 'number' ? value : Number(String(value).replace(/,/g, ''));
+            return isNaN(num) ? value : num;
           }
         }
 
@@ -2341,6 +2344,30 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       });
 
       worksheet.addRow(row);
+    });
+
+    // Apply number formats (from column mask) and right-align numeric columns
+    // (both data cells and header) so Excel displays them properly.
+    const numericTypesForFmt = ['number', 'int', 'integer', 'decimal', 'float', 'double', 'numeric', 'money', 'currency', 'smallint'];
+    const headerRowNumber = hasGroups ? 2 : 1;
+    flatColumns.forEach((fc, idx) => {
+      const colMetadata = this.metaData?.data?.columns?.find((c: any) => (c.dataField || c.fieldName) === fc.col.field);
+      if (!colMetadata) return;
+      const metaColumnType = (colMetadata.colType || colMetadata.dataType || '').toLowerCase();
+      if (!numericTypesForFmt.includes(metaColumnType)) return;
+
+      // Right-align the column and its header
+      const column = worksheet.getColumn(idx + 1);
+      column.alignment = { horizontal: 'right' };
+      worksheet.getCell(headerRowNumber, idx + 1).alignment = { horizontal: 'right' };
+
+      // Excel wants at least one "0" before the decimal separator; replace the
+      // "#" right before the decimal point (or at end for integers) with "0".
+      const mask = colMetadata.format || colMetadata.mask;
+      const excelFmt = mask ? mask.replace(/#(?=\.|$)/g, '0') : null;
+      if (excelFmt) {
+        column.numFmt = excelFmt;
+      }
     });
 
     // Auto-size columns

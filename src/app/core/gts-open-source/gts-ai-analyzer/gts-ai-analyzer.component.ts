@@ -11,7 +11,7 @@
  * - Feedback per miglioramento AI (auto-learning)
  */
 
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ViewChild, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, Input, Output, EventEmitter, ViewChild, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -32,6 +32,7 @@ import { MessageService } from 'primeng/api';
 import { AiReportsService } from '../../services/ai-reports.service';
 import { TranslationService } from '../../services/translation.service';
 import { AuthService } from '../../services/auth.service';
+import { GtsAiAnalyzerApiService, Analyzer } from '../../services/gts-ai-analyzer-api.service';
 
 // PDF Export
 import jsPDF from 'jspdf';
@@ -88,7 +89,7 @@ export interface AiAnalysisResult {
   templateUrl: './gts-ai-analyzer.component.html',
   styleUrls: ['./gts-ai-analyzer.component.scss']
 })
-export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
+export class GtsAiAnalyzerComponent implements OnInit, OnDestroy, OnChanges {
 
   // ============================================
   // INPUTS
@@ -105,6 +106,9 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
 
   /** Visibilità del dialog */
   @Input() visible: boolean = false;
+
+  /** Codice PK dell'analyzer metadata-driven (nuovo flusso) */
+  @Input() analyzerCode: string = '';
 
   // ============================================
   // OUTPUTS
@@ -124,10 +128,14 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
   // ============================================
 
   private aiReportsService = inject(AiReportsService);
+  private analyzerApi = inject(GtsAiAnalyzerApiService);
   private ts = inject(TranslationService);
   private authService = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
   private messageService = inject(MessageService);
+
+  /** Master analyzer caricato via API (quando analyzerCode è valorizzato) */
+  private masterAnalyzer: Analyzer | null = null;
 
   @ViewChild('aiChartRef') aiChartRef: any;
 
@@ -242,6 +250,30 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
     // Cleanup if needed
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    // Carica master analyzer quando la dialog viene aperta con un analyzerCode valido
+    if (changes['visible'] && this.visible && this.analyzerCode && this.config?.prjId) {
+      this.loadMasterAnalyzer();
+    }
+    if (!this.visible) {
+      this.masterAnalyzer = null;
+    }
+  }
+
+  private loadMasterAnalyzer(): void {
+    this.analyzerApi.runtime(this.config.prjId, this.analyzerCode).subscribe({
+      next: (res) => {
+        if (res?.valid && res.analyzer) {
+          this.masterAnalyzer = res.analyzer;
+          this.savedAnalyses = (res.analyzer.analyses || []).map((a: any) => ({ ...a }));
+        }
+      },
+      error: (err) => {
+        console.warn('[AI Analyzer] Failed to load master:', err?.error?.message || err.message);
+      }
+    });
+  }
+
   // ============================================
   // TRANSLATION HELPER
   // ============================================
@@ -267,6 +299,18 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
    * Genera lo schema dei dati automaticamente se non fornito
    */
   private getDataSchema(): AiAnalyzerDataSchema {
+    // Priorità: master analyzer (fissato al setup) > dataSchema esplicito > deduzione runtime
+    const masterFields = this.masterAnalyzer?.dataStructure?.availableFields;
+    if (masterFields && masterFields.length > 0) {
+      return {
+        fields: masterFields.map(f => ({
+          name: f.name,
+          type: (f.type === 'integer' ? 'number' : f.type === 'datetime' ? 'date' : f.type) as any,
+          description: f.description
+        }))
+      };
+    }
+
     if (this.dataSchema) {
       return this.dataSchema;
     }
@@ -832,8 +876,43 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
   async saveCurrentAnalysis(): Promise<void> {
     if (!this.analysisResult || !this.saveAnalysisName.trim()) return;
 
+    // Nuovo flusso: master-detail via GtsAiAnalyzer
+    if (this.analyzerCode && this.config?.prjId) {
+      try {
+        const res = await this.analyzerApi.addAnalysis(this.config.prjId, this.analyzerCode, {
+          analysisName: this.saveAnalysisName.trim(),
+          description: this.analysisResult.explanation || '',
+          userRequest: this.userRequest,
+          aggregationRule: this.analysisResult.aggregationRule,
+          chartConfig: this.analysisResult.chartConfig,
+          gridConfig: this.analysisResult.gridConfig,
+          author: this.authService.getUserEmail() || 'unknown'
+        }).toPromise();
+
+        if (res?.valid) {
+          this.closeSaveDialog();
+          // Aggiorna lista in memoria
+          const savedAnalysis = res.analysis;
+          const idx = this.savedAnalyses.findIndex(a => a.analysisName === savedAnalysis.analysisName);
+          if (idx >= 0) this.savedAnalyses[idx] = savedAnalysis;
+          else this.savedAnalyses.push(savedAnalysis);
+          if (this.masterAnalyzer) this.masterAnalyzer.analyses = this.savedAnalyses;
+
+          const msg = res.updated
+            ? this.t(1560, 'Analisi aggiornata con successo')
+            : this.t(1557, 'Analisi salvata con successo');
+          this.showSuccess(msg);
+          this.analysisSaved.emit({ id: savedAnalysis._id || '', name: savedAnalysis.analysisName });
+        }
+      } catch (err: any) {
+        console.error('Save analysis error:', err);
+        this.showError(this.t(1525, 'Errore durante il salvataggio:') + ' ' + (err?.error?.message || err.message || ''));
+      }
+      return;
+    }
+
+    // Legacy: GtsDataAnalysis (da rimuovere al cleanup)
     try {
-      // Prepara i dati aggregati per il caching (compressi in base64)
       const cachedResult = this.prepareCachedResult(this.aggregatedData);
 
       const result = await this.aiReportsService.saveDataAnalysis({
@@ -904,8 +983,15 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
   }
 
   async loadSavedAnalyses(): Promise<void> {
+    // Nuovo flusso: analisi già in memoria dal master
+    if (this.analyzerCode && this.masterAnalyzer) {
+      this.savedAnalyses = this.masterAnalyzer.analyses || [];
+      this.showSavedAnalyses = true;
+      return;
+    }
+
+    // Legacy
     try {
-      // Carica analisi filtrate per prjId + connCode + pageCode (lato server)
       const result = await this.aiReportsService.listDataAnalyses(this.config.prjId, {
         connCode: this.config.connCode || '',
         pageCode: this.config.pageCode
@@ -920,6 +1006,44 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
   }
 
   async applySavedAnalysis(analysis: any): Promise<void> {
+    // Nuovo flusso: analisi già completa in memoria, niente fetch, niente cache
+    if (this.analyzerCode && this.masterAnalyzer) {
+      try {
+        this.userRequest = analysis.userRequest;
+        this.analysisResult = {
+          aggregationRule: analysis.aggregationRule,
+          chartConfig: analysis.chartConfig,
+          gridConfig: analysis.gridConfig,
+          explanation: analysis.description
+        };
+
+        this.normalizeGridConfig(this.analysisResult);
+        this.aggregatedData = this.applyAggregationRules(this.data, this.analysisResult);
+
+        const pivotYears = this.analysisResult.aggregationRule?.pivotByYear?.years;
+        if (pivotYears && pivotYears.length >= 2) {
+          this.adaptGridConfigForPivot(this.analysisResult);
+        }
+
+        this.prepareResultChart(this.analysisResult);
+
+        // Track usage (fire-and-forget)
+        if (analysis._id) {
+          this.analyzerApi.trackUsage(this.config.prjId, this.analyzerCode, analysis._id).subscribe({
+            error: () => { /* ignore */ }
+          });
+        }
+
+        this.showSavedAnalyses = false;
+        this.cdr.detectChanges();
+      } catch (err: any) {
+        console.error('Apply saved analysis error:', err);
+        this.showError(this.t(1528, 'Errore durante l\'applicazione:') + ' ' + (err.message || ''));
+      }
+      return;
+    }
+
+    // Legacy
     try {
       const fullAnalysis = await this.aiReportsService.getDataAnalysis(analysis._id).toPromise();
       if (!fullAnalysis) return;
@@ -934,7 +1058,6 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
 
       this.normalizeGridConfig(this.analysisResult);
 
-      // Prova a usare i dati cached (istantaneo!)
       let usedCache = false;
       if (fullAnalysis.cachedResult?.data) {
         const cachedData = this.decodeCachedResult(fullAnalysis.cachedResult);
@@ -944,11 +1067,8 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
         }
       }
 
-      // Fallback: riaggrega LATO CLIENT se non ci sono dati cached
       if (!usedCache) {
         this.aggregatedData = this.applyAggregationRules(this.data, this.analysisResult);
-
-        // Aggiorna la cache per le prossime volte (in background)
         this.updateAnalysisCache(analysis._id, this.aggregatedData);
       }
 
@@ -1005,19 +1125,32 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy {
   deleteSavedAnalysis(analysis: any, event: Event): void {
     event.stopPropagation();
 
-    // Simple confirmation
-    if (confirm(this.t(1529, 'Eliminare l\'analisi') + ` "${analysis.analysisName}"?`)) {
-      this.aiReportsService.deleteDataAnalysis(analysis._id).subscribe({
-        next: () => {
-          this.savedAnalyses = this.savedAnalyses.filter(a => a._id !== analysis._id);
-          this.showSuccess(this.t(1559, 'Analisi eliminata'));
-        },
-        error: (err) => {
-          console.error('Delete analysis error:', err);
-          this.showError(this.t(1530, 'Errore durante l\'eliminazione'));
-        }
+    if (!confirm(this.t(1529, 'Eliminare l\'analisi') + ` "${analysis.analysisName}"?`)) return;
+
+    const onSuccess = () => {
+      this.savedAnalyses = this.savedAnalyses.filter(a => a._id !== analysis._id);
+      if (this.masterAnalyzer) this.masterAnalyzer.analyses = this.savedAnalyses;
+      this.showSuccess(this.t(1559, 'Analisi eliminata'));
+    };
+    const onError = (err: any) => {
+      console.error('Delete analysis error:', err);
+      this.showError(this.t(1530, 'Errore durante l\'eliminazione'));
+    };
+
+    // Nuovo flusso
+    if (this.analyzerCode && this.config?.prjId && analysis._id) {
+      this.analyzerApi.deleteAnalysis(this.config.prjId, this.analyzerCode, analysis._id).subscribe({
+        next: onSuccess,
+        error: onError
       });
+      return;
     }
+
+    // Legacy
+    this.aiReportsService.deleteDataAnalysis(analysis._id).subscribe({
+      next: onSuccess,
+      error: onError
+    });
   }
 
   // ============================================

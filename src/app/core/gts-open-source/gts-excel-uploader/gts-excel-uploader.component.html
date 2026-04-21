@@ -1,0 +1,64 @@
+<p-toast></p-toast>
+
+<input
+  #fileInput
+  type="file"
+  accept=".xlsx,.xls"
+  (change)="onFileSelected($event)"
+  style="display: none" />
+
+<p-dialog
+  [visible]="parsing || uploading"
+  [modal]="true"
+  [closable]="false"
+  [style]="{ width: '320px' }">
+  <div class="progress-box">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span *ngIf="parsing">{{ t(1756, 'Parsing Excel…') }}</span>
+    <span *ngIf="uploading">{{ t(1757, 'Caricamento in corso…') }}</span>
+  </div>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="showModeDialog"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '480px' }"
+  (onHide)="onCancel()">
+
+  <ng-template pTemplate="header">
+    <span class="dialog-title">{{ t(1758, 'Import Excel') }}</span>
+  </ng-template>
+
+  <div class="mode-body">
+    <div class="file-info">
+      <i class="pi pi-file-excel"></i>
+      <div>
+        <div class="file-name">{{ parsedFileName }}</div>
+        <div class="file-count">{{ parsedRows.length }} {{ t(1759, 'righe pronte') }}</div>
+      </div>
+    </div>
+
+    <p class="mode-hint">{{ t(1760, 'Come vuoi importare i dati?') }}</p>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button
+      [label]="t(1761, 'Annulla')"
+      severity="secondary"
+      (onClick)="onCancel()">
+    </p-button>
+    <p-button
+      [label]="t(1762, 'Aggiungi righe')"
+      icon="pi pi-plus"
+      severity="info"
+      (onClick)="onConfirm('append')">
+    </p-button>
+    <p-button
+      [label]="t(1763, 'Sostituisci tutto')"
+      icon="pi pi-refresh"
+      severity="danger"
+      (onClick)="onConfirm('replace')">
+    </p-button>
+  </ng-template>
+</p-dialog>

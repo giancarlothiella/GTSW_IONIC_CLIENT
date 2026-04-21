@@ -5,11 +5,13 @@ import { Subscription } from 'rxjs';
 // GTS Services and Components
 import { GtsDataService } from './core/services/gts-data.service';
 import { GtsAiChatComponent, AiChatConfig } from './core/gts-open-source/gts-ai-chat/gts-ai-chat.component';
+import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from './core/gts-open-source/gts-ai-analyzer/gts-ai-analyzer.component';
+import { GtsExcelUploaderComponent, ExcelUploadRequest } from './core/gts-open-source/gts-excel-uploader/gts-excel-uploader.component';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
-  imports: [IonApp, IonRouterOutlet, GtsAiChatComponent],
+  imports: [IonApp, IonRouterOutlet, GtsAiChatComponent, GtsAiAnalyzerComponent, GtsExcelUploaderComponent],
 })
 export class AppComponent implements OnInit, OnDestroy {
 
@@ -21,8 +23,19 @@ export class AppComponent implements OnInit, OnDestroy {
   aiChatVisible: boolean = false;
   aiChatConfig: AiChatConfig = { prjId: '', chatCode: '' };
 
+  // AI Analyzer state
+  aiAnalyzerVisible: boolean = false;
+  aiAnalyzerData: any[] = [];
+  aiAnalyzerConfig: AiAnalyzerConfig = { prjId: '' };
+  aiAnalyzerCode: string = '';
+
+  // Excel Uploader state
+  excelUploadRequest: ExcelUploadRequest | null = null;
+
   // Subscriptions
   private aiChatListenerSub: Subscription | undefined;
+  private aiAnalyzerListenerSub: Subscription | undefined;
+  private excelUploadListenerSub: Subscription | undefined;
   private dbErrorListenerSub: Subscription | undefined;
 
   constructor() {}
@@ -37,11 +50,52 @@ export class AppComponent implements OnInit, OnDestroy {
     this.dbErrorListenerSub = this.gtsDataService.getDbErrorListener().subscribe((error) => {
       this.showDbErrorAlert(error.title, error.message);
     });
+
+    // Subscribe to AI Analyzer requests from actions (showAIAnalyzer)
+    this.aiAnalyzerListenerSub = this.gtsDataService.getAiAnalyzerListener().subscribe((request) => {
+      this.handleAiAnalyzerRequest(request);
+    });
+
+    // Subscribe to Excel Upload requests from actions (uploadExcel)
+    this.excelUploadListenerSub = this.gtsDataService.getExcelUploadListener().subscribe((request) => {
+      this.excelUploadRequest = request;
+      this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy(): void {
     this.aiChatListenerSub?.unsubscribe();
+    this.aiAnalyzerListenerSub?.unsubscribe();
+    this.excelUploadListenerSub?.unsubscribe();
     this.dbErrorListenerSub?.unsubscribe();
+  }
+
+  onExcelUploaded(event: { mode: string; count: number; dataSetName: string }): void {
+    if (event.dataSetName) {
+      this.gtsDataService.sendGridReload(event.dataSetName);
+    }
+    this.excelUploadRequest = null;
+  }
+
+  onExcelUploaderClosed(): void {
+    this.excelUploadRequest = null;
+  }
+
+  private handleAiAnalyzerRequest(request: { prjId: string; code: string; dataSetName: string; rows: any[] }): void {
+    console.log('[app.component] AI Analyzer request:', request);
+
+    this.aiAnalyzerConfig = {
+      prjId: request.prjId,
+      datasetName: request.dataSetName
+    };
+    this.aiAnalyzerCode = request.code;
+    this.aiAnalyzerData = request.rows || [];
+    this.aiAnalyzerVisible = true;
+    this.cdr.detectChanges();
+  }
+
+  onAiAnalyzerVisibleChange(visible: boolean): void {
+    this.aiAnalyzerVisible = visible;
   }
 
   /**

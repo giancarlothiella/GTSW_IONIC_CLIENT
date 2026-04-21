@@ -1,48 +1,6 @@
 <div class="pageFormat">
   <app-gts-loader></app-gts-loader>
 
-  <!-- PrimeNG Toast for notifications -->
-  <p-toast position="top-center" [style]="{ marginTop: '60px' }"></p-toast>
-
-  <!-- Confirm Dialog -->
-  <p-dialog
-    [(visible)]="showConfirmDialog"
-    [header]="confirmDialogHeader"
-    [modal]="true"
-    [closable]="true"
-    [style]="{ width: '400px' }"
-    [draggable]="false"
-    [resizable]="false"
-    appendTo="body"
-    [baseZIndex]="10000">
-    <p class="confirm-message">{{ confirmDialogMessage }}</p>
-    <div class="confirm-dialog-footer">
-      <button
-        pButton
-        type="button"
-        class="p-button-secondary"
-        [label]="confirmDialogRejectLabel"
-        icon="pi pi-times"
-        (click)="onConfirmReject()">
-      </button>
-      <button
-        pButton
-        type="button"
-        class="p-button-danger"
-        [label]="confirmDialogAcceptLabel"
-        icon="pi pi-check"
-        (click)="onConfirmAccept()">
-      </button>
-    </div>
-  </p-dialog>
-
-  <!-- Hidden file input for LOAD_EXCEL custom code -->
-  <input type="file"
-         #excelFileInput
-         accept=".xlsx,.xls"
-         style="display: none"
-         (change)="onExcelFileSelected($event)">
-
   <app-gts-toolbar
     [prjId]="prjId"
     [formId]="formId"
@@ -51,8 +9,9 @@
     (newValueEvent)="gtsDataService.toolbarSelectEvent($event)"
   ></app-gts-toolbar>
 
-  <!-- STANDARD GTS PAGE CONTENT -->
-  <div [style]="viewStyle">
+  <div
+    [style]="viewStyle"
+    >
     @for (element of metaData.tabs; track element.objectName) {
       @if (element.visible) {
         <app-gts-tabs
@@ -78,13 +37,28 @@
     }
 
     @for (element of metaData.grids; track element.objectName) {
-      @if (element.visible) {
+      @if (element.visible && element.viewType === 'tree') {
+        <app-gts-tree
+          [style]="'grid-area: '+element.gridArea"
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-tree>
+      }
+      @if (element.visible && element.viewType !== 'tree' && !element.showPopUp) {
         <app-gts-grid
           [style]="'grid-area: '+element.gridArea"
           [prjId]="prjId"
           [formId]="formId"
           [objectName]="element.objectName"
         ></app-gts-grid>
+      }
+      @if (element.visible && element.viewType !== 'tree' && element.showPopUp) {
+        <app-gts-grid-popup
+          [prjId]="prjId"
+          [formId]="formId"
+          [objectName]="element.objectName"
+        ></app-gts-grid-popup>
       }
     }
 
@@ -113,17 +87,6 @@
         ></app-gts-form-popup>
       }
     }
-
-    @for (element of metaData.dashboards; track element.objectName) {
-      @if (element.visible) {
-        <app-gts-dashboard
-          [style]="element.gridArea ? 'grid-area: '+element.gridArea : ''"
-          [config]="{ prjId: prjId, dashboardCode: element.dashboardCode, connCode: gtsDataService.getActualConnCode() }"
-          [visible]="true"
-          (onDataRequest)="onDashboardDataRequest($event)">
-        </app-gts-dashboard>
-      }
-    }
   </div>
 
   <app-gts-message
@@ -132,4 +95,12 @@
   ></app-gts-message>
 
   <app-gts-file-uploader></app-gts-file-uploader>
+
+  <app-gts-analyzer-setup-dialog
+    [(visible)]="showAnalyzerDialog"
+    [prjId]="prjId"
+    [mode]="analyzerMode"
+    [editingCode]="analyzerEditingCode"
+    (saved)="onAnalyzerSaved($event)">
+  </app-gts-analyzer-setup-dialog>
 </div>

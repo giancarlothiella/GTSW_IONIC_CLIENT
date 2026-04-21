@@ -25,8 +25,7 @@ import { GtsFormComponent } from '../../../core/gts-open-source/gts-form/gts-for
 import { GtsFormPopupComponent } from '../../../core/gts-open-source/gts-form-popup/gts-form-popup.component';
 import { GtsMessageComponent } from '../../../core/gts-open-source/gts-message/gts-message.component';
 import { GtsLoaderComponent } from '../../../core/gts-open-source/gts-loader/gts-loader.component';
-import { GtsAiAnalyzerComponent, AiAnalyzerConfig } from '../../../core/gts-open-source/gts-ai-analyzer/gts-ai-analyzer.component';
-import { GtsDashboardComponent, DashboardConfig } from '../../../core/gts-open-source/gts-dashboard/gts-dashboard.component';
+import { GtsDashboardComponent } from '../../../core/gts-open-source/gts-dashboard/gts-dashboard.component';
 import { GtsHtmlViewComponent } from '../../../core/gts-open-source/gts-html-view/gts-html-view.component';
 import { GtsFileUploaderComponent } from '../../../core/gts-open-source/gts-file-uploader/gts-file-uploader.component';
 
@@ -67,7 +66,6 @@ interface ExcelRow {
     GtsFormPopupComponent,
     GtsMessageComponent,
     GtsLoaderComponent,
-    GtsAiAnalyzerComponent,
     GtsDashboardComponent,
     GtsHtmlViewComponent,
     GtsFileUploaderComponent,
@@ -193,9 +191,6 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
     // Run Page with hardcoded formId
     this.gtsDataService.runPage(this.prjId, this.formId);
 
-    // Imposta connCode dinamicamente per AI Analyzer
-    this.gtsAiAnalyzerConfig.connCode = this.gtsDataService.getActualConnCode();
-
     // Verifica se esistono dati cached per questa pagina
     this.checkCachedData();
   }
@@ -242,9 +237,6 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
   viewStyle: string = '';
   customData: any[] = [];
   toolbarSelectedValue = '';
-
-  //========= DASHBOARD STATE =================
-  showDashboard: boolean = false;
 
   // Dati raw per filtraggio per anno (clienti/prodotti unici)
   rawExcelData: ExcelRow[] = [];
@@ -334,15 +326,6 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
   async getCustomData(prjId: string, formId: number, customCode: string, actualView: string) {
     //===== START CUSTOM CODE =====
 
-    if (customCode === 'SHOW_DASHBOARD') {
-      this.showDashboard = true;
-    }
-
-    if (customCode === 'HIDE_DASHBOARD') {
-      this.showDashboard = false;
-      this.cdr.detectChanges();
-    }
-
     if (customCode === 'LOAD_EXCEL') {
       // Trigger the hidden file input click
       this.excelFileInput.nativeElement.click();
@@ -358,24 +341,7 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
       }
     }
 
-    if (customCode === 'SHOW_AI_ANALYZER_GTS' || customCode === 'SHOW_AI_ANALYZER') {
-      // Apri AI Analyzer generico con i dati raw Excel
-      this.showDashboard = false; // Analyzer non mostra la dashboard
-      if (this.rawExcelData && this.rawExcelData.length > 0) {
-        this.gtsAiAnalyzerData = this.rawExcelData;
-        this.showGtsAiAnalyzer = true;
-      } else {
-        // Mostra la sezione cache per caricare i dati, poi apri l'analyzer
-        this.pendingOpenAnalyzer = true;
-        this.showDashboard = true;
-      }
-    }
-
     //===== END CUSTOM CODE =====
-  }
-
-  closeDashboard(): void {
-    this.showDashboard = false;
   }
 
   //========= EXCEL IMPORT =================
@@ -576,16 +542,8 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Salva i dati raw per la dashboard e l'AI Analyzer
+    // Salva i dati raw per la dashboard
     this.rawExcelData = validData;
-
-    // Se c'era una richiesta pendente di aprire l'analyzer, aprilo ora e chiudi la dashboard
-    if (this.pendingOpenAnalyzer && this.rawExcelData && this.rawExcelData.length > 0) {
-      this.pendingOpenAnalyzer = false;
-      this.showDashboard = false; // Chiudi la dashboard, torna alla griglia
-      this.gtsAiAnalyzerData = this.rawExcelData;
-      this.showGtsAiAnalyzer = true;
-    }
   }
 
   /**
@@ -753,18 +711,11 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
     this.userDataService.loadExcelCache<ExcelRow[]>(this.prjId, pageCode, 'shared', connCode).subscribe({
       next: (response) => {
         if (response.success && response.data) {
-          // Processa i dati (popola rawExcelData e dashboardData)
           this.processExcelData(response.data);
-
-          // Ora apri l'AI Analyzer con i dati caricati
-          if (this.rawExcelData && this.rawExcelData.length > 0) {
-            this.gtsAiAnalyzerData = this.rawExcelData;
-            this.showGtsAiAnalyzer = true;
-          }
         }
       },
       error: (err) => {
-        console.error('Error loading cached data for analyzer:', err);
+        console.error('Error loading cached data:', err);
         this.showError(this.t(1551, 'Errore nel caricamento dei dati dalla cache'));
       },
       complete: () => {
@@ -803,35 +754,8 @@ export class DCW_SalesDashboardComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // GTS AI ANALYZER (Componente Generico)
+  // GTS DASHBOARD — config arriva dal viewItem dashboard (metadata-driven)
   // ============================================
-  showGtsAiAnalyzer: boolean = false;
-  gtsAiAnalyzerData: any[] = [];
-  gtsAiAnalyzerConfig: AiAnalyzerConfig = {
-    prjId: 'DCW',
-    datasetName: 'salesData',
-    pageCode: 'salesDashboard_20',  // datasetName + formId per filtro analisi salvate
-    dialogTitle: 'AI Analyzer - Sales Data'
-  };
-  pendingOpenAnalyzer: boolean = false; // Flag per aprire analyzer dopo caricamento dati
-
-  // ============================================
-  // GTS DASHBOARD (metadata-driven)
-  // ============================================
-  gtsDashboardConfig: DashboardConfig = {
-    prjId: 'DCW',
-    dashboardCode: 'salesDashboard',
-    connCode: 'DCW_SS',
-    title: 'Sales Dashboard'
-  };
-
-  /**
-   * Refresh handler per GTS Dashboard - ricarica i dati dalla cache
-   */
-  onGtsDashboardRefresh(): void {
-    // Il refresh della dashboard non ricarica i dati dalla cache
-    // I dati vengono caricati solo tramite il bottone LOAD_CACHED
-  }
 
   /**
    * Handler per richiesta dati da GTS Dashboard

@@ -8,4 +8,20 @@
     (visibleChange)="onAiChatVisibleChange($event)"
     (dataReceived)="onAiDataReceived($event)">
   </app-gts-ai-chat>
+
+  <!-- Global AI Analyzer Component (triggered by showAIAnalyzer action) -->
+  <app-gts-ai-analyzer
+    [(visible)]="aiAnalyzerVisible"
+    [data]="aiAnalyzerData"
+    [config]="aiAnalyzerConfig"
+    [analyzerCode]="aiAnalyzerCode"
+    (visibleChange)="onAiAnalyzerVisibleChange($event)">
+  </app-gts-ai-analyzer>
+
+  <!-- Global Excel Uploader (triggered by uploadExcel action) -->
+  <app-gts-excel-uploader
+    [request]="excelUploadRequest"
+    (uploaded)="onExcelUploaded($event)"
+    (closed)="onExcelUploaderClosed()">
+  </app-gts-excel-uploader>
 </ion-app>
