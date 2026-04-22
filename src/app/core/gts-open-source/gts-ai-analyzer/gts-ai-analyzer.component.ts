@@ -908,169 +908,30 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy, OnChanges {
         console.error('Save analysis error:', err);
         this.showError(this.t(1525, 'Errore durante il salvataggio:') + ' ' + (err?.error?.message || err.message || ''));
       }
-      return;
-    }
-
-    // Legacy: GtsDataAnalysis (da rimuovere al cleanup)
-    try {
-      const cachedResult = this.prepareCachedResult(this.aggregatedData);
-
-      const result = await this.aiReportsService.saveDataAnalysis({
-        prjId: this.config.prjId,
-        connCode: this.config.connCode || '',
-        pageCode: this.config.pageCode || '',
-        analysisName: this.saveAnalysisName.trim(),
-        description: this.analysisResult.explanation,
-        dataContext: {
-          datasetName: this.config.datasetName || 'data',
-          availableFields: this.getDataSchema().fields.map(f => ({ name: f.name, type: f.type }))
-        },
-        userRequest: this.userRequest,
-        aggregationRule: this.analysisResult.aggregationRule,
-        chartConfig: this.analysisResult.chartConfig,
-        gridConfig: this.analysisResult.gridConfig,
-        cachedResult: cachedResult,
-        createdBy: this.authService.getUserEmail() || 'unknown'
-      }).toPromise();
-
-      if (result?.success) {
-        this.closeSaveDialog();
-        const msg = result.updated
-          ? this.t(1560, 'Analisi aggiornata con successo')
-          : this.t(1557, 'Analisi salvata con successo');
-        this.showSuccess(msg);
-        this.analysisSaved.emit({ id: result.analysisId, name: this.saveAnalysisName.trim() });
-      }
-    } catch (err: any) {
-      console.error('Save analysis error:', err);
-      this.showError(this.t(1525, 'Errore durante il salvataggio:') + ' ' + (err.message || ''));
-    }
-  }
-
-  /**
-   * Prepara i dati aggregati per il caching (JSON -> base64)
-   */
-  private prepareCachedResult(data: any[]): { data: string; recordCount: number; compressed: boolean } | undefined {
-    if (!data || data.length === 0) return undefined;
-
-    try {
-      const jsonStr = JSON.stringify(data);
-      const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
-      return {
-        data: base64,
-        recordCount: data.length,
-        compressed: false  // Semplice base64, non gzip
-      };
-    } catch (err) {
-      console.warn('Failed to prepare cached result:', err);
-      return undefined;
-    }
-  }
-
-  /**
-   * Decodifica i dati cached (base64 -> JSON)
-   */
-  private decodeCachedResult(cachedResult: { data: string; compressed: boolean }): any[] | null {
-    if (!cachedResult?.data) return null;
-
-    try {
-      const jsonStr = decodeURIComponent(escape(atob(cachedResult.data)));
-      return JSON.parse(jsonStr);
-    } catch (err) {
-      console.warn('Failed to decode cached result:', err);
-      return null;
     }
   }
 
   async loadSavedAnalyses(): Promise<void> {
-    // Nuovo flusso: analisi già in memoria dal master
     if (this.analyzerCode && this.masterAnalyzer) {
       this.savedAnalyses = this.masterAnalyzer.analyses || [];
       this.showSavedAnalyses = true;
-      return;
-    }
-
-    // Legacy
-    try {
-      const result = await this.aiReportsService.listDataAnalyses(this.config.prjId, {
-        connCode: this.config.connCode || '',
-        pageCode: this.config.pageCode
-      }).toPromise();
-
-      this.savedAnalyses = Array.isArray(result) ? result : [];
-      this.showSavedAnalyses = true;
-    } catch (err: any) {
-      console.error('Load saved analyses error:', err);
-      this.showError(this.t(1527, 'Errore durante il caricamento:') + ' ' + (err.message || ''));
     }
   }
 
   async applySavedAnalysis(analysis: any): Promise<void> {
-    // Nuovo flusso: analisi già completa in memoria, niente fetch, niente cache
-    if (this.analyzerCode && this.masterAnalyzer) {
-      try {
-        this.userRequest = analysis.userRequest;
-        this.analysisResult = {
-          aggregationRule: analysis.aggregationRule,
-          chartConfig: analysis.chartConfig,
-          gridConfig: analysis.gridConfig,
-          explanation: analysis.description
-        };
+    if (!this.analyzerCode || !this.masterAnalyzer) return;
 
-        this.normalizeGridConfig(this.analysisResult);
-        this.aggregatedData = this.applyAggregationRules(this.data, this.analysisResult);
-
-        const pivotYears = this.analysisResult.aggregationRule?.pivotByYear?.years;
-        if (pivotYears && pivotYears.length >= 2) {
-          this.adaptGridConfigForPivot(this.analysisResult);
-        }
-
-        this.prepareResultChart(this.analysisResult);
-
-        // Track usage (fire-and-forget)
-        if (analysis._id) {
-          this.analyzerApi.trackUsage(this.config.prjId, this.analyzerCode, analysis._id).subscribe({
-            error: () => { /* ignore */ }
-          });
-        }
-
-        this.showSavedAnalyses = false;
-        this.cdr.detectChanges();
-      } catch (err: any) {
-        console.error('Apply saved analysis error:', err);
-        this.showError(this.t(1528, 'Errore durante l\'applicazione:') + ' ' + (err.message || ''));
-      }
-      return;
-    }
-
-    // Legacy
     try {
-      const fullAnalysis = await this.aiReportsService.getDataAnalysis(analysis._id).toPromise();
-      if (!fullAnalysis) return;
-
-      this.userRequest = fullAnalysis.userRequest;
+      this.userRequest = analysis.userRequest;
       this.analysisResult = {
-        aggregationRule: fullAnalysis.aggregationRule,
-        chartConfig: fullAnalysis.chartConfig,
-        gridConfig: fullAnalysis.gridConfig,
-        explanation: fullAnalysis.description
+        aggregationRule: analysis.aggregationRule,
+        chartConfig: analysis.chartConfig,
+        gridConfig: analysis.gridConfig,
+        explanation: analysis.description
       };
 
       this.normalizeGridConfig(this.analysisResult);
-
-      let usedCache = false;
-      if (fullAnalysis.cachedResult?.data) {
-        const cachedData = this.decodeCachedResult(fullAnalysis.cachedResult);
-        if (cachedData && cachedData.length > 0) {
-          this.aggregatedData = cachedData;
-          usedCache = true;
-        }
-      }
-
-      if (!usedCache) {
-        this.aggregatedData = this.applyAggregationRules(this.data, this.analysisResult);
-        this.updateAnalysisCache(analysis._id, this.aggregatedData);
-      }
+      this.aggregatedData = this.applyAggregationRules(this.data, this.analysisResult);
 
       const pivotYears = this.analysisResult.aggregationRule?.pivotByYear?.years;
       if (pivotYears && pivotYears.length >= 2) {
@@ -1079,77 +940,36 @@ export class GtsAiAnalyzerComponent implements OnInit, OnDestroy, OnChanges {
 
       this.prepareResultChart(this.analysisResult);
 
+      if (analysis._id) {
+        this.analyzerApi.trackUsage(this.config.prjId, this.analyzerCode, analysis._id).subscribe({
+          error: () => { /* ignore */ }
+        });
+      }
+
       this.showSavedAnalyses = false;
       this.cdr.detectChanges();
-
     } catch (err: any) {
       console.error('Apply saved analysis error:', err);
       this.showError(this.t(1528, 'Errore durante l\'applicazione:') + ' ' + (err.message || ''));
     }
   }
 
-  /**
-   * Aggiorna la cache di un'analisi esistente (in background)
-   */
-  private updateAnalysisCache(analysisId: string, aggregatedData: any[]): void {
-    // Non blocca l'UI, aggiorna in background
-    const cachedResult = this.prepareCachedResult(aggregatedData);
-    if (!cachedResult) return;
-
-    // Ricarica l'analisi completa e risalvala con i dati cached
-    this.aiReportsService.getDataAnalysis(analysisId).subscribe({
-      next: (fullAnalysis: any) => {
-        if (fullAnalysis) {
-          this.aiReportsService.saveDataAnalysis({
-            prjId: fullAnalysis.prjId,
-            connCode: fullAnalysis.connCode || '',
-            pageCode: fullAnalysis.pageCode || '',
-            analysisName: fullAnalysis.analysisName,
-            description: fullAnalysis.description,
-            dataContext: fullAnalysis.dataContext,
-            userRequest: fullAnalysis.userRequest,
-            aggregationRule: fullAnalysis.aggregationRule,
-            chartConfig: fullAnalysis.chartConfig,
-            gridConfig: fullAnalysis.gridConfig,
-            cachedResult: cachedResult,
-            createdBy: fullAnalysis.createdBy
-          }).subscribe({
-            next: () => console.log('[AI Analyzer] Cache updated for:', fullAnalysis.analysisName),
-            error: (err) => console.warn('[AI Analyzer] Failed to update cache:', err)
-          });
-        }
-      }
-    });
-  }
-
   deleteSavedAnalysis(analysis: any, event: Event): void {
     event.stopPropagation();
 
     if (!confirm(this.t(1529, 'Eliminare l\'analisi') + ` "${analysis.analysisName}"?`)) return;
+    if (!this.analyzerCode || !this.config?.prjId || !analysis._id) return;
 
-    const onSuccess = () => {
-      this.savedAnalyses = this.savedAnalyses.filter(a => a._id !== analysis._id);
-      if (this.masterAnalyzer) this.masterAnalyzer.analyses = this.savedAnalyses;
-      this.showSuccess(this.t(1559, 'Analisi eliminata'));
-    };
-    const onError = (err: any) => {
-      console.error('Delete analysis error:', err);
-      this.showError(this.t(1530, 'Errore durante l\'eliminazione'));
-    };
-
-    // Nuovo flusso
-    if (this.analyzerCode && this.config?.prjId && analysis._id) {
-      this.analyzerApi.deleteAnalysis(this.config.prjId, this.analyzerCode, analysis._id).subscribe({
-        next: onSuccess,
-        error: onError
-      });
-      return;
-    }
-
-    // Legacy
-    this.aiReportsService.deleteDataAnalysis(analysis._id).subscribe({
-      next: onSuccess,
-      error: onError
+    this.analyzerApi.deleteAnalysis(this.config.prjId, this.analyzerCode, analysis._id).subscribe({
+      next: () => {
+        this.savedAnalyses = this.savedAnalyses.filter(a => a._id !== analysis._id);
+        if (this.masterAnalyzer) this.masterAnalyzer.analyses = this.savedAnalyses;
+        this.showSuccess(this.t(1559, 'Analisi eliminata'));
+      },
+      error: (err: any) => {
+        console.error('Delete analysis error:', err);
+        this.showError(this.t(1530, 'Errore durante l\'eliminazione'));
+      }
     });
   }
 
