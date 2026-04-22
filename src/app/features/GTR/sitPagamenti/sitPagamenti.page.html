@@ -2,14 +2,6 @@
   <app-gts-loader></app-gts-loader>
   <p-toast position="top-center" [style]="{ marginTop: '60px' }"></p-toast>
 
-  <!-- Hidden file input for Excel upload -->
-  <input
-    type="file"
-    #excelFileInput
-    accept=".xlsx,.xls"
-    style="display: none"
-    (change)="onExcelFileSelected($event)">
-
   <app-gts-toolbar
     [prjId]="prjId"
     [formId]="formId"

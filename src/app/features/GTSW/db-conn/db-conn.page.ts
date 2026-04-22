@@ -154,20 +154,26 @@ export class GTSW_DbConnComponent implements OnInit, OnDestroy {
     this.appLoaderListenerSubs = this.gtsDataService
       .getAppLoaderListener()
       .subscribe((loading) => {
-        this.loading = loading;
+        queueMicrotask(() => {
+          this.loading = loading;
+          this.cd.detectChanges();
+        });
       });
 
     // View Listener
     this.appViewListenerSubs = this.gtsDataService
       .getAppViewListener()
       .subscribe((actualView) => {
-        this.actualView = actualView;
-        this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
-        this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all');
-        if (this.metaData.views.filter((view: any) => view.viewName === actualView) !== undefined &&
-            this.metaData.views.filter((view: any) => view.viewName === actualView).length > 0) {
-          this.viewStyle = this.metaData.views.filter((view: any) => view.viewName === actualView)[0].viewStyle;
-        }
+        queueMicrotask(() => {
+          this.actualView = actualView;
+          this.pageData = this.gtsDataService.getPageData(this.prjId, this.formId);
+          this.metaData = this.gtsDataService.getPageMetaData(this.prjId, this.formId, 'all', 'all');
+          if (this.metaData.views.filter((view: any) => view.viewName === actualView) !== undefined &&
+              this.metaData.views.filter((view: any) => view.viewName === actualView).length > 0) {
+            this.viewStyle = this.metaData.views.filter((view: any) => view.viewName === actualView)[0].viewStyle;
+          }
+          this.cd.detectChanges();
+        });
       });
 
     // Form Req Listener

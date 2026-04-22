@@ -12,12 +12,15 @@ import ExcelJS from 'exceljs';
 import { GtsImportDataService } from '../../services/gts-import-data.service';
 import { AuthService } from '../../services/auth.service';
 import { TranslationService } from '../../services/translation.service';
+import { GtsDataService } from '../../services/gts-data.service';
 
 export interface ExcelUploadRequest {
   prjId: string;
   formId: number;
   sqlId: number;
+  connCode: string;
   dataSetName: string;
+  actionName?: string;
 }
 
 @Component({
@@ -31,7 +34,7 @@ export interface ExcelUploadRequest {
 export class GtsExcelUploaderComponent implements OnChanges {
 
   @Input() request: ExcelUploadRequest | null = null;
-  @Output() uploaded = new EventEmitter<{ mode: 'replace' | 'append'; count: number; dataSetName: string }>();
+  @Output() uploaded = new EventEmitter<{ mode: 'replace' | 'append'; count: number; prjId: string; formId: number; dataSetName: string; actionName?: string }>();
   @Output() closed = new EventEmitter<void>();
 
   @ViewChild('fileInput', { static: false }) fileInput!: ElementRef<HTMLInputElement>;
@@ -41,6 +44,7 @@ export class GtsExcelUploaderComponent implements OnChanges {
   private ts = inject(TranslationService);
   private cdr = inject(ChangeDetectorRef);
   private messageService = inject(MessageService);
+  private gtsDataService = inject(GtsDataService);
 
   parsing: boolean = false;
   uploading: boolean = false;
@@ -88,6 +92,7 @@ export class GtsExcelUploaderComponent implements OnChanges {
     this.parsedFileName = file.name;
     this.pendingFile = file;
     this.parsing = true;
+    this.gtsDataService.sendAppLoaderListener(true);
 
     try {
       // Parse locale solo per mostrare il conteggio — i rows non vengono inviati (mandiamo il file binario)
@@ -119,6 +124,7 @@ export class GtsExcelUploaderComponent implements OnChanges {
       this.parsing = false;
       this.closed.emit();
     } finally {
+      this.gtsDataService.sendAppLoaderListener(false);
       input.value = '';
     }
   }
@@ -156,12 +162,14 @@ export class GtsExcelUploaderComponent implements OnChanges {
 
   onConfirm(mode: 'replace' | 'append'): void {
     if (!this.request || !this.pendingFile) return;
-    this.showModeDialog = false;
     this.uploading = true;
+    this.showModeDialog = false;
+    this.gtsDataService.sendAppLoaderListener(true);
 
     this.importApi.fromSqlIdFile(
       this.request.prjId,
       this.request.sqlId,
+      this.request.connCode,
       this.pendingFile,
       {
         mode,
@@ -171,13 +179,21 @@ export class GtsExcelUploaderComponent implements OnChanges {
     ).subscribe({
       next: (res) => {
         this.uploading = false;
+        this.gtsDataService.sendAppLoaderListener(false);
         if (res?.valid) {
           const insertedCount = res.insertedCount || 0;
           const msg = mode === 'replace'
             ? this.t(1753, 'Dati sostituiti: ') + insertedCount
             : this.t(1754, 'Dati aggiunti: ') + insertedCount;
           this.showSuccess(msg);
-          this.uploaded.emit({ mode, count: insertedCount, dataSetName: this.request!.dataSetName });
+          this.uploaded.emit({
+            mode,
+            count: insertedCount,
+            prjId: this.request!.prjId,
+            formId: this.request!.formId,
+            dataSetName: this.request!.dataSetName,
+            actionName: this.request!.actionName
+          });
           this.close();
         } else {
           this.showError(this.t(1755, 'Errore upload: ') + (res as any)?.message);
@@ -185,12 +201,14 @@ export class GtsExcelUploaderComponent implements OnChanges {
       },
       error: (err) => {
         this.uploading = false;
+        this.gtsDataService.sendAppLoaderListener(false);
         this.showError(this.t(1755, 'Errore upload: ') + (err?.error?.message || err.message || ''));
       }
     });
   }
 
   onCancel(): void {
+    if (this.uploading || this.parsing) return;
     this.close();
   }
 

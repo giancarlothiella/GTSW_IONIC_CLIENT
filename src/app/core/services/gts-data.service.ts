@@ -1458,7 +1458,9 @@ export class GtsDataService {
               prjId,
               formId,
               sqlId: uploadSqlId,
-              dataSetName: element.dataSetName
+              connCode: this.getConnCode(prjId),
+              dataSetName: element.dataSetName,
+              actionName: element.actionName || undefined
             });
             this.actionCanRun = true;
 

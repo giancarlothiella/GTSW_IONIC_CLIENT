@@ -135,9 +135,9 @@ export class GtsGridService {
         column.dataType = 'date';
         column.format = 'dd/MM/yyyy';
       } else if (col.columnType === 'C') {
-        column.checkedValue = col.checkedValue || true;
-        column.uncheckedValue = col.uncheckedValue || false;
-        column.dataType = 'boolean';        
+        column.checkedValue = (col.checkedValue === null || col.checkedValue === undefined || col.checkedValue === '') ? true : col.checkedValue;
+        column.uncheckedValue = (col.uncheckedValue === null || col.uncheckedValue === undefined || col.uncheckedValue === '') ? false : col.uncheckedValue;
+        column.dataType = 'boolean';
       } else if (col.colType === 'String') {
         column.dataType = 'string';       
       } else if (col.colType === 'Float') {

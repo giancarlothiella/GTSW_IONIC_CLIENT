@@ -36,13 +36,6 @@
     </div>
   </p-dialog>
 
-  <!-- Hidden file input for LOAD_EXCEL custom code -->
-  <input type="file"
-         #excelFileInput
-         accept=".xlsx,.xls"
-         style="display: none"
-         (change)="onExcelFileSelected($event)">
-
   <app-gts-toolbar
     [prjId]="prjId"
     [formId]="formId"

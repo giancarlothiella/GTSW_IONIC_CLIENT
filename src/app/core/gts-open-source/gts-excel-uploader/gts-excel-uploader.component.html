@@ -8,18 +8,6 @@
   style="display: none" />
 
 <p-dialog
-  [visible]="parsing || uploading"
-  [modal]="true"
-  [closable]="false"
-  [style]="{ width: '320px' }">
-  <div class="progress-box">
-    <i class="pi pi-spin pi-spinner"></i>
-    <span *ngIf="parsing">{{ t(1756, 'Parsing Excel…') }}</span>
-    <span *ngIf="uploading">{{ t(1757, 'Caricamento in corso…') }}</span>
-  </div>
-</p-dialog>
-
-<p-dialog
   [(visible)]="showModeDialog"
   [modal]="true"
   [closable]="true"

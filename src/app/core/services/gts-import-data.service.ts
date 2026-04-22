@@ -57,17 +57,19 @@ export class GtsImportDataService {
   fromSqlId(
     prjId: string,
     sqlId: number,
+    connCode: string,
     rows: any[],
     meta: ImportMeta & { mode?: 'replace' | 'append' } = {}
   ): Observable<ImportResult & { target?: any; deletedCount?: number; mode?: string }> {
     return this.http.post<any>(`${this.apiUrl}/fromSqlId`, {
-      prjId, sqlId, rows, ...meta
+      prjId, sqlId, connCode, rows, ...meta
     });
   }
 
   fromSqlIdFile(
     prjId: string,
     sqlId: number,
+    connCode: string,
     file: File,
     meta: ImportMeta & { mode?: 'replace' | 'append'; sheet?: string } = {}
   ): Observable<ImportResult & { target?: any; deletedCount?: number; mode?: string; parsedCount?: number }> {
@@ -75,6 +77,7 @@ export class GtsImportDataService {
     form.append('file', file, file.name);
     form.append('prjId', prjId);
     form.append('sqlId', String(sqlId));
+    form.append('connCode', connCode);
     if (meta.mode) form.append('mode', meta.mode);
     if (meta.fileName) form.append('fileName', meta.fileName);
     if (meta.importedBy) form.append('importedBy', meta.importedBy);

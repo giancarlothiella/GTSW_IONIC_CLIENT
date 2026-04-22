@@ -70,11 +70,13 @@ export class AppComponent implements OnInit, OnDestroy {
     this.dbErrorListenerSub?.unsubscribe();
   }
 
-  onExcelUploaded(event: { mode: string; count: number; dataSetName: string }): void {
-    if (event.dataSetName) {
+  onExcelUploaded(event: { mode: string; count: number; prjId: string; formId: number; dataSetName: string; actionName?: string }): void {
+    this.excelUploadRequest = null;
+    if (event.actionName) {
+      this.gtsDataService.runAction(event.prjId, event.formId, event.actionName);
+    } else if (event.dataSetName) {
       this.gtsDataService.sendGridReload(event.dataSetName);
     }
-    this.excelUploadRequest = null;
   }
 
   onExcelUploaderClosed(): void {

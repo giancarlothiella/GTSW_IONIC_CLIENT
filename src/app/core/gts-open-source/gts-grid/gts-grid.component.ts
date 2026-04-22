@@ -974,8 +974,17 @@ export class GtsGridComponent implements OnInit, OnDestroy {
       if (colDef.editable) {
         colDef.cellEditor = 'agCheckboxCellEditor';
       }
+      const checkedVal = col.checkedValue;
+      const uncheckedVal = col.uncheckedValue;
+      const hasMapping = checkedVal !== undefined && checkedVal !== null && uncheckedVal !== undefined && uncheckedVal !== null;
       colDef.cellRenderer = (params: any) => {
-        const checked = params.value ? 'checked' : '';
+        let isChecked: boolean;
+        if (hasMapping) {
+          isChecked = params.value === checkedVal || String(params.value) === String(checkedVal);
+        } else {
+          isChecked = !!params.value;
+        }
+        const checked = isChecked ? 'checked' : '';
         return `<input type="checkbox" ${checked} style="appearance: auto; width: 16px; height: 16px; pointer-events: ${colDef.editable ? 'auto' : 'none'};" />`;
       };
     }
