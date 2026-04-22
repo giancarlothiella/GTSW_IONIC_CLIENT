@@ -23,7 +23,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 
 // Services
 import { GtsDataService } from '../../services/gts-data.service';
-import { UserDataService } from '../../services/user-data.service';
+import { GtsImportDataService } from '../../services/gts-import-data.service';
 
 // GTS Components
 import { GtsDashboardComponent, DashboardConfig } from './gts-dashboard.component';
@@ -269,7 +269,7 @@ export class GtsDashboardBuilderComponent implements OnInit, OnChanges {
   @Output() onBack = new EventEmitter<void>();
 
   private gtsDataService = inject(GtsDataService);
-  private userDataService = inject(UserDataService);
+  private importDataService = inject(GtsImportDataService);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
 
@@ -296,8 +296,8 @@ export class GtsDashboardBuilderComponent implements OnInit, OnChanges {
   showPreviewMappingDialog: boolean = false;
   showPreviewDialog: boolean = false;
   previewLoading: boolean = false;
-  previewDatasetMappings: { datasetId: string; cacheKey: string; description?: string }[] = [];
-  availableCaches: { label: string; value: string; recordCount?: number }[] = [];
+  previewDatasetMappings: { datasetId: string; sqlId: number | null; description?: string }[] = [];
+  availableSqls: { label: string; value: number; sqlDescription: string }[] = [];
   previewData: Map<string, any[]> = new Map();
   previewDashboardConfig: DashboardConfig | null = null;
 
@@ -1157,39 +1157,38 @@ export class GtsDashboardBuilderComponent implements OnInit, OnChanges {
     // Initialize mappings from datasets
     this.previewDatasetMappings = (this.dashboard.datasets || []).map(ds => ({
       datasetId: ds.datasetId,
-      cacheKey: ds.cacheKey || '',
+      sqlId: null,
       description: ds.description
     }));
 
-    // Load available caches
-    await this.loadAvailableCaches();
+    // Load available SQLs (mongoOp-backed) for this project
+    await this.loadAvailableSqls();
 
     this.showPreviewMappingDialog = true;
   }
 
   /**
-   * Load list of available caches from server
+   * Load list of available MongoDB-backed SQLs for the project
    */
-  async loadAvailableCaches(): Promise<void> {
+  async loadAvailableSqls(): Promise<void> {
     this.previewLoading = true;
 
-    // Usa l'endpoint per listare le cache condivise (userId = 'shared')
-    this.userDataService.listExcelCaches(this.prjId).subscribe({
+    this.importDataService.listMongoSqls(this.prjId).subscribe({
       next: (response) => {
-        if (response.success && response.caches) {
-          this.availableCaches = response.caches.map((cache: any) => ({
-            label: `${cache.pageCode} (${cache.metadata?.recordCount || 0} records)`,
-            value: cache.pageCode,
-            recordCount: cache.metadata?.recordCount || 0
+        if (response.valid && response.sqls) {
+          this.availableSqls = response.sqls.map(s => ({
+            label: `${s.sqlDescription} (sqlId ${s.sqlId})`,
+            value: s.sqlId,
+            sqlDescription: s.sqlDescription
           }));
         } else {
-          this.availableCaches = [];
+          this.availableSqls = [];
         }
         this.previewLoading = false;
       },
       error: (err) => {
-        console.error('Error loading caches:', err);
-        this.availableCaches = [];
+        console.error('Error loading SQLs:', err);
+        this.availableSqls = [];
         this.previewLoading = false;
       }
     });
@@ -1199,10 +1198,9 @@ export class GtsDashboardBuilderComponent implements OnInit, OnChanges {
    * Start the preview with the configured mappings
    */
   async startPreview(): Promise<void> {
-    // Check all datasets have cache mappings
-    const unmapped = this.previewDatasetMappings.filter(m => !m.cacheKey);
+    const unmapped = this.previewDatasetMappings.filter(m => !m.sqlId);
     if (unmapped.length > 0) {
-      this.showError(`Configura la cache per tutti i dataset: ${unmapped.map(m => m.datasetId).join(', ')}`);
+      this.showError(`Seleziona un SQL per ogni dataset: ${unmapped.map(m => m.datasetId).join(', ')}`);
       return;
     }
 
@@ -1210,14 +1208,12 @@ export class GtsDashboardBuilderComponent implements OnInit, OnChanges {
     this.previewData.clear();
 
     try {
-      // Load data for each dataset from cache
       const loadPromises = this.previewDatasetMappings.map(mapping =>
-        this.loadCacheData(mapping.datasetId, mapping.cacheKey)
+        this.loadSqlData(mapping.datasetId, mapping.sqlId as number)
       );
 
       await Promise.all(loadPromises);
 
-      // Setup preview dashboard config
       this.previewDashboardConfig = {
         prjId: this.dashboard.prjId,
         dashboardCode: this.dashboard.dashboardCode,
@@ -1225,7 +1221,6 @@ export class GtsDashboardBuilderComponent implements OnInit, OnChanges {
         title: this.dashboard.title
       };
 
-      // Close mapping dialog and open preview
       this.showPreviewMappingDialog = false;
       this.showPreviewDialog = true;
 
@@ -1238,24 +1233,24 @@ export class GtsDashboardBuilderComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Load data from cache for a specific dataset
+   * Load preview rows for a dataset from a project-level Mongo collection via sqlId
    */
-  private loadCacheData(datasetId: string, cacheKey: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.userDataService.loadExcelCache<any[]>(this.prjId, cacheKey, 'shared').subscribe({
+  private loadSqlData(datasetId: string, sqlId: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.importDataService.previewMongoData({
+        prjId: this.prjId,
+        sqlId,
+        connCode: this.connCode,
+        limit: 500
+      }).subscribe({
         next: (response) => {
-          if (response.success && response.data) {
-            this.previewData.set(datasetId, response.data);
-            console.log(`Loaded ${response.data.length} records for dataset ${datasetId} from cache ${cacheKey}`);
-          } else {
-            this.previewData.set(datasetId, []);
-          }
+          this.previewData.set(datasetId, response.valid ? (response.rows || []) : []);
           resolve();
         },
         error: (err) => {
-          console.error(`Error loading cache ${cacheKey}:`, err);
+          console.error(`Error loading preview rows for sqlId ${sqlId}:`, err);
           this.previewData.set(datasetId, []);
-          resolve(); // Don't reject, just use empty data
+          resolve();
         }
       });
     });

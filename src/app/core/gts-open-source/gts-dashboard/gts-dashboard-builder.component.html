@@ -883,16 +883,16 @@
     @if (previewLoading) {
       <div class="preview-loading">
         <i class="pi pi-spin pi-spinner" style="font-size: 1.5rem"></i>
-        <span>Caricamento cache disponibili...</span>
+        <span>Caricamento SQL disponibili...</span>
       </div>
     } @else {
       <p class="mapping-info">
-        Collega ogni dataset del dashboard a una cache dati disponibile per visualizzare il preview.
+        Collega ogni dataset del dashboard a un SQL MongoDB del progetto per visualizzare il preview.
       </p>
-      @if (availableCaches.length === 0) {
+      @if (availableSqls.length === 0) {
         <div class="empty-caches">
           <i class="pi pi-info-circle"></i>
-          <span>Nessuna cache disponibile. Carica prima dei dati nelle pagine del progetto.</span>
+          <span>Nessun SQL MongoDB disponibile in questo progetto.</span>
         </div>
       } @else {
         <div class="mapping-list">
@@ -906,16 +906,14 @@
               </div>
               <div class="cache-input-row">
                 <p-select
-                  [(ngModel)]="mapping.cacheKey"
-                  [options]="availableCaches"
+                  [(ngModel)]="mapping.sqlId"
+                  [options]="availableSqls"
                   optionLabel="label"
                   optionValue="value"
-                  placeholder="Seleziona cache..."
-                  [style]="{ width: '100%' }"
-                  [editable]="true">
+                  placeholder="Seleziona SQL..."
+                  [style]="{ width: '100%' }">
                 </p-select>
               </div>
-              <small class="cache-hint">Es: salesDashboard_51, woolAuctions_data</small>
             </div>
           }
         </div>

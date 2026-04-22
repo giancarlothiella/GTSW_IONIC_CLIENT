@@ -94,4 +94,13 @@ export class GtsImportDataService {
     if (target.dbMode) params = params.set('dbMode', target.dbMode);
     return this.http.get<ImportStats>(`${this.apiUrl}/stats`, { params });
   }
+
+  listMongoSqls(prjId: string): Observable<{ valid: boolean; sqls: Array<{ sqlId: number; sqlDescription: string; mongoOp: { CONN_CODE: string; COLL_NAME: string; METHOD_NAME?: string } }>; message?: string }> {
+    const params = new HttpParams().set('prjId', prjId);
+    return this.http.get<any>(`${environment.apiUrl}/data/listMongoSqls`, { params });
+  }
+
+  previewMongoData(payload: { prjId: string; sqlId: number; connCode: string; dbMode?: string; limit?: number }): Observable<{ valid: boolean; rows: any[]; count: number; message?: string }> {
+    return this.http.post<any>(`${environment.apiUrl}/data/previewMongoData`, payload);
+  }
 }
