@@ -5,6 +5,7 @@
   "homepage": "https://ionicframework.com/",
   "scripts": {
     "ng": "ng",
+    "postinstall": "node scripts/postinstall.js",
     "prepare:registry": "node scripts/build-registry.js",
     "start": "npm run prepare:registry -- --profile=dev && node --max-old-space-size=8192 node_modules/@angular/cli/bin/ng serve",
     "build": "npm run prepare:registry -- --profile=dev && ng build",
