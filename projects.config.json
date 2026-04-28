@@ -1,6 +1,7 @@
 {
   "profiles": {
-    "all": ["*"],
-    "dist": ["GTSW"]
+    "all":  ["*"],
+    "dev":  ["GTR", "WFS", "DCW"],
+    "dist": []
   }
 }

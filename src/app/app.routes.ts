@@ -2,7 +2,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
-import { COMPONENT_REGISTRY } from './core/config/component-registry';
+import { COMPONENT_REGISTRY } from './core/config/component-registry.generated';
 
 // Crea route dinamiche da tutti i componenti registrati
 function createDynamicRoutes(): Routes {

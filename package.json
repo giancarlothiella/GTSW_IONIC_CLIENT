@@ -5,9 +5,10 @@
   "homepage": "https://ionicframework.com/",
   "scripts": {
     "ng": "ng",
-    "start": "node --max-old-space-size=8192 node_modules/@angular/cli/bin/ng serve",
-    "build": "ng build",
-    "build:dist": "node scripts/filter-projects.js dist && ng build -c dist",
+    "prepare:registry": "node scripts/build-registry.js",
+    "start": "npm run prepare:registry -- --profile=dev && node --max-old-space-size=8192 node_modules/@angular/cli/bin/ng serve",
+    "build": "npm run prepare:registry -- --profile=dev && ng build",
+    "build:dist": "npm run prepare:registry -- --profile=dist && ng build --configuration=production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
