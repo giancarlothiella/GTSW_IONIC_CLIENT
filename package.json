@@ -10,6 +10,7 @@
     "start": "npm run prepare:registry -- --profile=dev && node --max-old-space-size=8192 node_modules/@angular/cli/bin/ng serve",
     "build": "npm run prepare:registry -- --profile=dev && ng build",
     "build:dist": "npm run prepare:registry -- --profile=dist && ng build --configuration=production",
+    "build:prod": "npm run prepare:registry -- --profile=all && ng build --configuration=production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
