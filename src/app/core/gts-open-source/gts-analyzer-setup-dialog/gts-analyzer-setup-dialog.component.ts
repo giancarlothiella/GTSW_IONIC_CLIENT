@@ -6,7 +6,6 @@ import { Dialog } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputText } from 'primeng/inputtext';
 import { InputNumber } from 'primeng/inputnumber';
-import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Tooltip } from 'primeng/tooltip';
@@ -34,7 +33,6 @@ type DialogMode = 'new' | 'edit';
     ButtonModule,
     InputText,
     InputNumber,
-    Textarea,
     Select,
     TableModule,
     Tooltip,

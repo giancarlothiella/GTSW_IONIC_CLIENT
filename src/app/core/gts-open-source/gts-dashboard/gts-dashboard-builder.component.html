@@ -877,7 +877,8 @@
   [(visible)]="showPreviewMappingDialog"
   header="Preview Dashboard - Mapping Dataset"
   [modal]="true"
-  [style]="{ width: '600px' }"
+  [style]="{ width: '720px', minHeight: '420px' }"
+  [contentStyle]="{ overflow: 'visible' }"
   [closable]="true">
   <div class="preview-mapping-content">
     @if (previewLoading) {
@@ -911,7 +912,10 @@
                   optionLabel="label"
                   optionValue="value"
                   placeholder="Seleziona SQL..."
-                  [style]="{ width: '100%' }">
+                  appendTo="body"
+                  [filter]="true"
+                  [style]="{ width: '100%' }"
+                  [panelStyle]="{ maxHeight: '300px' }">
                 </p-select>
               </div>
             </div>

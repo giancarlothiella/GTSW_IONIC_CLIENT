@@ -64,6 +64,9 @@
         <ion-segment-button value="4">
           <ion-label>Selected</ion-label>
         </ion-segment-button>
+        <ion-segment-button value="5">
+          <ion-label>Wiki</ion-label>
+        </ion-segment-button>
       </ion-segment>
     </div>
 
@@ -636,6 +639,76 @@
               </tr>
             </ng-template>
           </p-table>
+        </div>
+      }
+
+      <!-- Tab 6: Wiki -->
+      @if (activeTabIndex === '5') {
+        <div class="wiki-container">
+          <div class="wiki-section-bar">
+            @for (s of wikiSections; track s.key) {
+              <button
+                type="button"
+                class="wiki-section-tab"
+                [class.active]="selectedWikiSection === s.key"
+                (click)="onWikiSectionChange(s.key)"
+              >
+                {{ s.label }}
+              </button>
+            }
+          </div>
+          <div class="wiki-split-layout">
+            <!-- Left: search + grouped list -->
+            <div class="wiki-nav-panel">
+              <div class="wiki-search">
+                <input
+                  type="text"
+                  placeholder="Filter by name or description..."
+                  [(ngModel)]="wikiSearch"
+                  (ngModelChange)="onWikiSearchChange()"
+                />
+              </div>
+              <div class="wiki-nav-list">
+                @if (wikiLoading) {
+                  <div class="wiki-loading">Loading…</div>
+                } @else if (wikiFilteredGroups.length === 0) {
+                  <div class="wiki-empty">No items.</div>
+                } @else {
+                  @for (group of wikiFilteredGroups; track group.groupName) {
+                    <div class="wiki-group">
+                      <div class="wiki-group-name">{{ group.groupName }}</div>
+                      @for (item of group.items; track item.kind + ':' + item.title) {
+                        <div
+                          class="wiki-item"
+                          [class.selected]="selectedWikiItem === item"
+                          [class.is-article]="item.kind === 'article'"
+                          (click)="onWikiItemSelect(item)"
+                          [title]="item.subtitle || ''"
+                        >
+                          {{ item.title }}
+                        </div>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+
+            <!-- Right: HTML content -->
+            <div class="wiki-content-panel">
+              @if (selectedWikiItem) {
+                <div class="wiki-content-header">
+                  <span class="wiki-content-title">{{ selectedWikiItem.title }}</span>
+                  @if (selectedWikiItem.subtitle) {
+                    <span class="wiki-content-subtitle">{{ selectedWikiItem.subtitle }}</span>
+                  }
+                </div>
+                <div class="wiki-content-body" [innerHTML]="selectedWikiHtml"></div>
+              } @else {
+                <div class="wiki-placeholder">Select an item from the list.</div>
+              }
+            </div>
+          </div>
         </div>
       }
 

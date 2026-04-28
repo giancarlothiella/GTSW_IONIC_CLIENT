@@ -1,9 +1,12 @@
 import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { GtsDataService } from '../../services/gts-data.service';
 import { AppInfoService } from '../../services/app-info.service';
 import { Subscription } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 import {
   IonButton,
   IonIcon,
@@ -60,6 +63,8 @@ addIcons({
 export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
   private gtsDataService = inject(GtsDataService);
   private appInfoService = inject(AppInfoService);
+  private http = inject(HttpClient);
+  private sanitizer = inject(DomSanitizer);
 
   @Input() prjId: string = '';
   @Input() metaData: any = {};
@@ -108,6 +113,26 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
   // Selected Tab
   selectionDataSets: any[] = [];
   selectedSelectionDS: any = null;
+
+  // Wiki Tab
+  wikiLoaded: boolean = false;
+  wikiLoading: boolean = false;
+  wikiActionTypes: any[] = [];
+  wikiArticles: any[] = [];
+  wikiGroups: { groupName: string; items: any[] }[] = [];
+  wikiFilteredGroups: { groupName: string; items: any[] }[] = [];
+  selectedWikiItem: any = null;
+  selectedWikiHtml: SafeHtml = '';
+  wikiSearch: string = '';
+
+  // Wiki sub-sections (top tab bar)
+  wikiSections: { key: string; label: string }[] = [
+    { key: 'architecture', label: 'Architecture' },
+    { key: 'actionTypes',  label: 'Action Types' },
+    { key: 'designer',     label: 'Designer' },
+    { key: 'patterns',     label: 'Patterns' }
+  ];
+  selectedWikiSection: string = 'architecture';
 
   // Actions Debug State
   actionDebugActive: boolean = false;
@@ -234,7 +259,131 @@ export class GtsDebugComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   onTabChange(): void {
-    // Tab changed, no special action needed
+    if (this.activeTabIndex === '5' && !this.wikiLoaded && !this.wikiLoading) {
+      this.loadWikiData();
+    }
+  }
+
+  // ============================================
+  // WIKI TAB
+  // ============================================
+  private loadWikiData(): void {
+    this.wikiLoading = true;
+    const types$    = this.http.get<any>(`${environment.apiUrl}/sqlite/listActionTypes`);
+    const articles$ = this.http.get<any>(`${environment.apiUrl}/sqlite/listWikiArticles`);
+
+    let pending = 2;
+    const done = () => {
+      pending--;
+      if (pending === 0) {
+        this.buildWikiGroups();
+        const first = this.wikiFilteredGroups[0]?.items?.[0];
+        if (first) this.onWikiItemSelect(first);
+        this.wikiLoaded = true;
+        this.wikiLoading = false;
+      }
+    };
+
+    types$.subscribe({
+      next: res => { this.wikiActionTypes = res?.items || []; done(); },
+      error: () => { this.wikiActionTypes = []; done(); }
+    });
+    articles$.subscribe({
+      next: res => { this.wikiArticles = res?.items || []; done(); },
+      error: () => { this.wikiArticles = []; done(); }
+    });
+  }
+
+  private buildWikiGroups(): void {
+    const map = new Map<string, any[]>();
+
+    if (this.selectedWikiSection === 'actionTypes') {
+      // Action Types section: items from GtsActionTypes grouped by groupAction
+      for (const it of this.wikiActionTypes) {
+        const key = it.groupAction || 'Action Types';
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push({
+          kind: 'actionType',
+          title: it.actionType,
+          subtitle: it.description || '',
+          html: it.htmlDoc || '',
+          raw: it
+        });
+      }
+    } else {
+      // Other sections: wiki articles where section === selectedWikiSection
+      // (default to 'architecture' if the doc has no section field)
+      const filtered = this.wikiArticles.filter(a =>
+        (a.section || 'architecture') === this.selectedWikiSection
+      );
+      for (const a of filtered) {
+        const key = a.category || 'Documentation';
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push({
+          kind: 'article',
+          title: a.title,
+          subtitle: '',
+          html: a.htmlContent || '',
+          order: a.order || 0,
+          raw: a
+        });
+      }
+    }
+
+    this.wikiGroups = Array.from(map.entries())
+      .map(([groupName, items]) => ({
+        groupName,
+        items: items.sort((x, y) => {
+          const oa = x.order ?? 0;
+          const ob = y.order ?? 0;
+          if (oa !== ob) return oa - ob;
+          return (x.title || '').localeCompare(y.title || '');
+        })
+      }))
+      .sort((a, b) => a.groupName.localeCompare(b.groupName));
+    this.applyWikiFilter();
+  }
+
+  onWikiSectionChange(sectionKey: string): void {
+    if (sectionKey === this.selectedWikiSection) return;
+    this.selectedWikiSection = sectionKey;
+    this.wikiSearch = '';
+    this.buildWikiGroups();
+    // Auto-select the first item of the new section
+    const first = this.wikiFilteredGroups[0]?.items?.[0];
+    if (first) {
+      this.onWikiItemSelect(first);
+    } else {
+      this.selectedWikiItem = null;
+      this.selectedWikiHtml = '';
+    }
+  }
+
+  onWikiSearchChange(): void {
+    this.applyWikiFilter();
+  }
+
+  private applyWikiFilter(): void {
+    const q = (this.wikiSearch || '').trim().toLowerCase();
+    if (!q) {
+      this.wikiFilteredGroups = this.wikiGroups;
+      return;
+    }
+    this.wikiFilteredGroups = this.wikiGroups
+      .map(g => ({
+        groupName: g.groupName,
+        items: g.items.filter(i =>
+          (i.title || '').toLowerCase().includes(q) ||
+          (i.subtitle || '').toLowerCase().includes(q)
+        )
+      }))
+      .filter(g => g.items.length > 0);
+  }
+
+  onWikiItemSelect(item: any): void {
+    this.selectedWikiItem = item;
+    const html = item?.html || '<em>Nessuna documentazione disponibile.</em>';
+    this.selectedWikiHtml = this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
   onMetaDataCategoryChange(): void {
